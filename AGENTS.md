@@ -8,10 +8,10 @@ Conventions for AI coding agents (Claude Code, Cursor, Codex, etc.) and human co
 * `lib/src/entry_point.dart` — `runApp` (guarded zone) and `runShutter` (exception → sysexits mapping). Tests drive `runShutter` with a `ShutterContext`.
 * `lib/src/shutter_exception.dart` — expected failures with their sysexits code; `lib/src/version.dart` — `packageVersion`, generated from `pubspec.yaml` by `build_version` (`dart run build_runner build`); `lib/src/dart_literal.dart` — Dart string literals for generated code.
 * `lib/src/cli/` — `CommandRunner` plus one file per subcommand. `context.dart` defines `ShutterContext`, which carries the working directory, clock, environment, and engine factory so commands run in tests without Flutter. `shot_options.dart` parses `shot`'s arguments. `agent_text.dart` and `manual_text.dart` are const mirrors of `doc/agent.md` and `doc/manual.md`; `test/cli/text_parity_test.dart` enforces byte equality.
-* `lib/src/project/` — project root and pubspec fields, preview-dir convention, `.gitignore`, Flutter SDK lookup, and the `Process.run` seam the engine uses.
+* `lib/src/project/` — project root and pubspec fields, preview-dir convention, Flutter SDK lookup, and the `Process.run` seam the engine uses.
 * `lib/src/scan/` — the previews of the preview files `shot` is given, with the analyzer's resolution: which annotations are previews, and each name they use rewritten through an import prefix. Tests resolve against a stub `package:flutter` (`test/helpers.dart`) and the Dart SDK running them.
-* `lib/src/engine/` — the only swappable layer. `Engine` is the interface; `FlutterTestEngine` generates `.shutter/test/<run-id>/` (`generator.dart`, `design.dart`, `widget_shot.dart`) and runs `flutter test`. `harness_text.dart` is the Flutter-side runtime, shipped as a const string so target projects gain no dependency.
-* `lib/src/fonts/` — the google_fonts file list the project resolves, and the download cache under `.shutter/fonts/google_fonts/`.
+* `lib/src/engine/` — the only swappable layer. `Engine` is the interface; `FlutterTestEngine` generates `.dart_tool/shutter/test/<run-id>/` (`generator.dart`, `design.dart`, `widget_shot.dart`) and runs `flutter test`. `harness_text.dart` is the Flutter-side runtime, shipped as a const string so target projects gain no dependency.
+* `lib/src/fonts/` — the google_fonts file list the project resolves, and the download cache under `.dart_tool/shutter/fonts/google_fonts/`.
 * `lib/src/run/` — run ids, `manifest.json` model, run lookup.
 * `lib/src/diff/` — pixel comparison and classification. Pure Dart (`package:image`).
 * `lib/src/reporters/` — the YAML output of `shot` and `diff`.

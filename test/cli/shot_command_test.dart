@@ -35,12 +35,22 @@ void main() {
       'A()',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
-    final runDir = p.join(root, '.shutter', 'runs', '20260918T101530Z');
+    final runDir = p.join(
+      root,
+      '.dart_tool',
+      'shutter',
+      'runs',
+      '20260918T101530Z',
+    );
     final manifest = RunManifest.read(runDir);
     expect(manifest.run, '20260918T101530Z');
     expect(manifest.shots.map((s) => s.id), ['a.0', 'b.0']);
     expect(engine.requests.single.settleMs, 120);
-    expect(File(p.join(root, '.gitignore')).readAsStringSync(), '.shutter/\n');
+    expect(
+      File(p.join(root, '.gitignore')).existsSync(),
+      isFalse,
+      reason: 'shutter writes only under .dart_tool/',
+    );
     expect(result.stdout, startsWith('# shutter ai-report v1\nrun: $runDir\n'));
   });
 
@@ -221,7 +231,7 @@ void main() {
       66,
     );
     expect(
-      File(p.join(root, '.gitignore')).existsSync(),
+      Directory(p.join(root, '.dart_tool', 'shutter')).existsSync(),
       isFalse,
       reason: 'a shot that fails its checks leaves the project alone',
     );

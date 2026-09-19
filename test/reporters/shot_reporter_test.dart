@@ -37,7 +37,7 @@ const manifest = RunManifest(
   ],
 );
 
-const dir = '/p/.shutter/runs/20260918T101530Z';
+const dir = '/p/.dart_tool/shutter/runs/20260918T101530Z';
 
 Future<String> render(RunManifest m) =>
     collect((sink) => reportShots(m, dir, sink));

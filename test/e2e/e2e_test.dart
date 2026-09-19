@@ -23,7 +23,6 @@ Future<String> exampleCopy() async {
     final rel = p.relative(entity.path, from: 'example');
     if (entity is! File ||
         rel.startsWith('.dart_tool') ||
-        rel.startsWith('.shutter') ||
         rel.startsWith('build')) {
       continue;
     }
@@ -56,7 +55,7 @@ const examplePreviews = [
 ];
 
 String lastRun(String root) => (Directory(
-  p.join(root, '.shutter', 'runs'),
+  p.join(root, '.dart_tool', 'shutter', 'runs'),
 ).listSync().map((d) => d.path).toList()..sort()).last;
 
 void main() {
@@ -100,7 +99,7 @@ void main() {
     );
     expect(greeting.status, ShotStatus.ok);
     expect(
-      Directory(p.join(root, '.shutter', 'fonts', 'google_fonts'))
+      Directory(p.join(root, '.dart_tool', 'shutter', 'fonts', 'google_fonts'))
           .listSync()
           .where((f) => f.path.endsWith('.ttf')),
       hasLength(2),
@@ -111,7 +110,7 @@ void main() {
     expect(dark.brightness, 'dark');
     expect(Directory(p.join(beforeRun, '.results')).existsSync(), isFalse);
     expect(
-      Directory(p.join(root, '.shutter', 'test')).listSync(),
+      Directory(p.join(root, '.dart_tool', 'shutter', 'test')).listSync(),
       isEmpty,
       reason: 'the generated test is deleted after the shot',
     );

@@ -16,7 +16,7 @@ class DiffCommand(final ShutterContext context) extends Command<int> {
       negatable: false,
       help:
           'Also write an image marking the differing pixels in red for '
-          'each changed entry, under .shutter/diffs/.',
+          'each changed entry, under .dart_tool/shutter/diffs/.',
     );
   }
 

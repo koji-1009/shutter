@@ -17,7 +17,7 @@ class StoredRun(
 }
 
 /// Loads the run named by [argument]: a directory containing
-/// `manifest.json`, or a run id under `.shutter/runs/`.
+/// `manifest.json`, or a run id under `.dart_tool/shutter/runs/`.
 StoredRun loadRun(Project project, String argument) {
   for (final candidate in [argument, p.join(project.runsDir, argument)]) {
     if (File(p.join(candidate, manifestFileName)).existsSync()) {

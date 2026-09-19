@@ -128,7 +128,7 @@ void main() {
     );
     expect(fake.calls.single, [
       'test',
-      p.join('.shutter', 'test', 'r1', 'shutter_test.dart'),
+      p.join('.dart_tool', 'shutter', 'test', 'r1', 'shutter_test.dart'),
       '--reporter',
       'json',
       '--no-pub',

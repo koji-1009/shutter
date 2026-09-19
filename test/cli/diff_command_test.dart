@@ -39,21 +39,33 @@ void main() {
     expect(result.exitCode, 1, reason: result.stderr);
     expect(result.stdout, contains('status: changed'));
     expect(result.stdout, isNot(contains('diff:')));
-    expect(Directory(p.join(root, '.shutter', 'diffs')).existsSync(), isFalse);
+    expect(
+      Directory(p.join(root, '.dart_tool', 'shutter', 'diffs')).existsSync(),
+      isFalse,
+    );
   });
 
-  test('--images writes the diff image under .shutter/diffs/', () async {
-    final result = await runCli([
-      'diff',
-      'r1',
-      'r2',
-      '--images',
-    ], fakeContext(root));
-    expect(result.exitCode, 1, reason: result.stderr);
-    final diffDir = p.join(root, '.shutter', 'diffs', '20260918T101530Z');
-    expect(result.stdout, contains('diff: $diffDir\n'));
-    expect(File(p.join(diffDir, 'a.0.png')).existsSync(), isTrue);
-  });
+  test(
+    '--images writes the diff image under .dart_tool/shutter/diffs/',
+    () async {
+      final result = await runCli([
+        'diff',
+        'r1',
+        'r2',
+        '--images',
+      ], fakeContext(root));
+      expect(result.exitCode, 1, reason: result.stderr);
+      final diffDir = p.join(
+        root,
+        '.dart_tool',
+        'shutter',
+        'diffs',
+        '20260918T101530Z',
+      );
+      expect(result.stdout, contains('diff: $diffDir\n'));
+      expect(File(p.join(diffDir, 'a.0.png')).existsSync(), isTrue);
+    },
+  );
 
   test('anything but two runs is a usage error', () async {
     for (final args in [

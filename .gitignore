@@ -5,8 +5,5 @@ pubspec.lock
 tmp/
 /coverage/
 
-# Shutter's own working directory (example runs, e2e fixtures).
-.shutter/
-
 # macOS
 .DS_Store

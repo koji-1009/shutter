@@ -13,7 +13,7 @@ It makes no judgement; what to shoot, how to prepare the before state, whether a
  6. `shutter shot <preview-file>...` with the same files: the after run.
  7. `shutter diff <before-run> <after-run>`, with the `run:` directories the two shots printed.
  8. Open the `before` / `after` images of every `changed` entry and check them against your intent; `diff --images` adds a `diff` image marking the differing pixels. `unchanged` on something you edited means the edit did not reach the shot.
- 9. The images are files under `.shutter/`; where to post them (`gh`, `glab`) is up to you.
+ 9. The images are files under `.dart_tool/shutter/`; where to post them (`gh`, `glab`) is up to you.
 10. Keep the preview files: they are the next person's viewfinder, in shutter and in Flutter's widget previewer.
 
 ## Preview files
@@ -57,7 +57,7 @@ shutter shot --widget 'PrimaryButton(label: "OK")' --import lib/ui/button.dart -
 ```
 
 * `--widget` is any Dart expression of type `Widget`; `--import` is a file under `lib/` (or a `package:` URI) it needs imported, repeatable. `package:flutter/widgets.dart` is always imported, so Material widgets need the Material library the project uses as an `--import` (`package:material_ui/material_ui.dart` or `package:flutter/material.dart`).
-* Only that widget is shot, wrapped in the shell; nothing is written to the project outside `.shutter/`.
+* Only that widget is shot, wrapped in the shell; nothing is written to the project outside `.dart_tool/shutter/`.
 * Without `--size` the widget is shot at its own size; `--size` fixes both dimensions and stretches the widget to them.
 * The same `--widget` and `--import` give the same shot id in every run, so before and after line up in `diff`.
 

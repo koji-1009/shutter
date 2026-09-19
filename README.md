@@ -113,6 +113,6 @@ Behaviour whose specification is not settled; a later version may change what it
 
 * The default shell for shots without a project shell: the SDK's `MaterialApp` with a `Material` surface, `material_ui`'s or `cupertino_ui`'s app widget when the project depends on that package, or a plain `WidgetsApp` when no design library is available. It changes when the SDK's Material and Cupertino, announced for deprecation, go.
 * A preview's `theme`: applied through `PreviewThemeData`, an interface Flutter documents as not stable.
-* [google_fonts](https://pub.dev/packages/google_fonts): fonts are downloaded once into `.shutter/fonts/google_fonts/` and served to the shot; a font that cannot be downloaded makes the shot an error instead of rendering in another font. Failures are recognised from the package's own messages, which change between its versions.
+* [google_fonts](https://pub.dev/packages/google_fonts): fonts are downloaded once into `.dart_tool/shutter/fonts/google_fonts/` and served to the shot; a font that cannot be downloaded makes the shot an error instead of rendering in another font. Failures are recognised from the package's own messages, which change between its versions.
 
 Details live in [`doc/manual.md`](doc/manual.md) (`shutter manual`).

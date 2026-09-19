@@ -36,7 +36,7 @@ A path is relative to the working directory (or absolute); a named file without 
 
 ## One widget without a file
 
-`--widget` is shot instead of preview files: nothing under `lib/` is scanned, and nothing is written to the project outside `.shutter/`.
+`--widget` is shot instead of preview files: nothing under `lib/` is scanned, and nothing is written to the project outside `.dart_tool/shutter/`.
 The generated test imports `package:flutter/widgets.dart` and every `--import`, and shoots the expression as a `Preview` named after it, sized by `--size`; without `--size` the widget is shot at its own size.
 An `--import` path is relative to the working directory (or absolute) and must be under `lib/`; `package:` URIs pass through.
 The shot id hashes the expression and the resolved imports, so the same `--widget` and `--import` give the same id in every run, from any working directory; `--size` does not change the id.
@@ -81,7 +81,7 @@ Settling: `Image` widgets are precached, then one `pump(settle)` (`--settle`, de
 HTTP is blocked by the test binding. A `NetworkImage` fails and the shot is `error`.
 
 Errors (exceptions, overflows, failed image loads) do not stop the run.
-The first one becomes the shot's `error`, and the first `lib/` location in its report becomes `at` (never generated code under `.shutter/`). For an image that fails to load, `at` is where the failing `Image` widget is created; when the report names no `lib/` location, `at` is the preview.
+The first one becomes the shot's `error`, and the first `lib/` location in its report becomes `at` (never generated code under `.dart_tool/shutter/`). For an image that fails to load, `at` is where the failing `Image` widget is created; when the report names no `lib/` location, `at` is the preview.
 The PNG is still written when the frame was painted: overflow stripes are evidence.
 A shot is also `error` when nothing was painted (a shell or wrapper that does not build its child), and when it never finished (a timeout, or the test process exiting); `at` then points at the preview.
 
@@ -93,7 +93,7 @@ Behaviour whose specification is not settled: a later version may change what it
 
 Material and Cupertino are moving out of the Flutter SDK (`package:flutter/material.dart`, `package:flutter/cupertino.dart`) into the `material_ui` and `cupertino_ui` packages, whose types are distinct from the SDK's.
 The SDK's copies are announced for deprecation; the default shell below changes when they go.
-Shutter's harness depends on neither; `.shutter/test/<run-id>/shutter_design.dart` is written for the libraries present: the SDK's copies while the SDK has them, and the packages when the project resolves them.
+Shutter's harness depends on neither; `.dart_tool/shutter/test/<run-id>/shutter_design.dart` is written for the libraries present: the SDK's copies while the SDK has them, and the packages when the project resolves them.
 
 The default shell follows the project's direct `dependencies:`:
 
@@ -117,10 +117,10 @@ The package's public `GoogleFonts.pendingFonts()` cannot replace this: under `fl
 
 When the project depends on `google_fonts`, its fonts are rendered as on a device without network access during the shot.
 google_fonts looks for a font among bundled assets, then in a device cache, then fetches it over HTTP, which the test binding blocks.
-Shutter serves the files it has cached in `.shutter/fonts/google_fonts/` as bundled assets and registers them before the first frame.
+Shutter serves the files it has cached in `.dart_tool/shutter/fonts/google_fonts/` as bundled assets and registers them before the first frame.
 A font missing from that cache makes google_fonts fail during the shot (reported as an error, or, from google_fonts 8.2, only printed); shutter downloads every file named by those failures from `fonts.gstatic.com` (checking length and sha256 against the google_fonts package the project resolves), then shoots again.
 A font that cannot be downloaded (offline, unknown file) leaves the shot `error`, naming the font, with `at` pointing at the preview; the text is never silently drawn in another font.
-Downloads need network access once per font; keep `.shutter/fonts/` (for example as a CI cache) to shoot offline afterwards.
+Downloads need network access once per font; keep `.dart_tool/shutter/fonts/` (for example as a CI cache) to shoot offline afterwards.
 Projects that set `GoogleFonts.config.allowRuntimeFetching = false` are handled the same way: the missing asset name is looked up and downloaded.
 Fonts bundled in the project's assets are used as they are.
 
@@ -135,19 +135,19 @@ These come from rendering through `flutter test`.
 ## Engine
 
 The engine is the only layer that knows how PNGs are made.
-v1 (`flutter_test`) writes `.shutter/test/<run-id>/shutter_test.dart`, a harness, the design library adapters, and one helper library per source library (or one for `--widget`), runs `flutter test` on that path, and deletes the directory.
+v1 (`flutter_test`) writes `.dart_tool/shutter/test/<run-id>/shutter_test.dart`, a harness, the design library adapters, and one helper library per source library (or one for `--widget`), runs `flutter test` on that path, and deletes the directory.
 Each run has its own directory, so shots running at the same time do not overwrite each other's code.
 The project gains no dependency; `flutter_test` in `dev_dependencies` is enough.
-Every shot adds `.shutter/` to `.gitignore` when it is missing.
 When Flutter ships a capture command in the previewer itself, it replaces v1 without changing runs or diffs.
 
 ## Runs
 
-`.shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shots`).
+`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shots`).
 `<run-id>` is the UTC time of the shot (`20260918T101530Z`), suffixed `-2`, `-3`, ... when taken; a hidden `.<run-id>` file claims the name, so runs started in the same second get distinct ids.
 `shot` prints the run directory as `run:`; `diff` accepts a run's directory or its id.
 
-`.shutter/` is ignored by git. Runs, diff images, and downloaded google_fonts accumulate there until you delete it.
+`.dart_tool/shutter/` is ignored by git with the rest of `.dart_tool/`; shutter writes nothing else into the project.
+Runs, diff images, and downloaded google_fonts accumulate there until you delete it; `flutter clean` deletes it with `.dart_tool/`.
 
 ### Ids
 
@@ -171,7 +171,7 @@ An error is part of what was shot: the same error with the same image on both si
 An entry carries the size of its after shot (the before shot for `removed`); a `changed` entry whose size changed also carries `before_size`.
 Byte-identical PNGs are unchanged; otherwise pixels are compared as exact RGBA on the union of both canvases, and `diff_ratio` records the share that differs.
 Each entry points at its `before` / `after` PNGs inside the two run directories; no image is copied and nothing is written.
-With `--images`, each `changed` entry with both images also gets `<id>.png` in `.shutter/diffs/<diff-id>/`: the before image faded, differing pixels in red.
+With `--images`, each `changed` entry with both images also gets `<id>.png` in `.dart_tool/shutter/diffs/<diff-id>/`: the before image faded, differing pixels in red.
 
 ## Output
 

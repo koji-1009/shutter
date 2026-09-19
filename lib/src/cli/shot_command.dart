@@ -2,7 +2,6 @@ import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
 
 import '../engine/engine.dart';
-import '../project/gitignore.dart';
 import '../project/project.dart';
 import '../reporters/shot_reporter.dart';
 import '../run/manifest.dart';
@@ -113,8 +112,6 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         );
       }
     }
-    // Only a shot that gets this far writes into the project.
-    ensureGitignored(project.root);
     final runDir = createTimestampDir(project.runsDir, context.clock());
     final engine = context.engineFactory(sdk);
     final shots = await engine.capture(

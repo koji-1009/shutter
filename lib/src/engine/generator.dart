@@ -40,7 +40,7 @@ class const GeneratorConfig({
 /// Name of the helper library shooting [CaptureRequest.widget].
 const widgetHelper = 'widget';
 
-/// Writes `.shutter/test/<run-id>/`: the harness, the design library
+/// Writes `.dart_tool/shutter/test/<run-id>/`: the harness, the design library
 /// adapters, one helper library per source library (and one for the
 /// `--widget`), and `shutter_test.dart` tying them together. Each run has
 /// its own directory, so concurrent shots do not overwrite each other's

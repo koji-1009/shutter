@@ -145,12 +145,12 @@ void main() {
     );
   });
 
-  test('writeGeneratedTest writes .shutter/test/<run-id>/ afresh and '
-      'leaves other runs alone', () {
+  test('writeGeneratedTest writes .dart_tool/shutter/test/<run-id>/ afresh '
+      'and leaves other runs alone', () {
     final project = Project.load(createProject());
     writeFiles(project.root, {
-      '.shutter/test/r1/stale.dart': '',
-      '.shutter/test/r0/other.dart': '',
+      '.dart_tool/shutter/test/r1/stale.dart': '',
+      '.dart_tool/shutter/test/r0/other.dart': '',
     });
     final path = writeGeneratedTest(
       config(

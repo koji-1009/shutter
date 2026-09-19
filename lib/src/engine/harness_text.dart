@@ -1,4 +1,4 @@
-/// Source of `.shutter/test/<run-id>/shutter_harness.dart`, the runtime
+/// Source of `.dart_tool/shutter/test/<run-id>/shutter_harness.dart`, the runtime
 /// half of the `flutter_test` engine. It is plain Flutter test code: it
 /// depends on `flutter` and `flutter_test` only, so the target project
 /// gains no dependency on shutter. The generated `shutter_test.dart` calls [run]
@@ -415,7 +415,7 @@ String? _imageLocation(FlutterErrorDetails details) {
 late final RegExp _location;
 
 /// First `lib/...:line:column` of the project named in [text]. Generated
-/// code under `.shutter/` never counts.
+/// code under `.dart_tool/shutter/` never counts.
 String? _locate(String text) {
   final match = _location.firstMatch(text);
   if (match == null) return null;

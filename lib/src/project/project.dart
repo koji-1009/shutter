@@ -104,8 +104,9 @@ class Project({
     };
   }();
 
-  /// Shutter's working directory. Never committed.
-  String get shutterDir => p.join(root, '.shutter');
+  /// Shutter's working directory, under `.dart_tool/`, which Dart projects
+  /// keep out of git.
+  String get shutterDir => p.join(root, '.dart_tool', 'shutter');
 
   String get runsDir => p.join(shutterDir, 'runs');
 

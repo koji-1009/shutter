@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:shutter/src/engine/widget_shot.dart';
 import 'package:shutter/src/run/manifest.dart';
 import 'package:test/test.dart';
+import 'package:yaml/yaml.dart';
 
 import '../helpers.dart';
 import 'fakes.dart';
@@ -174,6 +177,60 @@ void main() {
       'package:app/ui/a.dart',
       'package:flutter/material.dart',
     ]);
+  });
+
+  test('the shell: --shell from anywhere, else the preview dir, recorded '
+      'with its sha256 in the manifest', () async {
+    final root = createProject(
+      files: {
+        'lib/preview/shell.dart': '// project',
+        '.dart_tool/shutter/shell.dart': '// cached',
+      },
+    );
+    Future<(String?, ShellFile?)> shoot(List<String> args) async {
+      final engine = FakeEngine(const []);
+      final result = await runCli([
+        'shot',
+        '--widget',
+        'A()',
+        ...args,
+      ], fakeContext(root, engine: engine));
+      expect(result.exitCode, 0, reason: result.stderr);
+      final run = (loadYaml(result.stdout) as YamlMap)['run'] as String;
+      return (engine.requests.single.shell, RunManifest.read(run).shell);
+    }
+
+    final cached = p.join(root, '.dart_tool', 'shutter', 'shell.dart');
+    expect(await shoot(['--shell', '.dart_tool/shutter/shell.dart']), (
+      cached,
+      (
+        path: '.dart_tool/shutter/shell.dart',
+        sha256: sha256.convert(utf8.encode('// cached')).toString(),
+      ),
+    ));
+    expect(await shoot([]), (
+      p.join(root, 'lib', 'preview', 'shell.dart'),
+      (
+        path: 'lib/preview/shell.dart',
+        sha256: sha256.convert(utf8.encode('// project')).toString(),
+      ),
+    ));
+    final outside = p.join(tempDir(), 'shell.dart');
+    File(outside).writeAsStringSync('');
+    expect((await shoot(['--shell', outside])).$2?.path, outside);
+
+    File(p.join(root, 'lib', 'preview', 'shell.dart')).deleteSync();
+    expect(await shoot([]), (null, null));
+
+    final missing = await runCli([
+      'shot',
+      '--widget',
+      'A()',
+      '--shell',
+      'nope.dart',
+    ], fakeContext(root));
+    expect(missing.exitCode, 66);
+    expect(missing.stderr, contains('--shell nope.dart does not exist.'));
   });
 
   test('a named file without previews is missing input', () async {

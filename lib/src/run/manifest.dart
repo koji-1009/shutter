@@ -104,11 +104,18 @@ class const Shot({
   };
 }
 
+/// The shell file a run was shot with: its path (project-relative, or
+/// absolute outside the project) and the sha256 of its bytes.
+typedef ShellFile = ({String path, String sha256});
+
 /// `manifest.json` of one run directory.
 class const RunManifest({
   /// Run id (`YYYYMMDDTHHMMSSZ`, suffixed on collision).
   required final String run,
   required final List<Shot> shots,
+
+  /// The shell file, or null for the default shell.
+  final ShellFile? shell,
 }) {
   factory RunManifest.fromJson(Map<String, Object?> json) => RunManifest(
     run: json['run'] as String,
@@ -116,6 +123,13 @@ class const RunManifest({
       for (final shot in json['shots'] as List<Object?>)
         Shot.fromJson(shot as Map<String, Object?>),
     ],
+    shell: switch (json['shell']) {
+      {'path': final String path, 'sha256': final String sha256} => (
+        path: path,
+        sha256: sha256,
+      ),
+      _ => null,
+    },
   );
 
   /// Reads `<dir>/manifest.json`.
@@ -129,6 +143,8 @@ class const RunManifest({
 
   Map<String, Object?> toJson() => {
     'run': run,
+    if (shell case (:final path, :final sha256)?)
+      'shell': {'path': path, 'sha256': sha256},
     'shots': [for (final shot in shots) shot.toJson()],
   };
 

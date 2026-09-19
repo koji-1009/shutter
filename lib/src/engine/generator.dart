@@ -134,10 +134,14 @@ String helperLibrary({
 String mainSource(List<String> helpers, GeneratorConfig config) {
   final request = config.request;
   final project = request.project;
-  final shell = project.shellPath;
+  final shell = request.shell;
   final buffer = StringBuffer(generatedHeader)..writeln();
   if (shell != null) {
-    buffer.writeln("import '${project.packageUri(shell)}' as \$shell;");
+    // A shell outside lib/ (say under .dart_tool/) has no package: URI.
+    final uri = p.isWithin(project.libDir, shell)
+        ? project.packageUri(shell)
+        : Uri.file(shell).toString();
+    buffer.writeln("import '$uri' as \$shell;");
   }
   buffer
     ..writeln(r"import 'shutter_design.dart' as $design;")

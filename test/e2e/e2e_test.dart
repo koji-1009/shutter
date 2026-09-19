@@ -365,6 +365,43 @@ Widget plainTile() => const ListTile(title: Text('x'));
     expect(shots['Plain / list tile']!.error, contains('No Material widget'));
   });
 
+  test(
+    '--shell outside lib/ compiles and replaces the preview dir shell',
+    () async {
+      final root = await exampleCopy();
+      writeFiles(root, {
+        // No Material, unlike the example's lib/preview/shell.dart.
+        '.dart_tool/shutter/shell.dart': '''
+import 'package:flutter/widgets.dart';
+
+Widget shell(Widget child) => WidgetsApp(
+  color: const Color(0xFFFFFFFF),
+  debugShowCheckedModeBanner: false,
+  builder: (context, _) => child,
+);
+''',
+        'lib/preview/tile_preview.dart': '''
+import 'package:flutter/material.dart' show ListTile;
+import 'package:flutter/widget_previews.dart';
+import 'package:flutter/widgets.dart';
+
+@Preview(name: 'Tile', size: Size(200, 56))
+Widget tile() => const ListTile(title: Text('x'));
+''',
+      });
+      final result = await shutter(root, [
+        'shot',
+        '--shell',
+        '.dart_tool/shutter/shell.dart',
+        'lib/preview/tile_preview.dart',
+      ]);
+      expect(result.exitCode, 2, reason: result.stdout + result.stderr);
+      final manifest = RunManifest.read(lastRun(root));
+      expect(manifest.shots.single.error, contains('No Material widget'));
+      expect(manifest.shell?.path, '.dart_tool/shutter/shell.dart');
+    },
+  );
+
   test('a project on material_ui gets a material_ui default shell', () async {
     final root = await exampleCopy();
     File(p.join(root, 'lib', 'preview', 'shell.dart')).deleteSync();

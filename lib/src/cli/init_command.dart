@@ -7,6 +7,7 @@ import '../engine/design.dart';
 
 import 'context.dart';
 import 'io_sinks.dart';
+import 'shot_options.dart';
 
 /// Written by `shutter init` when the project has no shell yet, against
 /// the library the default shell would use ([shellLibrary]).
@@ -22,6 +23,12 @@ import '${library.uri}';
 /// replaces shutter's default, so it decides what surrounds the shot. An
 /// app with its own design system returns its own app widget instead
 /// (for example a WidgetsApp).
+///
+/// In the preview dir this file is committed, so every clone and CI shoot
+/// with the same ambient. A shell made for one task and not meant to be
+/// committed goes under .dart_tool/ instead (`shutter init --shell
+/// .dart_tool/shutter/shell.dart`), named with `shutter shot --shell`.
+/// Import the app with package: URIs there.
 $app''';
 }
 
@@ -48,25 +55,32 @@ Widget shell(Widget child) => CupertinoApp(
 /// `shutter init` — writes the shell template, unless the project has
 /// one.
 class InitCommand(final ShutterContext context) extends Command<int> {
+  this {
+    argParser.addOption('shell', help: shellHelp);
+  }
+
   @override
   String get name => 'init';
 
   @override
-  String get description => 'Write <preview dir>/shell.dart.';
+  String get description => 'Write <preview dir>/shell.dart, or --shell.';
 
   @override
   Future<int> run() async {
     final project = context.project();
-    final path = p.join(project.previewDir, 'shell.dart');
+    final path = switch (argResults!.option('shell')) {
+      final option? => shellOptionPath(option, context.workingDirectory),
+      null => p.join(project.previewDir, 'shell.dart'),
+    };
     if (File(path).existsSync()) {
       ShutterIO.stdoutSink.writeln(
-        'kept     ${project.relative(path)} (already exists)',
+        'kept     ${project.shown(path)} (already exists)',
       );
     } else {
       File(path)
         ..createSync(recursive: true)
         ..writeAsStringSync(shellTemplate(project.dependencies).trimLeft());
-      ShutterIO.stdoutSink.writeln('wrote    ${project.relative(path)}');
+      ShutterIO.stdoutSink.writeln('wrote    ${project.shown(path)}');
     }
     return 0;
   }

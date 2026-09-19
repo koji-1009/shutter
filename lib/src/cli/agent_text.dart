@@ -51,6 +51,8 @@ Widget settingsSignedOut() => const SettingsPage(user: null);
 It replaces shutter's default shell (experimental: a `MaterialApp` with a `Material` surface, from `material_ui` when the project depends on it; see `shutter manual`), so it decides what surrounds every shot: keep a `Material` around the child for Material widgets, use `CupertinoApp` for a Cupertino app, or `WidgetsApp` for an app with its own design system.
 `shutter init` writes one against the design package the project depends on.
 A preview with `wrapper:` is not wrapped in `shell()`; call `shell()` inside the wrapper when it needs the app's ambient.
+The shell in the preview dir is committed and shared. When you need a shell only for the task at hand and it should not land in the commit, write it under `.dart_tool/` (`shutter init --shell .dart_tool/shutter/shell.dart`, importing the app with `package:` URIs) and pass the same `--shell` to every `shot` of the task.
+If `diff` prints `shell:`, the two runs were shot with different shells, and every image may differ for that reason alone.
 
 ## One widget without a file
 

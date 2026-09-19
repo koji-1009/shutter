@@ -136,6 +136,11 @@ class Project({
   String relative(String absolutePath) =>
       p.posix.joinAll(p.split(p.relative(absolutePath, from: root)));
 
+  /// [absolutePath] as shown in output: project-relative inside the
+  /// project, else as it is.
+  String shown(String absolutePath) =>
+      p.isWithin(root, absolutePath) ? relative(absolutePath) : absolutePath;
+
   /// `package:` URI of a file under `lib/`.
   String packageUri(String absolutePath) {
     final rel = p.split(p.relative(absolutePath, from: libDir));

@@ -115,6 +115,37 @@ entries:
     );
   });
 
+  test('the shells of both runs, only when they differ', () async {
+    Future<YamlMap> report(ShellFile? before, ShellFile? after) async =>
+        loadYaml(
+          await collect(
+            (sink) => reportDiff(
+              RunDiff(
+                before: 'a',
+                after: 'b',
+                entries: const [],
+                beforeShell: before,
+                afterShell: after,
+              ),
+              null,
+              sink,
+            ),
+          ),
+        ) as YamlMap;
+    const project = (path: 'lib/preview/shell.dart', sha256: '1f2e');
+    const cached = (path: '.dart_tool/shutter/shell.dart', sha256: '9a0b');
+    expect((await report(project, project)).containsKey('shell'), isFalse);
+    expect((await report(null, null)).containsKey('shell'), isFalse);
+    expect((await report(project, cached))['shell'], {
+      'before': {'path': 'lib/preview/shell.dart', 'sha256': '1f2e'},
+      'after': {'path': '.dart_tool/shutter/shell.dart', 'sha256': '9a0b'},
+    });
+    expect((await report(project, null))['shell'], {
+      'before': {'path': 'lib/preview/shell.dart', 'sha256': '1f2e'},
+      'after': 'default',
+    });
+  });
+
   test('a change of one pixel in many keeps a nonzero ratio', () async {
     const one = RunDiff(
       before: 'a',

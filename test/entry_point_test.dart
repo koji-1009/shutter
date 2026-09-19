@@ -12,7 +12,7 @@ void main() {
   test('--version prints the version', () async {
     exitCode = 3;
     final result = await captureIO(() => runApp(['--version']));
-    expect(result.stdout, 'shutter $shutterVersion\n');
+    expect(result.stdout, 'shutter $packageVersion\n');
     expect(exitCode, 0);
   });
 

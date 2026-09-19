@@ -6,7 +6,7 @@ Conventions for AI coding agents (Claude Code, Cursor, Codex, etc.) and human co
 
 * `bin/shutter.dart` — minimal CLI entrypoint; defers to `lib/src/entry_point.dart`.
 * `lib/src/entry_point.dart` — `runApp` (guarded zone) and `runShutter` (exception → sysexits mapping). Tests drive `runShutter` with a `ShutterContext`.
-* `lib/src/shutter_exception.dart` — expected failures with their sysexits code; `lib/src/version.dart` — `shutterVersion`; `lib/src/dart_literal.dart` — Dart string literals for generated code.
+* `lib/src/shutter_exception.dart` — expected failures with their sysexits code; `lib/src/version.dart` — `packageVersion`, generated from `pubspec.yaml` by `build_version` (`dart run build_runner build`); `lib/src/dart_literal.dart` — Dart string literals for generated code.
 * `lib/src/cli/` — `CommandRunner` plus one file per subcommand. `context.dart` defines `ShutterContext`, which carries the working directory, clock, environment, and engine factory so commands run in tests without Flutter. `shot_options.dart` parses `shot`'s arguments. `agent_text.dart` and `manual_text.dart` are const mirrors of `doc/agent.md` and `doc/manual.md`; `test/cli/text_parity_test.dart` enforces byte equality.
 * `lib/src/project/` — project root and pubspec fields, preview-dir convention, `.gitignore`, Flutter SDK lookup, and the `Process.run` seam the engine uses.
 * `lib/src/scan/` — the previews of the preview files `shot` is given, with the analyzer's resolution: which annotations are previews, and each name they use rewritten through an import prefix. Tests resolve against a stub `package:flutter` (`test/helpers.dart`) and the Dart SDK running them.
@@ -65,7 +65,7 @@ dart test -P e2e                           # needs Flutter; drives example/
 
 ## Release flow
 
-1. Bump `version:` in `pubspec.yaml` and `shutterVersion` in `lib/src/version.dart` together; `test/version_test.dart` fails when they drift.
+1. Bump `version:` in `pubspec.yaml`, then run `dart run build_runner build` to regenerate `lib/src/version.dart`; `test/version_test.dart` fails when they drift.
 2. Add a `## X.Y.Z` section to `CHANGELOG.md`.
 3. Run `dart pub publish --dry-run` and check the archive contents against `.pubignore`.
 4. The release commit is `chore(release): X.Y.Z` on a `release/vX.Y.Z` branch, merged via PR.

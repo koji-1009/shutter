@@ -5,9 +5,10 @@ import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
 
 void main() {
-  test('shutterVersion matches pubspec.yaml', () {
+  test('the generated packageVersion matches pubspec.yaml '
+      '(dart run build_runner build)', () {
     final pubspec =
         loadYaml(File('pubspec.yaml').readAsStringSync()) as YamlMap;
-    expect(shutterVersion, pubspec['version']);
+    expect(packageVersion, pubspec['version']);
   });
 }

@@ -54,7 +54,7 @@ class _ShutterRunner extends CommandRunner<int> {
   @override
   Future<int?> runCommand(ArgResults topLevelResults) async {
     if (topLevelResults.command == null && topLevelResults.flag('version')) {
-      ShutterIO.stdoutSink.writeln('shutter $shutterVersion');
+      ShutterIO.stdoutSink.writeln('shutter $packageVersion');
       return 0;
     }
     try {

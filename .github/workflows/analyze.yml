@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+      - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
       - run: dart pub get
       - run: dart analyze
 
@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+      - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
       - run: dart pub get
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart run dapper --set-exit-if-changed .
@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+      - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
       - run: dart pub get
       - run: dart pub run coverage:test_with_coverage
       # 100% line coverage is a stated requirement (AGENTS.md); enforce it
@@ -58,7 +58,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+      - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
       - run: dart pub get
       - run: dart pub publish --dry-run
 

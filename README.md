@@ -12,7 +12,7 @@ Any widget can be shot, from a single button to a whole `Scaffold` screen: impor
 | ------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
 | ![NotificationTile before](doc/images/notification_tile_before.png) | ![NotificationTile after](doc/images/notification_tile_after.png) | ![Differing pixels in red](doc/images/notification_tile_diff.png) |
 
-> **AI agents — start here:** run `shutter agent` before driving the tool. It is the step-by-step playbook: putting a widget in the preview dir, shooting before and after, and reading the diff. `shutter manual` is the reference. Both ship in the binary, so `dart install shutter` is enough.
+> **AI agents — start here:** run `shutter agent` before driving the tool. It is the step-by-step playbook: choosing the previews to shoot, shooting before and after, and reading the diff. `shutter manual` is the reference. Both ship in the binary, so `dart install shutter` is enough.
 
 ## What it does
 

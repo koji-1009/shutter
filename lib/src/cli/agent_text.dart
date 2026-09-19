@@ -14,7 +14,7 @@ It makes no judgement; what to shoot, how to prepare the before state, whether a
  4. `shutter shot <preview-file>...`, naming the preview files of step 3: the before run. Preparing the before state is up to you: shoot before editing, `git stash` and shoot, or shoot in a `git worktree`.
  5. Edit.
  6. `shutter shot <preview-file>...` with the same files: the after run.
- 7. `shutter diff <before-run> <after-run>`, with the `run:` directories the two shots printed.
+ 7. `shutter diff latest~1 latest` when the two shots are the last two runs; otherwise `shutter diff <before-run> <after-run>`, with the `run:` directories the two shots printed.
  8. Open the `before` / `after` images of every `changed` entry and check them against your intent; `diff --images` adds a `diff` image marking the differing pixels. `unchanged` on something you edited means the edit did not reach the shot.
  9. The images are files under `.dart_tool/shutter/`; where to post them (`gh`, `glab`) is up to you.
 10. Keep the preview files: they are the next person's viewfinder, in shutter and in Flutter's widget previewer.

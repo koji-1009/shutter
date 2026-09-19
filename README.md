@@ -12,7 +12,7 @@ Any widget can be shot, from a single button to a whole `Scaffold` screen: impor
 | ------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
 | ![NotificationTile before](doc/images/notification_tile_before.png) | ![NotificationTile after](doc/images/notification_tile_after.png) | ![Differing pixels in red](doc/images/notification_tile_diff.png) |
 
-> **AI agents — start here:** run `shutter agent` before driving the tool. It is the step-by-step playbook: putting a widget in the preview dir, shooting before and after, and reading the diff. `shutter manual` is the reference. Both ship in the binary, so `dart install shutter` is enough.
+> **AI agents — start here:** run `shutter agent` before driving the tool. It is the step-by-step playbook: choosing the previews to shoot, shooting before and after, and reading the diff. `shutter manual` is the reference. Both ship in the binary, so `dart install shutter` is enough.
 
 ## What it does
 
@@ -110,6 +110,7 @@ entries:
 ```
 
 The three images are the ones at the top of this page.
+A run can also be named `latest`, or `latest~N` for the run N before it, so `shutter diff latest~1 latest` compares the last two shots.
 `diff` pairs the shots of two runs by id: the id comes from the preview's file and function, so the same preview has the same id in every run, and renaming or moving the function reports it as `removed` plus `added`.
 The preview file stays in the project: the same function shows up in Flutter's widget previewer, and the next change is shot against it.
 

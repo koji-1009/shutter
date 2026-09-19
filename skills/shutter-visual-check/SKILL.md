@@ -13,7 +13,7 @@ description: Render Flutter widgets to PNG and compare before / after with the s
 shutter shot <preview-file>...   # before; prints run: <dir>
 # edit
 shutter shot <preview-file>...   # after
-shutter diff <before-run> <after-run>
+shutter diff latest~1 latest    # the last two runs
 ```
 
 * Open the PNG paths `diff` prints and check them against the intended change. Deciding whether the change is right is yours; shutter makes no judgement.

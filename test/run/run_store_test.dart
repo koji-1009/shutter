@@ -39,6 +39,41 @@ void main() {
     );
   });
 
+  test('latest and latest~N count back from the newest run by time, then '
+      'suffix, skipping runs without a manifest', () {
+    final project = Project.load(createProject());
+    Matcher noInput(String message) => throwsA(
+      isA<ShutterException>()
+          .having((e) => e.exitCode, 'code', 66)
+          .having((e) => e.message, 'message', contains(message)),
+    );
+    expect(() => loadRun(project, 'latest'), noInput('0 runs'));
+    for (final id in [
+      '20260918T101530Z-10',
+      '20260918T101530Z',
+      '20260918T101530Z-2',
+      '20260917T235959Z',
+    ]) {
+      writeRun(project, id);
+    }
+    // Claimed and being shot: no manifest yet.
+    Directory(p.join(project.runsDir, '20260918T101531Z'))
+        .createSync(recursive: true);
+    File(p.join(project.runsDir, '.20260918T101530Z')).createSync();
+    String id(String argument) => p.basename(loadRun(project, argument).dir);
+    expect(id('latest'), '20260918T101530Z-10');
+    expect(id('latest~0'), '20260918T101530Z-10');
+    expect(id('latest~1'), '20260918T101530Z-2');
+    expect(id('latest~2'), '20260918T101530Z');
+    expect(id('latest~3'), '20260917T235959Z');
+    expect(
+      loadRun(project, 'latest').dir,
+      p.join(project.runsDir, '20260918T101530Z-10'),
+    );
+    expect(() => loadRun(project, 'latest~4'), noInput('4 runs'));
+    expect(() => loadRun(project, 'latest~x'), noInput('no run "latest~x"'));
+  });
+
   test('createTimestampDir names directories after UTC time, suffixing '
       'collisions', () {
     final parent = tempDir();

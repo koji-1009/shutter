@@ -180,6 +180,11 @@ Future<void> _capture(
     return missingFonts.length > before;
   }
 
+  // flutter_test paints an elevation as a solid outline in place of its
+  // shadow; a device paints the shadow. The binding checks the flag is
+  // restored when the test ends.
+  final previousShadows = debugDisableShadows;
+  debugDisableShadows = false;
   final previous = FlutterError.onError;
   FlutterError.onError = (details) {
     firstError ??= _errorFields(entry, details);
@@ -292,6 +297,7 @@ Future<void> _capture(
   } finally {
     FlutterError.onError = previous;
     debugPrint = previousPrint;
+    debugDisableShadows = previousShadows;
   }
   try {
     await tester.pumpWidget(const SizedBox.shrink());

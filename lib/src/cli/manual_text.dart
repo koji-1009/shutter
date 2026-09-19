@@ -6,7 +6,7 @@ const String manualText = r'''
 ## What shutter shoots
 
 Shutter renders widgets to PNG and compares two runs, so a visual change can be shown as before and after images.
-The subjects are the widgets you put in the preview dir: a preview file imports any widget of the app (it needs no annotation of its own) and returns it from a function annotated with Flutter's `@Preview`.
+The subjects are the widgets of the preview files you name: a preview file imports any widget of the app (it needs no annotation of its own) and returns it from a function annotated with Flutter's `@Preview`.
 `@Preview` describes one widget with its wrapper, theme, size, brightness, text scale, and localizations.
 Flutter's previewer (`flutter widget-preview start`) mounts it the same way but has no way out as an image; shutter gives it one.
 
@@ -18,10 +18,11 @@ Every comparison is between two runs you made, so there is no environment drift 
 
 ## Where previews come from
 
-Previews live in the preview dir: `lib/preview/` for apps and `lib/src/preview/` for packages (off the public API surface).
+`shot` takes any file under `lib/` with `@Preview` functions (Flutter's `@Preview` works only under `lib/`), so previews the project already has are named as they are.
+New preview files go in the preview dir, which also holds `shell.dart`: `lib/preview/` for apps and `lib/src/preview/` for packages (off the public API surface).
 A project counts as a package unless its `pubspec.yaml` says `publish_to: none`; an existing `lib/src/preview/` always wins.
 Preview files are committed: the same subjects are shot before and after a change, and stay as the viewfinder in Flutter's previewer.
-`shot` shoots only the files it is given; the directory is a convention, and any file under `lib/` can be named (Flutter's `@Preview` works only under `lib/`).
+`shot` shoots only the files it is given.
 A path is relative to the working directory (or absolute); a named file without a `@Preview` stops the shot with exit 66.
 
 ### How previews are found

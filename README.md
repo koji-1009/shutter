@@ -6,7 +6,11 @@
 [![codecov](https://codecov.io/gh/koji-1009/shutter/branch/main/graph/badge.svg)](https://codecov.io/gh/koji-1009/shutter)
 
 Shutter renders Flutter widgets to PNG and compares two runs pixel by pixel, so an AI agent can attach a visual change to its PR as before and after images.
-Any widget can be shot, from a single button to a whole `Scaffold` screen: import it into a small preview file, and shutter renders it through Flutter's widget preview.
+Any widget can be shot, from a single button to a whole `Scaffold` screen: import it into a small preview file under Flutter's `@Preview` annotation, and shutter renders it in `flutter test`, without launching the app or Flutter's widget previewer.
+
+| before                                                              | after                                                             | `diff --images`                                                   |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
+| ![NotificationTile before](doc/images/notification_tile_before.png) | ![NotificationTile after](doc/images/notification_tile_after.png) | ![Differing pixels in red](doc/images/notification_tile_diff.png) |
 
 > **AI agents — start here:** run `shutter agent` before driving the tool. It is the step-by-step playbook: putting a widget in the preview dir, shooting before and after, and reading the diff. `shutter manual` is the reference. Both ship in the binary, so `dart install shutter` is enough.
 
@@ -43,32 +47,73 @@ A project that lists shutter in `dev_dependencies` gets it with `dart run skills
 
 ## Quick start
 
-Put the widget you are changing in the preview dir (`lib/preview/`, or `lib/src/preview/` in a package):
+`shot` takes any file under `lib/` with `@Preview` functions, so previews the project already has are named as they are.
+For a widget without one, write a preview file; the convention is the preview dir (`lib/preview/`, or `lib/src/preview/` in a package):
 
 ```dart
-// lib/preview/settings_page_preview.dart
+// lib/preview/notification_tile_preview.dart
+import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
-import 'package:flutter/widgets.dart';
 
-import '../settings_page.dart';
+import '../widgets/notification_tile.dart';
 
-@Preview(name: 'SettingsPage', size: Size(390, 844))
-Widget settingsPage() => const SettingsPage();
+@Preview(name: 'NotificationTile', size: Size(360, double.infinity))
+Widget notificationTile() => const Material(
+  child: NotificationTile(
+    icon: Icons.local_shipping_outlined,
+    title: 'Your order has shipped',
+    body: 'It arrives tomorrow. Track the delivery or change where to leave it in the app.',
+    timestamp: '5m',
+    unread: true,
+  ),
+);
 ```
 
-Shoot before and after the edit, then compare:
+`Size(360, double.infinity)` shoots the tile 360 wide at the height it takes in a list, and the `Material` paints the surface it sits on.
 
-```bash
-shutter shot lib/preview/settings_page_preview.dart   # prints the run directory as run:
-# ... edit ...
-shutter shot lib/preview/settings_page_preview.dart
-shutter diff <before-run> <after-run>
+Shoot before the edit:
+
+```console
+$ shutter shot lib/preview/notification_tile_preview.dart
+# shutter ai-report v1
+run: /path/to/app/.dart_tool/shutter/runs/20260919T143503Z
+summary: {error: 0, ok: 1}
+shots:
+  - id: "03a31f8f5d859fec.0"
+    status: ok
+    name: NotificationTile
+    file: lib/preview/notification_tile_preview.dart:6
+    size: [360, 68]
+    png: /path/to/app/.dart_tool/shutter/runs/20260919T143503Z/03a31f8f5d859fec.0.png
 ```
 
-The output is YAML for agents; `diff` lists each shot with the absolute paths of its before and after images.
+Edit the widget, shoot again (here into run `20260919T143514Z`), and compare the two runs by their ids:
+
+```console
+$ shutter diff 20260919T143503Z 20260919T143514Z --images
+# shutter ai-report v1
+diff: /path/to/app/.dart_tool/shutter/diffs/20260919T143525Z
+before: /path/to/app/.dart_tool/shutter/runs/20260919T143503Z
+after: /path/to/app/.dart_tool/shutter/runs/20260919T143514Z
+summary: {changed: 1, added: 0, removed: 0, unchanged: 0}
+entries:
+  - id: "03a31f8f5d859fec.0"
+    status: changed
+    name: NotificationTile
+    file: lib/preview/notification_tile_preview.dart:6
+    size: [360, 106]
+    before_size: [360, 68]
+    diff_ratio: 0.4158
+    before: /path/to/app/.dart_tool/shutter/runs/20260919T143503Z/03a31f8f5d859fec.0.png
+    after: /path/to/app/.dart_tool/shutter/runs/20260919T143514Z/03a31f8f5d859fec.0.png
+    diff: /path/to/app/.dart_tool/shutter/diffs/20260919T143525Z/03a31f8f5d859fec.0.png
+```
+
+The three images are the ones at the top of this page.
+`diff` pairs the shots of two runs by id: the id comes from the preview's file and function, so the same preview has the same id in every run, and renaming or moving the function reports it as `removed` plus `added`.
 The preview file stays in the project: the same function shows up in Flutter's widget previewer, and the next change is shot against it.
 
-Every shot is wrapped in a shell: the project's `shell.dart` with the app's own app widget, theme, router, and providers (`shutter init` writes one), or a default shell.
+Every shot is wrapped in a shell: the project's `shell.dart` in the preview dir, with the app's own app widget, theme, router, and providers (`shutter init` writes one), or a default shell.
 Shutter itself depends on no design library, so Material, Cupertino, and custom widget sets all work.
 
 A widget can also be shot without a file:

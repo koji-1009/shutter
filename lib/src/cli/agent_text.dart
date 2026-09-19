@@ -3,14 +3,14 @@
 const String agentText = r'''
 # shutter — agent playbook
 
-Shutter closes a visual change with an image: it renders the widgets you put in the preview dir to PNG, compares two runs, and gives you the images to attach to the PR.
+Shutter closes a visual change with an image: it renders the widgets of the preview files you name to PNG, compares two runs, and gives you the images to attach to the PR.
 It makes no judgement; what to shoot, how to prepare the before state, whether a change is good, and where to post are your decisions.
 
 ## Before and after
 
  1. First time: `dart install shutter && shutter doctor`. Without a preview dir or `shell.dart`, run `shutter init`.
  2. Before editing, decide what to shoot. `grep` for where the widget is used; shoot the screens that contain it too when a change can break their layout.
- 3. Write a preview file for each subject in the preview dir (below). Any widget can be a subject: it needs no annotation of its own, only an import.
+ 3. Find the preview files that already show each subject; for a subject without one, write a preview file in the preview dir (below). Any widget can be a subject: it needs no annotation of its own, only an import.
  4. `shutter shot <preview-file>...`, naming the preview files of step 3: the before run. Preparing the before state is up to you: shoot before editing, `git stash` and shoot, or shoot in a `git worktree`.
  5. Edit.
  6. `shutter shot <preview-file>...` with the same files: the after run.
@@ -21,7 +21,8 @@ It makes no judgement; what to shoot, how to prepare the before state, whether a
 
 ## Preview files
 
-The preview dir is `lib/preview/` (`lib/src/preview/` in a package). Import the widget you touched and return it from a function annotated with Flutter's `@Preview`:
+`shutter shot` takes any file under `lib/` with `@Preview` functions, so previews the project already has are named as they are.
+New preview files go in the preview dir, `lib/preview/` (`lib/src/preview/` in a package). Import the widget you touched and return it from a function annotated with Flutter's `@Preview`:
 
 ```dart
 // lib/preview/settings_page_preview.dart

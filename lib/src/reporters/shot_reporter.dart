@@ -20,6 +20,7 @@ void reportShots(RunManifest manifest, String dir, IOSink sink) {
   final body = StringBuffer()
     ..writeln('# shutter ai-report v1')
     ..writeln('run: ${yamlScalar(dir)}')
+    ..writeln('shell: ${formatShell(manifest.shell)}')
     ..writeln('summary: {error: ${errors.length}, ok: ${oks.length}}')
     ..writeln(listHeader('shots', errors.length + oks.length));
   for (final shot in [...errors, ...oks]) {

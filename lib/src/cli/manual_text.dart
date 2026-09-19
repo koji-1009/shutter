@@ -184,7 +184,7 @@ When the two runs were shot with different shells (path or sha256), `shell` show
 ## Output
 
 `shot` and `diff` print YAML starting with the comment `# shutter ai-report v1`, with absolute paths to open.
-`shot` gives `run`, `summary`, and `shots`, errors first.
+`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `summary`, and `shots`, errors first.
 `diff` gives `diff` (with `--images`), `before`, `after`, `shell` (when the shells differ), `summary`, and `entries` in the order changed → added → removed → unchanged.
 
 ## Exit codes

@@ -77,6 +77,7 @@ Shoot before the edit:
 $ shutter shot lib/preview/notification_tile_preview.dart
 # shutter ai-report v1
 run: /path/to/app/.dart_tool/shutter/runs/20260919T143503Z
+shell: {path: lib/preview/shell.dart, sha256: 3bd0d8689642b359420876d859d4cfe94a404b7bdeb75ba237da990c310e936b}
 summary: {error: 0, ok: 1}
 shots:
   - id: "03a31f8f5d859fec.0"

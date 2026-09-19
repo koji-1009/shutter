@@ -285,6 +285,14 @@ void main() {
     expect(first('.t/r1/shutter_test.dart:3:4: Error: G '), 'G');
     expect(first('/app/.t/r1/sources/l0.dart:3:4: Error: G'), 'G');
     expect(first('lib/b.dart:1:2: Warning: W'), isNull);
+    expect(
+      first(
+        'Compilation failed for testPath=/app/.t/r1/shutter_test.dart: '
+        '.t/r1/sources/l0.dart:11:1: Error: First\n'
+        '.t/r1/shutter_test.dart:23:14: Error: Second',
+      ),
+      'First',
+    );
   });
 }
 

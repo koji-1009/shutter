@@ -225,16 +225,18 @@ String testOutput(String stdout, String stderr) {
   return lines.join('\n');
 }
 
-/// The first `path:line:column: Error: message` line in [output], or only
-/// its message when the path (relative to [root]) is under [generatedDir]:
+/// The first `path:line:column: Error: message` in [output], or only its
+/// message when the path (relative to [root]) is under [generatedDir]:
 /// that file is gone after the run, and its path holds the run id.
+/// The first error can follow `Compilation failed for testPath=...: ` on
+/// its line, so it need not start one.
 String? firstCompileError(
   String output, {
   required String root,
   required String generatedDir,
 }) {
   final match = RegExp(
-    r'^\s*(\S+?\.dart):\d+:\d+: Error: (.*)$',
+    r'(?:^|\s)(\S+?\.dart):\d+:\d+: Error: (.*)$',
     multiLine: true,
   ).firstMatch(output);
   if (match == null) return null;

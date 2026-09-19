@@ -57,4 +57,17 @@ void main() {
     expect(back.exitCode, 2);
     expect(const RunManifest(run: 'r', shots: []).exitCode, 0);
   });
+
+  test('the shell file round-trips; the default shell writes none', () {
+    final dir = tempDir();
+    const RunManifest(
+      run: 'r',
+      shots: [],
+      shell: (path: '.dart_tool/shutter/shell.dart', sha256: 'ab12'),
+    ).write(dir);
+    final back = RunManifest.read(dir);
+    expect(back.shell, (path: '.dart_tool/shutter/shell.dart', sha256: 'ab12'));
+    expect(back.toJson().keys, ['run', 'shell', 'shots']);
+    expect(RunManifest.fromJson(const {'run': 'r', 'shots': []}).shell, isNull);
+  });
 }

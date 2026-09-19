@@ -37,7 +37,8 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         'settle',
         help: 'Milliseconds pumped once before capture.',
         defaultsTo: '300',
-      );
+      )
+      ..addOption('shell', help: shellHelp);
   }
 
   @override
@@ -77,6 +78,11 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         'flutter_test is not in dev_dependencies; add it (`$flutterTestHint`).',
       );
     }
+    final shell = resolveShell(
+      project,
+      args.option('shell'),
+      workingDirectory: context.workingDirectory,
+    );
     final sdk = context.sdk();
     final widget = switch (source) {
       final source? => parseWidgetShot(
@@ -112,6 +118,8 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         );
       }
     }
+    // Hashed before rendering, so the record is the file that was shot.
+    final shellRecord = shell == null ? null : shellFile(project, shell);
     final runDir = createTimestampDir(project.runsDir, context.clock());
     final engine = context.engineFactory(sdk);
     final shots = await engine.capture(
@@ -121,11 +129,13 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         runDir: runDir,
         settleMs: settle,
         widget: widget,
+        shell: shell,
       ),
     );
     final manifest = RunManifest(
       run: p.basename(runDir),
       shots: [...shots]..sort(Shot.bySource),
+      shell: shellRecord,
     )..write(runDir);
     reportShots(manifest, runDir, ShutterIO.stdoutSink);
     return manifest.exitCode;

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../diff/run_diff.dart';
+import '../run/manifest.dart';
 import 'format.dart';
 import 'yaml_scalar.dart';
 
@@ -18,7 +19,16 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
   if (dir != null) body.writeln('diff: ${yamlScalar(dir)}');
   body
     ..writeln('before: ${yamlScalar(diff.before)}')
-    ..writeln('after: ${yamlScalar(diff.after)}')
+    ..writeln('after: ${yamlScalar(diff.after)}');
+  // Only when the runs were shot in different shells, which changes
+  // every image without any widget changing.
+  if (diff.beforeShell != diff.afterShell) {
+    body
+      ..writeln('shell:')
+      ..writeln('  before: ${_shell(diff.beforeShell)}')
+      ..writeln('  after: ${_shell(diff.afterShell)}');
+  }
+  body
     ..writeln('summary: {$summary}')
     ..writeln(listHeader('entries', diff.entries.length));
   for (final entry in diff.entries) {
@@ -45,3 +55,10 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
   }
   sink.write(body);
 }
+
+/// `{path: ..., sha256: ...}`, or `default` for the default shell.
+String _shell(ShellFile? shell) => switch (shell) {
+  (:final path, :final sha256) =>
+    '{path: ${yamlScalar(path)}, sha256: $sha256}',
+  null => 'default',
+};

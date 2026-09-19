@@ -53,6 +53,31 @@ void main() {
       expect(missing.stdout, contains('[FAIL] no pubspec.yaml found'));
     });
 
+    test('--shell checks the named file instead', () async {
+      final root = createProject(files: {'.dart_tool/shutter/shell.dart': ''});
+      final found = await runCli([
+        'doctor',
+        '--shell',
+        '.dart_tool/shutter/shell.dart',
+      ], fakeContext(root));
+      expect(found.exitCode, 0);
+      expect(
+        found.stdout,
+        contains('[OK]   shell .dart_tool/shutter/shell.dart'),
+      );
+      final missing = await runCli([
+        'doctor',
+        '--shell',
+        'nope.dart',
+      ], fakeContext(root));
+      expect(missing.exitCode, 1);
+      expect(missing.stdout, contains('[FAIL] shell nope.dart does not exist'));
+      expect(
+        missing.stdout,
+        contains('       run `shutter init --shell nope.dart`'),
+      );
+    });
+
     test('an empty font directory is a warning', () async {
       final sdk = createSdk(fonts: false);
       Directory(p.join(sdk, 'bin', 'cache', 'artifacts', 'material_fonts'))
@@ -81,6 +106,28 @@ void main() {
       File(p.join(root, 'lib', 'preview', 'shell.dart')).readAsStringSync(),
       '// mine',
     );
+  });
+
+  test('init --shell writes the shell there, outside lib/ too', () async {
+    final root = createProject();
+    final inside = await runCli([
+      'init',
+      '--shell',
+      '.dart_tool/shutter/shell.dart',
+    ], fakeContext(root));
+    expect(inside.stdout, 'wrote    .dart_tool/shutter/shell.dart\n');
+    expect(
+      File(p.join(root, '.dart_tool', 'shutter', 'shell.dart')).existsSync(),
+      isTrue,
+    );
+    expect(Directory(p.join(root, 'lib', 'preview')).existsSync(), isFalse);
+    final outside = p.join(tempDir(), 'shell.dart');
+    final result = await runCli([
+      'init',
+      '--shell',
+      outside,
+    ], fakeContext(root));
+    expect(result.stdout, 'wrote    $outside\n');
   });
 
   test('the shell template follows the design package the project uses', () {

@@ -51,7 +51,7 @@ State comes from the widget's construction expression; a widget that fetches or 
 
 Per preview, from the outside in:
 
-1. Shell: `shell(child)` from `<preview dir>/shell.dart` when the project has one and the preview has no `wrapper`; otherwise the default shell (see Experimental).
+1. Shell: `shell(child)` from the `--shell` file, else from `<preview dir>/shell.dart` when the project has one, when the preview has no `wrapper`; otherwise the default shell (see Experimental).
 2. `Localizations` when the preview sets `localizations`.
 3. The preview at the top left.
 4. The captured region: `SizedBox(size)`, then `theme.apply`, then `wrapper`, then the preview.
@@ -62,6 +62,11 @@ To shoot a widget on the surface it sits on, paint it inside the preview: a `wra
 
 The project's shell replaces the default one entirely, so it decides what surrounds every shot: a Material surface (what `shutter init` writes, and what widgets such as `ListTile` or `TextField` need), a `CupertinoApp`, or a `WidgetsApp` with the app's own design system.
 Shutter adds no design library to a shell without one.
+
+`<preview dir>/shell.dart` is the default because it is committed: every clone and CI shoot with the same ambient.
+A shell made for one task and not meant to be committed goes under `.dart_tool/`: `shutter init --shell .dart_tool/shutter/shell.dart` writes it there, `shutter shot --shell .dart_tool/shutter/shell.dart` shoots with it, and `shutter doctor --shell` checks it.
+`--shell` takes any path; a shell outside `lib/` is imported by its file URI, so it imports the app with `package:` URIs.
+Each run records its shell file in `manifest.json`, with the sha256 of its bytes (not of the files it imports).
 
 Viewport: `size` when both dimensions are finite; a missing or infinite dimension uses 800×600 logical pixels.
 The captured region takes a finite dimension of `size` as it is.
@@ -143,7 +148,7 @@ When Flutter ships a capture command in the previewer itself, it replaces v1 wit
 
 ## Runs
 
-`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shots`).
+`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shell` when a shell file was used, `shots`).
 `<run-id>` is the UTC time of the shot (`20260918T101530Z`), suffixed `-2`, `-3`, ... when taken; a hidden `.<run-id>` file claims the name, so runs started in the same second get distinct ids.
 `shot` prints the run directory as `run:`; `diff` accepts a run's directory, its id, `latest` for the newest run, or `latest~N` for the run N before it.
 `latest` counts runs in id order (time, then suffix) and skips a run still being shot, whose `manifest.json` is not written yet.
@@ -174,12 +179,13 @@ An entry carries the size of its after shot (the before shot for `removed`); a `
 Byte-identical PNGs are unchanged; otherwise pixels are compared as exact RGBA on the union of both canvases, and `diff_ratio` records the share that differs.
 Each entry points at its `before` / `after` PNGs inside the two run directories; no image is copied and nothing is written.
 With `--images`, each `changed` entry with both images also gets `<id>.png` in `.dart_tool/shutter/diffs/<diff-id>/`: the before image faded, differing pixels in red.
+When the two runs were shot with different shells (path or sha256), `shell` shows each run's (`default` for the default shell): a shell change alters every image without any widget changing. The entries are compared as always.
 
 ## Output
 
 `shot` and `diff` print YAML starting with the comment `# shutter ai-report v1`, with absolute paths to open.
 `shot` gives `run`, `summary`, and `shots`, errors first.
-`diff` gives `diff` (with `--images`), `before`, `after`, `summary`, and `entries` in the order changed → added → removed → unchanged.
+`diff` gives `diff` (with `--images`), `before`, `after`, `shell` (when the shells differ), `summary`, and `entries` in the order changed → added → removed → unchanged.
 
 ## Exit codes
 
@@ -193,12 +199,12 @@ Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter 
 
 ## Commands
 
-| command  | purpose                                                                                                        |
-| -------- | -------------------------------------------------------------------------------------------------------------- |
-| `agent`  | the step-by-step playbook                                                                                      |
-| `manual` | this document                                                                                                  |
-| `doctor` | SDK version, font cache, shell                                                                                 |
-| `init`   | write `shell.dart`                                                                                             |
-| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`) |
-| `diff`   | compare two runs (`--images`)                                                                                  |
+| command  | purpose                                                                                                                   |
+| -------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `agent`  | the step-by-step playbook                                                                                                 |
+| `manual` | this document                                                                                                             |
+| `doctor` | SDK version, font cache, shell (`--shell`)                                                                                |
+| `init`   | write `shell.dart` (`--shell`)                                                                                            |
+| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`) |
+| `diff`   | compare two runs (`--images`)                                                                                             |
 ''';

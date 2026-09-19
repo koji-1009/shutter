@@ -12,6 +12,7 @@ Initial release.
 * `shutter diff` compares two runs by shot id as `changed`, `added`, `removed`, or `unchanged`, in pure Dart. An error counts as part of the shot; byte-identical PNGs are unchanged, and otherwise any differing pixel makes the shot `changed`. `--images` adds an image marking the differing pixels of each changed shot. A run is named by its directory, its id, `latest`, or `latest~N`.
 * `shot` and `diff` print YAML starting with `# shutter ai-report v1`, with absolute image paths.
 * `shutter init` writes a `shell.dart` against the design library the project uses.
+* `--shell <file>` on `shot`, `init`, and `doctor` names a shell outside the preview dir, such as one under `.dart_tool/` that is not committed. Each run records its shell file and its sha256, and `diff` shows both runs' shells when they differ.
 * `shutter agent` and `shutter manual` print the playbook and the reference from the binary; `shutter doctor` checks the Flutter SDK version, its font cache, and the shell.
 * An agent skill, `skills/shutter-visual-check/`, for `dart run skills add` / `get`: when to use shutter, pointing at `shutter agent`.
 * Host fonts: CJK and emoji text falls back to the host's system fonts; Cupertino text renders in SF Pro on macOS hosts and Roboto elsewhere.

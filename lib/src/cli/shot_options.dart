@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import '../engine/widget_shot.dart';
 import '../project/project.dart';
+import '../run/manifest.dart';
 import '../shutter_exception.dart';
 
 /// The `--widget` expression with its `--import` files resolved to URIs:
@@ -60,6 +62,37 @@ String _importUri(Project project, String import, String workingDirectory) =>
           what: '--import',
         ),
       );
+
+/// Help of the `--shell` option of `shot`, `init`, and `doctor`.
+const shellHelp =
+    'Shell file to use instead of <preview dir>/shell.dart; any path, '
+    'e.g. .dart_tool/shutter/shell.dart.';
+
+/// Absolute path of the `--shell` [option], relative to
+/// [workingDirectory].
+String shellOptionPath(String option, String workingDirectory) =>
+    p.normalize(p.join(workingDirectory, option));
+
+/// The shell file `shot` uses: the `--shell` [option], which must exist,
+/// else `<preview dir>/shell.dart` when present, else null.
+String? resolveShell(
+  Project project,
+  String? option, {
+  required String workingDirectory,
+}) {
+  if (option == null) return project.shellPath;
+  final path = shellOptionPath(option, workingDirectory);
+  if (!File(path).existsSync()) {
+    throw ShutterException.noInput('--shell $option does not exist.');
+  }
+  return path;
+}
+
+/// The manifest record of the shell file at [path].
+ShellFile shellFile(Project project, String path) => (
+  path: project.shown(path),
+  sha256: sha256.convert(File(path).readAsBytesSync()).toString(),
+);
 
 /// Absolute path of [path], relative to [workingDirectory], which must be
 /// a file under `lib/`. [what] names it in errors.

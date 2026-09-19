@@ -16,6 +16,9 @@ class const CaptureRequest({
 
   /// The `--widget` expression, shot without a preview file.
   final WidgetShot? widget,
+
+  /// Absolute path of the shell file, or null for the default shell.
+  final String? shell,
 });
 
 /// The only swappable layer: turns scanned previews and a `--widget` into

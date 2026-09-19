@@ -41,6 +41,7 @@ GeneratorConfig config(
   Project project, {
   List<SourceLibrary> libraries = const [],
   WidgetShot? widget,
+  String? shell,
   bool googleFonts = false,
   List<CachedFont> fonts = const [],
 }) => GeneratorConfig(
@@ -50,6 +51,7 @@ GeneratorConfig config(
     runDir: '/runs/r1',
     settleMs: 300,
     widget: widget,
+    shell: shell,
   ),
   materialFontsDir: '/sdk/fonts',
   design: const DesignSupport(available: [], shell: null),
@@ -71,12 +73,23 @@ void main() {
     expect(helperSource(library([candidate('a', error: 'x')])), isNull);
   });
 
-  test('mainSource wraps in the project shell when there is one, and '
-      'registers cached fonts', () {
-    final root = createProject(files: {'lib/preview/shell.dart': ''});
-    final withShell = mainSource(['l1'], config(Project.load(root)));
+  test('mainSource wraps in the requested shell, by package: URI under '
+      'lib/ and by file URI elsewhere, and registers cached fonts', () {
+    final project = Project.load(createProject());
+    final withShell = mainSource([
+      'l1',
+    ], config(project, shell: p.join(project.root, 'lib/preview/shell.dart')));
+    expect(
+      withShell,
+      contains(r"import 'package:app/preview/shell.dart' as $shell;"),
+    );
     expect(withShell, contains(r'shell: $shell.shell,'));
     expect(withShell, contains(r'...$s0.entries(),'));
+    final cached = p.join(project.root, '.dart_tool', 'shutter', 'shell.dart');
+    expect(
+      mainSource(const [], config(project, shell: cached)),
+      contains("import '${Uri.file(cached)}' as \$shell;"),
+    );
     final bare = mainSource(const [], config(Project.load(createProject())));
     expect(bare, isNot(contains('shell:')));
     expect(bare, isNot(contains('fonts: [')));

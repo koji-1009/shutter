@@ -115,6 +115,7 @@ A run can also be named `latest`, or `latest~N` for the run N before it, so `shu
 The preview file stays in the project: the same function shows up in Flutter's widget previewer, and the next change is shot against it.
 
 Every shot is wrapped in a shell: the project's `shell.dart` in the preview dir, with the app's own app widget, theme, router, and providers (`shutter init` writes one), or a default shell.
+That shell is committed so everyone shoots with the same ambient; a shell not meant for the commit can live under `.dart_tool/` and be named with `--shell`.
 Shutter itself depends on no design library, so Material, Cupertino, and custom widget sets all work.
 
 A widget can also be shot without a file:
@@ -128,14 +129,14 @@ The same `--widget` and `--import` give the same shot id, so two such runs line 
 
 ## Subcommands
 
-| Command        | Purpose                                                                                                         |
-| -------------- | --------------------------------------------------------------------------------------------------------------- |
-| `agent`        | The step-by-step playbook for AI agents.                                                                        |
-| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                       |
-| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell.                                         |
-| `init`         | Write `<preview dir>/shell.dart`.                                                                               |
-| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`). |
-| `diff <a> <b>` | Compare two runs (`--images`).                                                                                  |
+| Command        | Purpose                                                                                                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `agent`        | The step-by-step playbook for AI agents.                                                                                   |
+| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                  |
+| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                        |
+| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                   |
+| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`). |
+| `diff <a> <b>` | Compare two runs (`--images`).                                                                                             |
 
 ## Exit codes
 

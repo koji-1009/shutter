@@ -34,6 +34,10 @@ class const RunDiff({
 
   /// Sorted by status, then by file and line.
   required final List<DiffEntry> entries,
+
+  /// The shell file of each run, null for the default shell.
+  final ShellFile? beforeShell,
+  final ShellFile? afterShell,
 }) {
   /// Count per status, every status present.
   Map<DiffStatus, int> get summary => {

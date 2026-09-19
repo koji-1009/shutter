@@ -32,7 +32,13 @@ RunDiff diffRuns(StoredRun before, StoredRun after, {String? imagesDir}) {
     if (byStatus != 0) return byStatus;
     return Shot.bySource(a.shot, b.shot);
   });
-  return RunDiff(before: before.dir, after: after.dir, entries: entries);
+  return RunDiff(
+    before: before.dir,
+    after: after.dir,
+    entries: entries,
+    beforeShell: before.manifest.shell,
+    afterShell: after.manifest.shell,
+  );
 }
 
 DiffEntry _entry(

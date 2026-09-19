@@ -8,6 +8,7 @@ import '../project/project.dart';
 import '../shutter_exception.dart';
 import 'context.dart';
 import 'io_sinks.dart';
+import 'shot_options.dart';
 
 /// Oldest Flutter release with `package:flutter/widget_previews.dart` in
 /// the shape shutter generates code for.
@@ -26,6 +27,10 @@ class const Check(
 /// shell.
 /// Exits 1 when any check fails; warnings do not change the exit code.
 class DoctorCommand(final ShutterContext context) extends Command<int> {
+  this {
+    argParser.addOption('shell', help: shellHelp);
+  }
+
   @override
   String get name => 'doctor';
 
@@ -100,9 +105,21 @@ class DoctorCommand(final ShutterContext context) extends Command<int> {
     } on ShutterException catch (e) {
       return [Check(CheckLevel.fail, e.message)];
     }
+    final option = argResults!.option('shell');
+    final given = option == null
+        ? null
+        : shellOptionPath(option, context.workingDirectory);
     return [
       Check(CheckLevel.ok, 'project ${project.name} at ${project.root}'),
-      if (project.shellPath case final shell?)
+      if (given != null)
+        File(given).existsSync()
+            ? Check(CheckLevel.ok, 'shell ${project.shown(given)}')
+            : Check(
+                CheckLevel.fail,
+                'shell ${project.shown(given)} does not exist',
+                'run `shutter init --shell $option` to write one',
+              )
+      else if (project.shellPath case final shell?)
         Check(CheckLevel.ok, 'shell ${project.relative(shell)}')
       else
         const Check(

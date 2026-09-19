@@ -63,8 +63,10 @@ The project's shell replaces the default one entirely, so it decides what surrou
 Shutter adds no design library to a shell without one.
 
 Viewport: `size` when both dimensions are finite; a missing or infinite dimension uses 800×600 logical pixels.
+The captured region takes a finite dimension of `size` as it is; in a missing or infinite one it takes the preview's own extent, up to the viewport, so `Size(360, double.infinity)` shoots a widget 360 wide at its own height.
 `brightness` sets the platform brightness and `textScaleFactor` the platform text scale, so the shell's app widget picks them up as on a device.
 Images render at a device pixel ratio of 2.
+Elevation paints its shadow as on a device; `flutter_test` would draw a solid outline in its place.
 
 Fonts: every family in the project's `FontManifest.json` (pubspec `fonts:`, package fonts, MaterialIcons) plus Roboto from the Flutter SDK cache.
 The test engine has no system font fallback, so a glyph missing from the style's fonts would render as a box. As on a device, shutter falls back to the host's CJK and emoji fonts: Hiragino Sans W3/W6 and Apple Color Emoji on macOS, Noto Sans CJK and Noto Color Emoji on Linux, Yu Gothic and Segoe UI Emoji on Windows. They are appended as `fontFamilyFallback` to the ambient default text style, and to the text theme of every design library whose theme the shell provides (SDK or package); text whose glyphs exist in its own font renders unchanged.

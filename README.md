@@ -47,7 +47,8 @@ A project that lists shutter in `dev_dependencies` gets it with `dart run skills
 
 ## Quick start
 
-Put the widget you are changing in the preview dir (`lib/preview/`, or `lib/src/preview/` in a package):
+`shot` takes any file under `lib/` with `@Preview` functions, so previews the project already has are named as they are.
+For a widget without one, write a preview file; the convention is the preview dir (`lib/preview/`, or `lib/src/preview/` in a package):
 
 ```dart
 // lib/preview/notification_tile_preview.dart
@@ -112,7 +113,7 @@ The three images are the ones at the top of this page.
 `diff` pairs the shots of two runs by id: the id comes from the preview's file and function, so the same preview has the same id in every run, and renaming or moving the function reports it as `removed` plus `added`.
 The preview file stays in the project: the same function shows up in Flutter's widget previewer, and the next change is shot against it.
 
-Every shot is wrapped in a shell: the project's `shell.dart` with the app's own app widget, theme, router, and providers (`shutter init` writes one), or a default shell.
+Every shot is wrapped in a shell: the project's `shell.dart` in the preview dir, with the app's own app widget, theme, router, and providers (`shutter init` writes one), or a default shell.
 Shutter itself depends on no design library, so Material, Cupertino, and custom widget sets all work.
 
 A widget can also be shot without a file:

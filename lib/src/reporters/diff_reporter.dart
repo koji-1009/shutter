@@ -1,0 +1,44 @@
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+
+import '../diff/run_diff.dart';
+import 'format.dart';
+import 'yaml_scalar.dart';
+
+/// Writes the outcome of `shutter diff`: YAML starting with
+/// `# shutter ai-report v1`, in the order to look at the entries, with
+/// absolute paths. [dir] holds the diff images (`--images`), else null.
+void reportDiff(RunDiff diff, String? dir, IOSink sink) {
+  final summary = [
+    for (final MapEntry(:key, :value) in diff.summary.entries)
+      '${key.name}: $value',
+  ].join(', ');
+  final body = StringBuffer()..writeln('# shutter ai-report v1');
+  if (dir != null) body.writeln('diff: ${yamlScalar(dir)}');
+  body
+    ..writeln('before: ${yamlScalar(diff.before)}')
+    ..writeln('after: ${yamlScalar(diff.after)}')
+    ..writeln('summary: {$summary}')
+    ..writeln(listHeader('entries', diff.entries.length));
+  for (final entry in diff.entries) {
+    writeEntryHead(body, entry.status.name, entry.shot);
+    if (entry.diffRatio case final ratio?) {
+      // Significant digits, so a change of a few pixels never reads 0.
+      body.writeln(
+        '    diff_ratio: ${double.parse(ratio.toStringAsPrecision(4))}',
+      );
+    }
+    writeError(body, entry.shot);
+    for (final (key, base, name) in [
+      ('before', diff.before, entry.beforePng),
+      ('after', diff.after, entry.afterPng),
+      ('diff', dir, entry.diffPng),
+    ]) {
+      if (base != null && name != null) {
+        body.writeln('    $key: ${yamlScalar(p.join(base, name))}');
+      }
+    }
+  }
+  sink.write(body);
+}

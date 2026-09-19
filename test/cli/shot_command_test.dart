@@ -190,6 +190,8 @@ void main() {
       final bad = await run(args);
       expect(bad.exitCode, 64, reason: '$args');
       expect(bad.stderr, contains('--import and --size need --widget.'));
+      // Followed by the command's usage, as for a parser error.
+      expect(bad.stderr, contains('Usage: shutter shot'));
     }
     for (final args in [
       <String>[],

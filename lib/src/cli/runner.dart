@@ -1,6 +1,7 @@
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 
+import '../shutter_exception.dart';
 import '../version.dart';
 
 import 'agent_text.dart';
@@ -56,7 +57,15 @@ class _ShutterRunner extends CommandRunner<int> {
       ShutterIO.stdoutSink.writeln('shutter $shutterVersion');
       return 0;
     }
-    return super.runCommand(topLevelResults);
+    try {
+      return await super.runCommand(topLevelResults);
+    } on ShutterException catch (e) {
+      if (e.exitCode != 64) rethrow;
+      // An argument a command rejects reads like one the parser rejects:
+      // the message, then the command's usage, on stderr.
+      final command = commands[topLevelResults.command!.name]!;
+      throw UsageException(e.toString(), command.usage);
+    }
   }
 
   @override

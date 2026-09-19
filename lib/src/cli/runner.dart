@@ -46,7 +46,7 @@ CommandRunner<int> buildCommandRunner([ShutterContext? context]) {
 
 class _ShutterRunner extends CommandRunner<int> {
   _ShutterRunner()
-    : super('shutter', 'Render any Flutter widget to PNG and diff two runs.');
+    : super('shutter', 'Express a change to a Flutter widget as an image.');
 
   @override
   void printUsage() => ShutterIO.stdoutSink.writeln(usage);

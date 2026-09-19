@@ -1,6 +1,6 @@
 name: shutter
 description: >-
-  Renders any Flutter widget to PNG, from a command-line expression or the project's `@Preview` functions, and diffs two runs pixel-wise. A small CLI shaped for AI agents.
+  Renders a Flutter project's widget previews to PNG, reusing the ones it already has, and diffs two runs pixel by pixel into before and after images of a change.
 version: 0.1.0
 repository: https://github.com/koji-1009/shutter
 issue_tracker: https://github.com/koji-1009/shutter/issues
@@ -9,7 +9,7 @@ topics:
   - preview
   - screenshot
   - visual-diff
-  - ai
+  - cli
 
 environment:
   sdk: ^3.13.0

@@ -61,6 +61,7 @@ shutter shot --widget 'PrimaryButton(label: "OK")' --import lib/ui/button.dart -
 
 * `--widget` is any Dart expression of type `Widget`; `--import` is a file under `lib/` (or a `package:` URI) it needs imported, repeatable. `package:flutter/widgets.dart` is always imported, so Material widgets need the Material library the project uses as an `--import` (`package:material_ui/material_ui.dart` or `package:flutter/material.dart`).
 * Only that widget is shot, wrapped in the shell; nothing is written to the project outside `.shutter/`.
+* Without `--size` the widget is shot at its own size; `--size` fixes both dimensions and stretches the widget to them.
 * The same `--widget` and `--import` give the same shot id in every run, so before and after line up in `diff`.
 
 ## Exit codes

@@ -37,7 +37,7 @@ A path is relative to the working directory (or absolute); a named file without 
 ## One widget without a file
 
 `--widget` is shot instead of preview files: nothing under `lib/` is scanned, and nothing is written to the project outside `.shutter/`.
-The generated test imports `package:flutter/widgets.dart` and every `--import`, and shoots the expression as a `Preview` named after it, sized by `--size`.
+The generated test imports `package:flutter/widgets.dart` and every `--import`, and shoots the expression as a `Preview` named after it, sized by `--size`; without `--size` the widget is shot at its own size.
 An `--import` path is relative to the working directory (or absolute) and must be under `lib/`; `package:` URIs pass through.
 The shot id hashes the expression and the resolved imports, so the same `--widget` and `--import` give the same id in every run, from any working directory; `--size` does not change the id.
 A widget expression that does not compile is an `error` shot carrying the compiler message; it has no `file` or `at`.

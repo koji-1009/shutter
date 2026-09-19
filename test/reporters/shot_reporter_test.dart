@@ -48,6 +48,7 @@ void main() {
     expect(text, '''
 # shutter ai-report v1
 run: $dir
+shell: default
 summary: {error: 2, ok: 1}
 shots:
   - id: b.0
@@ -77,10 +78,17 @@ shots:
     );
   });
 
-  test('no shots', () async {
-    final text = await render(const RunManifest(run: 'r', shots: []));
+  test('no shots; the shell file with its sha256', () async {
+    final text = await render(
+      const RunManifest(
+        run: 'r',
+        shots: [],
+        shell: (path: '.dart_tool/shutter/shell.dart', sha256: '9a0b'),
+      ),
+    );
     expect(loadYaml(text), {
       'run': dir,
+      'shell': {'path': '.dart_tool/shutter/shell.dart', 'sha256': '9a0b'},
       'summary': {'error': 0, 'ok': 0},
       'shots': <Object?>[],
     });

@@ -8,6 +8,13 @@ String formatNumber(double value) => jsonNumber(value).toString();
 String formatSize((double, double) size) =>
     '[${formatNumber(size.$1)}, ${formatNumber(size.$2)}]';
 
+/// `{path: ..., sha256: ...}`, or `default` for the default shell.
+String formatShell(ShellFile? shell) => switch (shell) {
+  (:final path, :final sha256) =>
+    '{path: ${yamlScalar(path)}, sha256: $sha256}',
+  null => 'default',
+};
+
 /// `<key>: []` or `<key>:`, the list header of a report.
 String listHeader(String key, int length) => length == 0 ? '$key: []' : '$key:';
 

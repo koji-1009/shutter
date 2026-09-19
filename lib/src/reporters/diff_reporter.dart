@@ -23,6 +23,9 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
     ..writeln(listHeader('entries', diff.entries.length));
   for (final entry in diff.entries) {
     writeEntryHead(body, entry.status.name, entry.shot);
+    if (entry.beforeSize case final size?) {
+      body.writeln('    before_size: ${formatSize(size)}');
+    }
     if (entry.diffRatio case final ratio?) {
       // Significant digits, so a change of a few pixels never reads 0.
       body.writeln(

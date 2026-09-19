@@ -14,6 +14,9 @@ class const DiffEntry({
   /// has no image.
   final double? diffRatio,
 
+  /// The before shot's size, on a `changed` entry whose size changed.
+  final (double, double)? beforeSize,
+
   /// The shot's PNG inside the before / after run directory.
   final String? beforePng,
   final String? afterPng,

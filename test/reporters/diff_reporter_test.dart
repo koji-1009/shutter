@@ -37,6 +37,7 @@ RunDiff sample() => const RunDiff(
         textScaleFactor: 1.5,
       ),
       diffRatio: 0.043217,
+      beforeSize: (200, 48),
       beforePng: 'c.0.png',
       afterPng: 'c.0.png',
       diffPng: 'c.0.png',
@@ -81,6 +82,7 @@ entries:
     size: [200, 56]
     brightness: dark
     text_scale_factor: 1.5
+    before_size: [200, 48]
     diff_ratio: 0.04322
     before: /runs/r1/c.0.png
     after: /runs/r2/c.0.png

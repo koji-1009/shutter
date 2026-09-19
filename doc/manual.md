@@ -162,6 +162,7 @@ Renaming a function, moving it to another file, or inserting an annotation befor
 | `unchanged` | otherwise                                                                                                  |
 
 An error is part of what was shot: the same error with the same image on both sides is `unchanged`, and every entry carries its shot's `error` and `at`.
+An entry carries the size of its after shot (the before shot for `removed`); a `changed` entry whose size changed also carries `before_size`.
 Byte-identical PNGs are unchanged; otherwise pixels are compared as exact RGBA on the union of both canvases, and `diff_ratio` records the share that differs.
 Each entry points at its `before` / `after` PNGs inside the two run directories; no image is copied and nothing is written.
 With `--images`, each `changed` entry with both images also gets `<id>.png` in `.shutter/diffs/<diff-id>/`: the before image faded, differing pixels in red.

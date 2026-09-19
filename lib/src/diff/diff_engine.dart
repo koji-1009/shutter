@@ -89,6 +89,9 @@ DiffEntry _entry(
     status: status,
     shot: (after ?? before)!,
     diffRatio: pixels?.ratio,
+    beforeSize: status == DiffStatus.changed && before!.size != after!.size
+        ? before.size
+        : null,
     beforePng: before?.png,
     afterPng: after?.png,
     diffPng: diffPng,

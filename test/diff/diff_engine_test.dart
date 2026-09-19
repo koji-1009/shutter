@@ -20,15 +20,16 @@ StoredRun run(String name, List<Shot> shots, Map<String, List<int>> pngs) {
   return StoredRun(dir, manifest);
 }
 
-Shot ok(String id, {String? file, int? line}) => Shot(
-  id: id,
-  status: ShotStatus.ok,
-  png: '$id.png',
-  name: id,
-  file: file,
-  line: line,
-  size: (1, 1),
-);
+Shot ok(String id, {String? file, int? line, (double, double) size = (1, 1)}) =>
+    Shot(
+      id: id,
+      status: ShotStatus.ok,
+      png: '$id.png',
+      name: id,
+      file: file,
+      line: line,
+      size: size,
+    );
 
 void main() {
   test('classifies every id; --images writes diff images', () {
@@ -85,7 +86,7 @@ void main() {
         ok('same2', file: 'lib/b.dart', line: 2),
         ok('same3', file: 'lib/a.dart', line: 9),
         ok('changed'),
-        ok('resized'),
+        ok('resized', size: (1, 1.25)),
         ok('added'),
         const Shot(
           id: 'err',
@@ -176,6 +177,10 @@ void main() {
     expect(changed.beforePng, 'changed.png');
     expect(changed.afterPng, 'changed.png');
     expect(changed.diffPng, isNull);
+    // The before size only when it changed.
+    expect(changed.beforeSize, isNull);
+    final resized = diff.entries.singleWhere((e) => e.shot.id == 'resized');
+    expect((resized.shot.size, resized.beforeSize), ((1, 1.25), (1, 1)));
     final added = diff.entries.singleWhere((e) => e.shot.id == 'added');
     expect([added.beforePng, added.afterPng], [null, 'added.png']);
     expect(added.diffRatio, isNull);

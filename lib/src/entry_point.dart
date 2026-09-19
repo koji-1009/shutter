@@ -39,8 +39,18 @@ Future<int> runShutter(
 }
 
 /// Surfaces an unhandled async error from the [runApp] zone as an
-/// `EX_SOFTWARE` exit.
+/// `EX_SOFTWARE` exit. A reader that closed the pipe early
+/// (`shutter diff ... | grep -q changed`) is not an error: the rest of
+/// the output has nowhere to go, and the command's exit code stands.
 void handleUncaughtZoneError(Object error, StackTrace stack) {
+  if (_isBrokenPipe(error)) return;
   ShutterIO.stderrSink.writeln('Unhandled error: $error\n$stack');
   exitCode = 70;
 }
+
+/// `EPIPE`, as a write to stdout reports it.
+bool _isBrokenPipe(Object error) => switch (error) {
+  FileSystemException(:final osError?) ||
+  SocketException(:final osError?) => osError.errorCode == 32,
+  _ => false,
+};

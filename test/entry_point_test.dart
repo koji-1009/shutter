@@ -47,6 +47,26 @@ void main() {
     expect(result.stderr, startsWith('Unhandled error: Bad state: x'));
   });
 
+  test('a closed pipe is not an error; the exit code stands', () async {
+    for (final error in [
+      const FileSystemException('writeFrom failed', '', OSError('', 32)),
+      const SocketException('write failed', osError: OSError('', 32)),
+    ]) {
+      exitCode = 1;
+      final result = await captureIO(
+        () => handleUncaughtZoneError(error, StackTrace.empty),
+      );
+      expect((exitCode, result.stderr), (1, ''), reason: '$error');
+    }
+    await captureIO(
+      () => handleUncaughtZoneError(
+        const FileSystemException('x', '', OSError('', 13)),
+        StackTrace.empty,
+      ),
+    );
+    expect(exitCode, 70);
+  });
+
   test('--version after a subcommand is not the version flag', () async {
     await captureIO(() => runApp(['shot', '--version']));
     expect(exitCode, 64);

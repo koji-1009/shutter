@@ -1,0 +1,136 @@
+import 'package:args/command_runner.dart';
+import 'package:path/path.dart' as p;
+
+import '../engine/engine.dart';
+import '../project/gitignore.dart';
+import '../project/project.dart';
+import '../reporters/shot_reporter.dart';
+import '../run/manifest.dart';
+import '../run/timestamp_id.dart';
+import '../scan/scanner.dart';
+import '../shutter_exception.dart';
+import 'context.dart';
+import 'io_sinks.dart';
+import 'shot_options.dart';
+
+/// `shutter shot` — renders the previews of the named files, or one
+/// `--widget`, into a new run.
+class ShotCommand(final ShutterContext context) extends Command<int> {
+  this {
+    argParser
+      ..addOption(
+        'widget',
+        help:
+            'Shoot this widget expression instead of preview files, '
+            'e.g. \'PrimaryButton(label: "OK")\'.',
+      )
+      ..addMultiOption(
+        'import',
+        help:
+            'File (under lib/) or package: URI the --widget needs imported. '
+            'Repeatable; package:flutter/widgets.dart is always imported.',
+      )
+      ..addOption(
+        'size',
+        help: 'Logical size of the --widget shot, e.g. 390x844.',
+      )
+      ..addOption(
+        'settle',
+        help: 'Milliseconds pumped once before capture.',
+        defaultsTo: '300',
+      );
+  }
+
+  @override
+  String get name => 'shot';
+
+  @override
+  String get description =>
+      'Render the previews in the named files, or one --widget, to PNG as a '
+      'new run.';
+
+  @override
+  String get invocation =>
+      'shutter shot <preview-file>... | shutter shot --widget <expression>';
+
+  @override
+  Future<int> run() async {
+    final args = argResults!;
+    final settle = parseCount(args, 'settle');
+    final source = args.option('widget');
+    final imports = args.multiOption('import');
+    final size = switch (args.option('size')) {
+      final raw? => parseSize(raw),
+      null => null,
+    };
+    final files = args.rest;
+    if (source == null && (imports.isNotEmpty || size != null)) {
+      throw ShutterException.usage('--import and --size need --widget.');
+    }
+    if ((source == null) == files.isEmpty) {
+      throw ShutterException.usage(
+        'Name the preview files to shoot, or give --widget; not both.',
+      );
+    }
+    final project = context.project();
+    if (!project.hasFlutterTest) {
+      throw const ShutterException(
+        'flutter_test is not in dev_dependencies; add it (`$flutterTestHint`).',
+      );
+    }
+    final sdk = context.sdk();
+    final widget = switch (source) {
+      final source? => parseWidgetShot(
+        project,
+        source: source,
+        imports: imports,
+        size: size,
+        workingDirectory: context.workingDirectory,
+      ),
+      null => null,
+    };
+    final paths = [
+      for (final file in files)
+        libFile(
+          project,
+          file,
+          workingDirectory: context.workingDirectory,
+          what: 'preview file',
+        ),
+    ];
+    final libraries = await Scanner(
+      project,
+      sdkPath: sdk.dartSdkPath,
+    ).scan(paths);
+    final found = {
+      for (final library in libraries)
+        for (final c in library.candidates) c.file,
+    };
+    for (final path in paths) {
+      if (!found.contains(project.relative(path))) {
+        throw ShutterException.noInput(
+          '${project.relative(path)} has no @Preview.',
+        );
+      }
+    }
+    // Only a shot that gets this far writes into the project.
+    ensureGitignored(project.root);
+    final runDir = createTimestampDir(project.runsDir, context.clock());
+    final engine = context.engineFactory(sdk);
+    final shots = await engine.capture(
+      CaptureRequest(
+        project: project,
+        libraries: libraries,
+        runDir: runDir,
+        settleMs: settle,
+        widget: widget,
+      ),
+    );
+    final manifest = RunManifest(
+      run: p.basename(runDir),
+      shots: [...shots]..sort(Shot.bySource),
+    )..write(runDir);
+    reportShots(manifest, runDir, ShutterIO.stdoutSink);
+    return manifest.exitCode;
+  }
+}

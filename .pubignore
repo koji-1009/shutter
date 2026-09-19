@@ -1,0 +1,17 @@
+# `.pubignore` replaces `.gitignore` for `dart pub publish` in this
+# directory; `example/.gitignore` still applies, and pub never publishes
+# hidden files. List what the root `.gitignore` excludes, plus what
+# should not ship to consumers.
+
+# From `.gitignore`:
+pubspec.lock
+tmp/
+/coverage/
+
+# Tests and contributor docs.
+test/
+dart_test.yaml
+AGENTS.md
+
+# The example's web runner: `flutter create` scaffolding shutter never uses.
+example/web/

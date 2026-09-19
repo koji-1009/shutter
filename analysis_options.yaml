@@ -1,0 +1,38 @@
+include: package:lints/recommended.yaml
+
+analyzer:
+  exclude:
+    - tmp/**
+    - example/**
+  language:
+    strict-inference: true
+
+linter:
+  rules:
+    always_declare_return_types: true
+    avoid_catching_errors: true
+    avoid_dynamic_calls: true
+    avoid_types_on_closure_parameters: true
+    avoid_void_async: true
+    cancel_subscriptions: true
+    close_sinks: true
+    directives_ordering: true
+    no_adjacent_strings_in_list: true
+    no_dynamic_casts: true
+    no_raw_types: true
+    omit_local_variable_types: true
+    only_throw_errors: true
+    prefer_const_constructors_in_immutables: true
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_const_literals_to_create_immutables: true
+    prefer_final_in_for_each: true
+    prefer_final_locals: true
+    prefer_relative_imports: true
+    prefer_single_quotes: true
+    sort_constructors_first: true
+    test_types_in_equals: true
+    unawaited_futures: true
+    unnecessary_breaks: true
+    unnecessary_statements: true
+    use_super_parameters: true

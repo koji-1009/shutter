@@ -1,0 +1,14 @@
+# `e2e` tests drive a real Flutter SDK against `example/`. They are
+# excluded from the default run (and from the coverage gate); run them
+# with `dart test --run-skipped -t e2e` or `dart test -P e2e`.
+tags:
+  e2e:
+    skip: 'Needs a Flutter SDK; run with `dart test -P e2e`.'
+    timeout: 10m
+
+presets:
+  e2e:
+    include_tags: e2e
+    tags:
+      e2e:
+        skip: false

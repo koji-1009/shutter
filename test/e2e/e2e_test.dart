@@ -4,6 +4,7 @@ library;
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:shutter/src/cli/context.dart';
 import 'package:shutter/src/engine/flutter_test_engine.dart';
@@ -229,6 +230,15 @@ Widget button() => const PrimaryButton(label: 'OK');
 
 @Preview(name: 'Button / own height', size: Size(200, double.infinity))
 Widget buttonOwnHeight() => const PrimaryButton(label: 'OK');
+
+@Preview(name: 'Column / own height', size: Size(200, double.infinity))
+Widget column() => const Column(children: [SizedBox(height: 40)]);
+
+@Preview(name: 'Taller than the viewport', size: Size(200, double.infinity))
+Widget tall() => const ColoredBox(
+  color: Color(0xFF0000FF),
+  child: SizedBox(height: 900),
+);
 ''',
     });
     final analyze = await Process.run(flutter, [
@@ -244,13 +254,29 @@ Widget buttonOwnHeight() => const PrimaryButton(label: 'OK');
     final shots = {
       for (final s in RunManifest.read(lastRun(root)).shots) s.name: s,
     };
-    expect(shots.keys, {'Settings / dark', 'Button', 'Button / own height'});
+    expect(shots.keys, {
+      'Settings / dark',
+      'Button',
+      'Button / own height',
+      'Column / own height',
+      'Taller than the viewport',
+    });
     expect(shots['Settings / dark']!.size, (390.0, 844.0));
     expect(shots['Settings / dark']!.brightness, 'dark');
     expect(shots['Button']!.size, (200.0, 56.0));
     // An infinite height (a dart:core name in the annotation) is the
-    // button's own.
+    // preview's own, as in a scrolling list: a Column does not stretch to
+    // the viewport, and a taller preview is painted to its bottom.
     expect(shots['Button / own height']!.size, (200.0, 52.0));
+    expect(shots['Column / own height']!.size, (200.0, 40.0));
+    final tall = shots['Taller than the viewport']!;
+    expect(tall.size, (200.0, 900.0));
+    final image = img.decodePng(
+      File(p.join(lastRun(root), tall.png!)).readAsBytesSync(),
+    )!;
+    expect((image.width, image.height), (400, 1800));
+    final bottom = image.getPixel(200, 1799);
+    expect((bottom.r, bottom.g, bottom.b, bottom.a), (0, 0, 255, 255));
   });
 
   test('--widget shoots one widget without touching lib/; a broken one '
@@ -276,6 +302,19 @@ Widget buttonOwnHeight() => const PrimaryButton(label: 'OK');
     expect((shot.status, shot.file), (ShotStatus.ok, null));
     expect(shot.size, (200.0, 56.0));
     expect(libFiles(), before);
+
+    // Without --size the widget is shot at its own size.
+    final natural = await shutter(root, [
+      'shot',
+      '--widget',
+      'const PrimaryButton(label: "Widget")',
+      '--import',
+      'lib/ui/button.dart',
+    ]);
+    expect(natural.exitCode, 0, reason: natural.stdout + natural.stderr);
+    final own = RunManifest.read(lastRun(root)).shots.single.size!;
+    expect(own.$1, lessThan(200));
+    expect(own.$2, 52);
 
     final broken = await shutter(root, ['shot', '--widget', 'Missing()']);
     expect(broken.exitCode, 2, reason: broken.stdout + broken.stderr);

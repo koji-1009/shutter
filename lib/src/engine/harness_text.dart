@@ -245,8 +245,17 @@ Future<void> _capture(
       key: key,
       child: SizedBox(width: width, height: height, child: child),
     );
+    // Without a finite height the preview gets unbounded height, as in a
+    // scrolling list, and is shot at its own height; the width stays
+    // bounded by the viewport, as on a screen.
     child = _withFallbackFonts(
-      Align(alignment: Alignment.topLeft, child: child),
+      OverflowBox(
+        alignment: Alignment.topLeft,
+        minWidth: 0,
+        minHeight: 0,
+        maxHeight: double.infinity,
+        child: child,
+      ),
     );
     final localizations = preview.localizations;
     if (localizations != null) {

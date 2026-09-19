@@ -52,7 +52,7 @@ Per preview, from the outside in:
 
 1. Shell: `shell(child)` from `<preview dir>/shell.dart` when the project has one and the preview has no `wrapper`; otherwise the default shell (see Experimental).
 2. `Localizations` when the preview sets `localizations`.
-3. The preview aligned top-left.
+3. The preview at the top left.
 4. The captured region: `SizedBox(size)`, then `theme.apply`, then `wrapper`, then the preview.
 
 The PNG holds what is painted inside the captured region, and nothing outside it: the shell's surface lies outside, so where the preview paints no background the PNG is transparent, and the viewer's own background shows through.
@@ -63,7 +63,10 @@ The project's shell replaces the default one entirely, so it decides what surrou
 Shutter adds no design library to a shell without one.
 
 Viewport: `size` when both dimensions are finite; a missing or infinite dimension uses 800×600 logical pixels.
-The captured region takes a finite dimension of `size` as it is; in a missing or infinite one it takes the preview's own extent, up to the viewport, so `Size(360, double.infinity)` shoots a widget 360 wide at its own height.
+The captured region takes a finite dimension of `size` as it is.
+Without a finite width, the preview takes its own width, up to the viewport's, as on a screen.
+Without a finite height, the preview gets unbounded height, as in a scrolling list, and is shot at its own height, even past the viewport: `Size(360, double.infinity)` shoots a widget 360 wide at the height it has in a list.
+A widget that needs a bounded height (a `Scaffold`, a `ListView`, an `Expanded` in a `Column`) fails there; give it a finite height.
 `brightness` sets the platform brightness and `textScaleFactor` the platform text scale, so the shell's app widget picks them up as on a device.
 Images render at a device pixel ratio of 2.
 Elevation paints its shadow as on a device; `flutter_test` would draw a solid outline in its place.

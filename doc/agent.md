@@ -36,7 +36,7 @@ Widget settingsSignedOut() => const SettingsPage(user: null);
 ```
 
 * One function per state (empty, loading, error), with the state passed in through the constructor.
-* Always set `size`: `390x844` for a screen; for a widget, its width and `double.infinity` as the height (`Size(360, double.infinity)`), so the image fits the widget's height before and after a change that grows it.
+* Always set `size`: `390x844` for a screen; for a widget, its width and `double.infinity` as the height (`Size(360, double.infinity)`). The widget then gets unbounded height, as in a scrolling list, and the image has its own height before and after a change that grows it.
 * Only what the preview paints is in the PNG; a widget without a background of its own is transparent there. To show it on the surface it sits on, wrap it in the preview (`ColoredBox`, `Material`, or `wrapper:`).
 * `shutter shot` shoots only the files it is given: `shutter shot lib/preview/settings_page_preview.dart`.
 * Top-level functions, static methods, and constructors without required arguments are all valid targets; `MultiPreview` and `Preview` subclasses work too.

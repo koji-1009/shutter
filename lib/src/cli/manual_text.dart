@@ -145,7 +145,8 @@ When Flutter ships a capture command in the previewer itself, it replaces v1 wit
 
 `.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shots`).
 `<run-id>` is the UTC time of the shot (`20260918T101530Z`), suffixed `-2`, `-3`, ... when taken; a hidden `.<run-id>` file claims the name, so runs started in the same second get distinct ids.
-`shot` prints the run directory as `run:`; `diff` accepts a run's directory or its id.
+`shot` prints the run directory as `run:`; `diff` accepts a run's directory, its id, `latest` for the newest run, or `latest~N` for the run N before it.
+`latest` counts runs in id order (time, then suffix) and skips a run still being shot, whose `manifest.json` is not written yet.
 
 `.dart_tool/shutter/` is ignored by git with the rest of `.dart_tool/`; shutter writes nothing else into the project.
 Runs, diff images, and downloaded google_fonts accumulate there until you delete it; `flutter clean` deletes it with `.dart_tool/`.

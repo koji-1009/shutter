@@ -110,6 +110,7 @@ entries:
 ```
 
 The three images are the ones at the top of this page.
+A run can also be named `latest`, or `latest~N` for the run N before it, so `shutter diff latest~1 latest` compares the last two shots.
 `diff` pairs the shots of two runs by id: the id comes from the preview's file and function, so the same preview has the same id in every run, and renaming or moving the function reports it as `removed` plus `added`.
 The preview file stays in the project: the same function shows up in Flutter's widget previewer, and the next change is shot against it.
 

@@ -9,7 +9,7 @@ Initial release.
 * Shots render through a generated `flutter_test` file with the project's fonts, a project-wide `shell.dart` that replaces the default shell, and a fixed `--settle` pump. The project gains no dependency; `flutter_test` in `dev_dependencies` is enough.
 * Errors and overflows are recorded per shot with a `lib/` location, and the rest of the run continues. A shot that never finishes or paints nothing is an `error` shot.
 * Concurrent shots in one project get separate run and test directories.
-* `shutter diff` compares two runs by shot id as `changed`, `added`, `removed`, or `unchanged`, in pure Dart. An error counts as part of the shot; byte-identical PNGs are unchanged, and otherwise any differing pixel makes the shot `changed`. `--images` adds an image marking the differing pixels of each changed shot.
+* `shutter diff` compares two runs by shot id as `changed`, `added`, `removed`, or `unchanged`, in pure Dart. An error counts as part of the shot; byte-identical PNGs are unchanged, and otherwise any differing pixel makes the shot `changed`. `--images` adds an image marking the differing pixels of each changed shot. A run is named by its directory, its id, `latest`, or `latest~N`.
 * `shot` and `diff` print YAML starting with `# shutter ai-report v1`, with absolute image paths.
 * `shutter init` writes a `shell.dart` against the design library the project uses.
 * `shutter agent` and `shutter manual` print the playbook and the reference from the binary; `shutter doctor` checks the Flutter SDK version, its font cache, and the shell.

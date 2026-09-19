@@ -24,7 +24,9 @@ class DiffCommand(final ShutterContext context) extends Command<int> {
   String get name => 'diff';
 
   @override
-  String get description => 'Compare two runs; exit 0 unchanged, 1 changed.';
+  String get description =>
+      'Compare two runs (a directory, an id, latest, or latest~N); '
+      'exit 0 unchanged, 1 changed.';
 
   @override
   String get invocation => 'shutter diff <run-a> <run-b>';

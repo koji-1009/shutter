@@ -1,7 +1,7 @@
 name: shutter
 description: >-
   Renders a Flutter project's widget previews to PNG, reusing the ones it already has, and diffs two runs pixel by pixel into before and after images of a change.
-version: 0.1.0
+version: 0.1.1
 repository: https://github.com/koji-1009/shutter
 issue_tracker: https://github.com/koji-1009/shutter/issues
 topics:

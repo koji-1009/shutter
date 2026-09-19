@@ -226,6 +226,9 @@ Widget settings() => const SettingsPage();
 
 @Preview(name: 'Button', size: Size(200, 56))
 Widget button() => const PrimaryButton(label: 'OK');
+
+@Preview(name: 'Button / own height', size: Size(200, double.infinity))
+Widget buttonOwnHeight() => const PrimaryButton(label: 'OK');
 ''',
     });
     final analyze = await Process.run(flutter, [
@@ -241,10 +244,13 @@ Widget button() => const PrimaryButton(label: 'OK');
     final shots = {
       for (final s in RunManifest.read(lastRun(root)).shots) s.name: s,
     };
-    expect(shots.keys, {'Settings / dark', 'Button'});
+    expect(shots.keys, {'Settings / dark', 'Button', 'Button / own height'});
     expect(shots['Settings / dark']!.size, (390.0, 844.0));
     expect(shots['Settings / dark']!.brightness, 'dark');
     expect(shots['Button']!.size, (200.0, 56.0));
+    // An infinite height (a dart:core name in the annotation) is the
+    // button's own.
+    expect(shots['Button / own height']!.size, (200.0, 52.0));
   });
 
   test('--widget shoots one widget without touching lib/; a broken one '

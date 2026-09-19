@@ -63,6 +63,8 @@ void main() {
     final source = helperSource(
       library([candidate('a'), candidate('B.new'), candidate('c', error: 'x')]),
     )!;
+    // Unprefixed, so a prefixed `dart:core` import does not hide `List`.
+    expect(source, contains("import 'dart:core';\n"));
     expect(source, contains(r'target: $i1.a,'));
     expect(source, contains(r'target: $i1.B.new,'));
     expect(source, isNot(contains(r'target: $i1.c,')));

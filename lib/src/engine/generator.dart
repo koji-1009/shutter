@@ -110,7 +110,10 @@ String helperLibrary({
 }) {
   final buffer = StringBuffer(generatedHeader)
     ..writeln('// Source: $source')
-    ..writeln();
+    ..writeln()
+    // A prefixed `dart:core` import among [imports] hides the implicit
+    // one, which the code below relies on.
+    ..writeln("import 'dart:core';");
   imports.forEach(buffer.writeln);
   buffer
     ..writeln(r"import '../shutter_harness.dart' as $shutter;")

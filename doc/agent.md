@@ -5,7 +5,7 @@ It makes no judgement; what to shoot, how to prepare the before state, whether a
 
 ## Before and after
 
- 1. First time: `dart pub global activate shutter && shutter doctor`. Without a preview dir or `shell.dart`, run `shutter init`.
+ 1. First time: `dart install shutter && shutter doctor`. Without a preview dir or `shell.dart`, run `shutter init`.
  2. Before editing, decide what to shoot. `grep` for where the widget is used; shoot the screens that contain it too when a change can break their layout.
  3. Write a preview file for each subject in the preview dir (below). Any widget can be a subject: it needs no annotation of its own, only an import.
  4. `shutter shot <preview-file>...`, naming the preview files of step 3: the before run. Preparing the before state is up to you: shoot before editing, `git stash` and shoot, or shoot in a `git worktree`.

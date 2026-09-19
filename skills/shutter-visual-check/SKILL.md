@@ -6,7 +6,7 @@ description: Render Flutter widgets to PNG and compare before / after with the s
 # shutter: close a visual change with an image
 
 * Run `shutter agent` before anything else and follow it. It is the playbook for this `shutter` binary; this skill only says when to use it.
-* If `shutter` is not found, run `dart pub global activate shutter`. The Flutter project needs `flutter_test` in `dev_dependencies` and nothing else.
+* If `shutter` is not found, run `dart install shutter`. The Flutter project needs `flutter_test` in `dev_dependencies` and nothing else.
 * Put the widget you are changing in a preview file (`lib/preview/<name>_preview.dart`: import the widget, return it from an `@Preview` function), then shoot before and after the edit and diff:
 
 ```bash

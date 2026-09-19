@@ -8,7 +8,7 @@
 Shutter renders Flutter widgets to PNG and compares two runs pixel by pixel, so an AI agent can attach a visual change to its PR as before and after images.
 Any widget can be shot, from a single button to a whole `Scaffold` screen: import it into a small preview file, and shutter renders it through Flutter's widget preview.
 
-> **AI agents — start here:** run `shutter agent` before driving the tool. It is the step-by-step playbook: putting a widget in the preview dir, shooting before and after, and reading the diff. `shutter manual` is the reference. Both ship in the binary, so `dart pub global activate shutter` is enough.
+> **AI agents — start here:** run `shutter agent` before driving the tool. It is the step-by-step playbook: putting a widget in the preview dir, shooting before and after, and reading the diff. `shutter manual` is the reference. Both ship in the binary, so `dart install shutter` is enough.
 
 ## What it does
 
@@ -25,7 +25,7 @@ It keeps no golden images and knows nothing about git; every comparison is betwe
 ## Install
 
 ```bash
-dart pub global activate shutter
+dart install shutter
 ```
 
 The target project needs Flutter 3.47+ (Dart 3.13+) and `flutter_test` in `dev_dependencies`. It gains no dependency on shutter.

@@ -11,7 +11,7 @@ The subjects are the widgets of the preview files you name: a preview file impor
 The Flutter Widget Previewer (`flutter widget-preview start`) mounts it the same way but has no way out as an image; shutter gives it one.
 
 * `shot <preview-file>...`: the previews in the named files.
-* `shot --widget '<expression>'`: one Dart expression of type `Widget`, built out of the project's own files with `--import` and sized by `--size`, for a look without writing a preview file.
+* `shot --widget '<expression>'`: one Dart expression of type `Widget`, with `--import` for the project's own files it needs and `--size` for the size it is shot at, for a look without writing a preview file.
 
 Shutter keeps no golden images, no catalogue, and no git knowledge.
 Every comparison is between two runs you made, so there is no environment drift to manage and no update ritual.

@@ -57,7 +57,7 @@ If `diff` prints `shell:`, the two runs were shot with different shells, and eve
 
 ## One widget without a preview file
 
-For a quick look that does not need to be kept, pass the widget on the command line and name the project files it comes from with `--import`.
+For a quick look that does not need to be kept, pass the widget on the command line, naming any project files it comes from with `--import`.
 It answers "how does this render here" before a call site exists: a widget of a package the project depends on but you have never used, a screen through the project's shell, an API you are about to reach for.
 
 ```bash

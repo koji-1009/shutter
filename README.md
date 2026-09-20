@@ -28,7 +28,7 @@ A visual change is closed by an image, not by "it compiles" or "the tests pass".
 
 * `shutter shot <preview-file>...` renders the widgets of the named preview files to PNG. A preview file imports any widget of the app and returns it from a function annotated with Flutter's `@Preview`; the widget itself needs no annotation.
 * `shutter diff <run-a> <run-b>` classifies each shot of two runs as `changed`, `added`, `removed`, or `unchanged`, and points at its before and after images (`--images` adds an image marking the differing pixels).
-* `shutter shot --widget '<expression>'` renders one widget out of the files it `--import`s, for a quick look without writing a preview file.
+* `shutter shot --widget '<expression>'` renders one widget expression, with `--import` naming the project files it needs, for a quick look without writing a preview file.
 
 Each command does one thing and prints paths, so it composes with `grep`, `git`, `gh`, and whatever opens images.
 Shutter makes no judgement: it does not decide what to shoot, whether a change is good, or where to post.

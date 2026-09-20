@@ -6,7 +6,7 @@
 [![codecov](https://codecov.io/gh/koji-1009/shutter/branch/main/graph/badge.svg)](https://codecov.io/gh/koji-1009/shutter)
 
 Shutter expresses a change to a Flutter widget as an image: it renders the widget to PNG before and after the edit, pairs the two, and marks the pixels that differ.
-The subjects are the `@Preview` functions the project already has; a widget without one gets a small preview file that imports it.
+The subjects are the `@Preview` functions the project already has, from a single button to a whole `Scaffold` screen; a widget without one gets a small preview file that imports it.
 Rendering happens in `flutter test`, without launching the app, and the preview file stays in the project, for the Flutter Widget Previewer and for every later shot.
 
 | before                                                              | after                                                             | `diff --images`                                                   |

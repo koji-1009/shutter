@@ -16,7 +16,7 @@ It makes no judgement; what to shoot, how to prepare the before state, whether a
  6. `shutter shot <preview-file>...` with the same files: the after run.
  7. `shutter diff latest~1 latest` when the two shots are the last two runs; otherwise `shutter diff <before-run> <after-run>`, with the `run:` directories the two shots printed.
  8. Open the `before` / `after` images of every `changed` entry and check them against your intent; `diff --images` adds a `diff` image marking the differing pixels. `unchanged` on something you edited means the edit did not reach the shot.
- 9. The images are files under `.dart_tool/shutter/`; where to post them is up to you. A path alone renders nothing: `gh pr comment <number> --attach '<png>#<alt text>'` (gh 2.101+) uploads them into a GitHub comment, `glab mr note create <mr> --attach <png>` (glab 1.117+, experimental) into a GitLab one.
+ 9. The images are files under `.dart_tool/shutter/`; where to post them is up to you. A path alone renders nothing: `gh pr comment <number> --attach '<png>#<alt text>'` (gh 2.99+) uploads them into a GitHub comment, `glab mr note create <mr> --attach <png>` (glab 1.117+, experimental) into a GitLab one.
 10. Keep the preview files: the next change is shot against the same subjects, and the Flutter Widget Previewer draws them too.
 
 ## Preview files

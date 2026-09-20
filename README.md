@@ -17,7 +17,7 @@ Rendering happens in `flutter test`, without launching the app, and the preview 
 
 * A change going up for review: the images show what moved, which a description of it cannot.
 * A refactor that should change nothing on screen: `diff` calls every shot `unchanged`, or names the ones that changed.
-* A widget that might break on screen: an overflow, a `build` that throws, or an image that fails to load comes back as an `error` shot, with `at` naming the `lib/` line behind it.
+* A widget that might break on screen: an overflow, a `build` that throws, or an image that fails to load comes back as an `error` shot, with `at` naming the `lib/` line behind it, and the PNG still shows the overflow stripes.
 * A dependency you just added or upgraded: shoot the screens that use it before and after, and the diff names the ones its defaults changed.
 
 > **AI agents — start here:** run `shutter agent` before driving the tool. It is the step-by-step playbook: choosing the previews to shoot, shooting before and after, and reading the diff. `shutter manual` is the reference. Both ship in the binary, so `dart install shutter` is enough.

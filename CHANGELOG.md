@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1
+
+Documentation and package metadata; the tool behaves as in 0.1.0.
+
+* The package description, the README, and `shutter --help` open on what shutter produces, a change to a widget expressed as before and after images, instead of on the agent that drives it.
+* The `ai` topic is replaced by `cli`: shutter is a command-line tool an agent can drive, not an AI package.
+* README lists when to reach for shutter: a change going up for review, a refactor that should change nothing on screen, a widget that might break on screen, a dependency just added or upgraded.
+* `shutter agent` says what `shot --widget` answers, a look at a widget before the call site exists, names the commands that upload an image to a pull or merge request, and states that `--import` reaches only what the project's `pubspec.yaml` resolves.
+* Flutter's previewer is called by its name, the Flutter Widget Previewer.
+
 ## 0.1.0
 
 Initial release: a CLI, shaped for AI agents, that renders Flutter widgets to PNG and compares two runs.

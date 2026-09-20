@@ -16,8 +16,8 @@ It makes no judgement; what to shoot, how to prepare the before state, whether a
  6. `shutter shot <preview-file>...` with the same files: the after run.
  7. `shutter diff latest~1 latest` when the two shots are the last two runs; otherwise `shutter diff <before-run> <after-run>`, with the `run:` directories the two shots printed.
  8. Open the `before` / `after` images of every `changed` entry and check them against your intent; `diff --images` adds a `diff` image marking the differing pixels. `unchanged` on something you edited means the edit did not reach the shot.
- 9. The images are files under `.dart_tool/shutter/`; where to post them (`gh`, `glab`) is up to you.
-10. Keep the preview files: they are the next person's viewfinder, in shutter and in Flutter's widget previewer.
+ 9. The images are files under `.dart_tool/shutter/`; where to post them is up to you. A path alone renders nothing: `gh pr comment <number> --attach '<png>#<alt text>'` (gh 2.99+) uploads them into a GitHub comment, `glab mr note create <mr> --attach <png>` (glab 1.117+, experimental) into a GitLab one.
+10. Keep the preview files: the next change is shot against the same subjects, and the Flutter Widget Previewer draws them too.
 
 ## Preview files
 
@@ -55,9 +55,10 @@ The shell in the preview dir is committed and shared. When you need a shell only
 `shot` prints the shell it used as `shell:` (`default` when there was none); check it before and after.
 If `diff` prints `shell:`, the two runs were shot with different shells, and every image may differ for that reason alone.
 
-## One widget without a file
+## One widget without a preview file
 
-For a quick look that does not need to be kept, pass the widget on the command line:
+For a quick look that does not need to be kept, pass the widget on the command line, naming any project files it comes from with `--import`.
+It answers "how does this render here" before a call site exists: a widget of a package the project depends on but you have never used, a screen through the project's shell, an API you are about to reach for.
 
 ```bash
 shutter shot --widget 'PrimaryButton(label: "OK")' --import lib/ui/button.dart --size 200x56
@@ -65,6 +66,7 @@ shutter shot --widget 'PrimaryButton(label: "OK")' --import lib/ui/button.dart -
 
 * `--widget` is any Dart expression of type `Widget`; `--import` is a file under `lib/` (or a `package:` URI) it needs imported, repeatable. `package:flutter/widgets.dart` is always imported, so Material widgets need the Material library the project uses as an `--import` (`package:material_ui/material_ui.dart` or `package:flutter/material.dart`).
 * Only that widget is shot, wrapped in the shell; nothing is written to the project outside `.dart_tool/shutter/`.
+* The generated test is compiled inside the project, so `--import` reaches only what the project's `pubspec.yaml` already resolves: add the package first, then shoot it.
 * Without `--size` the widget is shot at its own size; `--size` fixes both dimensions and stretches the widget to them.
 * The same `--widget` and `--import` give the same shot id in every run, so before and after line up in `diff`.
 

@@ -5,12 +5,20 @@
 [![CI](https://github.com/koji-1009/shutter/actions/workflows/analyze.yml/badge.svg)](https://github.com/koji-1009/shutter/actions/workflows/analyze.yml)
 [![codecov](https://codecov.io/gh/koji-1009/shutter/branch/main/graph/badge.svg)](https://codecov.io/gh/koji-1009/shutter)
 
-Shutter renders Flutter widgets to PNG and compares two runs pixel by pixel, so an AI agent can attach a visual change to its PR as before and after images.
-Any widget can be shot, from a single button to a whole `Scaffold` screen: import it into a small preview file under Flutter's `@Preview` annotation, and shutter renders it in `flutter test`, without launching the app or Flutter's widget previewer.
+Shutter expresses a change to a Flutter widget as an image: it renders the widget to PNG before and after the edit, pairs the two, and marks the pixels that differ.
+The subjects are the `@Preview` functions the project already has, from a single button to a whole `Scaffold` screen; a widget without one gets a small preview file that imports it.
+Rendering happens in `flutter test`, without launching the app, and the preview file stays in the project, for the Flutter Widget Previewer and for every later shot.
 
 | before                                                              | after                                                             | `diff --images`                                                   |
 | ------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
 | ![NotificationTile before](doc/images/notification_tile_before.png) | ![NotificationTile after](doc/images/notification_tile_after.png) | ![Differing pixels in red](doc/images/notification_tile_diff.png) |
+
+## When to reach for it
+
+* A change going up for review: the images show what moved, which a description of it cannot.
+* A refactor that should change nothing on screen: `diff` calls every shot `unchanged`, or names the ones that changed.
+* A widget that might break on screen: an overflow, a `build` that throws, or an image that fails to load comes back as an `error` shot, with `at` naming the `lib/` line behind it, and the PNG still shows the overflow stripes.
+* A dependency you just added or upgraded: shoot the screens that use it before and after, and the diff names the ones its defaults changed.
 
 > **AI agents — start here:** run `shutter agent` before driving the tool. It is the step-by-step playbook: choosing the previews to shoot, shooting before and after, and reading the diff. `shutter manual` is the reference. Both ship in the binary, so `dart install shutter` is enough.
 
@@ -20,7 +28,7 @@ A visual change is closed by an image, not by "it compiles" or "the tests pass".
 
 * `shutter shot <preview-file>...` renders the widgets of the named preview files to PNG. A preview file imports any widget of the app and returns it from a function annotated with Flutter's `@Preview`; the widget itself needs no annotation.
 * `shutter diff <run-a> <run-b>` classifies each shot of two runs as `changed`, `added`, `removed`, or `unchanged`, and points at its before and after images (`--images` adds an image marking the differing pixels).
-* `shutter shot --widget '<expression>'` renders one widget without a file, for a quick look.
+* `shutter shot --widget '<expression>'` renders one widget expression, with `--import` naming the project files it needs, for a quick look without writing a preview file.
 
 Each command does one thing and prints paths, so it composes with `grep`, `git`, `gh`, and whatever opens images.
 Shutter makes no judgement: it does not decide what to shoot, whether a change is good, or where to post.
@@ -113,19 +121,19 @@ entries:
 The three images are the ones at the top of this page.
 A run can also be named `latest`, or `latest~N` for the run N before it, so `shutter diff latest~1 latest` compares the last two shots.
 `diff` pairs the shots of two runs by id: the id comes from the preview's file and function, so the same preview has the same id in every run, and renaming or moving the function reports it as `removed` plus `added`.
-The preview file stays in the project: the same function shows up in Flutter's widget previewer, and the next change is shot against it.
+The preview file stays in the project: the same function shows up in the Flutter Widget Previewer, and the next change is shot against it.
 
 Every shot is wrapped in a shell: the project's `shell.dart` in the preview dir, with the app's own app widget, theme, router, and providers (`shutter init` writes one), or a default shell.
 That shell is committed so everyone shoots with the same ambient; a shell not meant for the commit can live under `.dart_tool/` and be named with `--shell`.
 Shutter itself depends on no design library, so Material, Cupertino, and custom widget sets all work.
 
-A widget can also be shot without a file:
+A widget can also be shot straight out of the file it lives in, without a preview file:
 
 ```bash
 shutter shot --widget 'PrimaryButton(label: "OK")' --import lib/ui/button.dart --size 200x56
 ```
 
-`--import` names a file the widget expression needs imported (repeatable; `package:flutter/widgets.dart` is always imported).
+`--import` names a file under `lib/`, or a `package:` URI of a dependency, that the widget expression needs imported (repeatable; `package:flutter/widgets.dart` is always imported).
 The same `--widget` and `--import` give the same shot id, so two such runs line up in `diff`.
 
 ## Subcommands

@@ -8,10 +8,10 @@ const String manualText = r'''
 Shutter renders widgets to PNG and compares two runs, so a visual change can be shown as before and after images.
 The subjects are the widgets of the preview files you name: a preview file imports any widget of the app (it needs no annotation of its own) and returns it from a function annotated with Flutter's `@Preview`.
 `@Preview` describes one widget with its wrapper, theme, size, brightness, text scale, and localizations.
-Flutter's previewer (`flutter widget-preview start`) mounts it the same way but has no way out as an image; shutter gives it one.
+The Flutter Widget Previewer (`flutter widget-preview start`) mounts it the same way but has no way out as an image; shutter gives it one.
 
 * `shot <preview-file>...`: the previews in the named files.
-* `shot --widget '<expression>'`: one Dart expression of type `Widget`, with `--import` naming the files it needs imported and `--size` its logical size, for a look without a file.
+* `shot --widget '<expression>'`: one Dart expression of type `Widget`, with `--import` for the files under `lib/` or `package:` URIs it needs and `--size` for the size it is shot at, for a look without writing a preview file.
 
 Shutter keeps no golden images, no catalogue, and no git knowledge.
 Every comparison is between two runs you made, so there is no environment drift to manage and no update ritual.
@@ -21,7 +21,7 @@ Every comparison is between two runs you made, so there is no environment drift 
 `shot` takes any file under `lib/` with `@Preview` functions (Flutter's `@Preview` works only under `lib/`), so previews the project already has are named as they are.
 New preview files go in the preview dir, which also holds `shell.dart`: `lib/preview/` for apps and `lib/src/preview/` for packages (off the public API surface).
 A project counts as a package unless its `pubspec.yaml` says `publish_to: none`; an existing `lib/src/preview/` always wins.
-Preview files are committed: the same subjects are shot before and after a change, and stay as the viewfinder in Flutter's previewer.
+Preview files are committed: the same subjects are shot before and after a change, and the previewer draws them too.
 `shot` shoots only the files it is given.
 A path is relative to the working directory (or absolute); a named file without a `@Preview` stops the shot with exit 66.
 
@@ -35,7 +35,7 @@ A path is relative to the working directory (or absolute); a named file without 
 * These candidates become `error` shots without being compiled: an annotation that does not resolve or has an error (the analyzer's message), and one naming a private declaration.
 * When the generated test does not compile, every shot is an `error` shot carrying the first compiler error.
 
-## One widget without a file
+## One widget without a preview file
 
 `--widget` is shot instead of preview files: nothing under `lib/` is scanned, and nothing is written to the project outside `.dart_tool/shutter/`.
 The generated test imports `package:flutter/widgets.dart` and every `--import`, and shoots the expression as a `Preview` named after it, sized by `--size`; without `--size` the widget is shot at its own size.

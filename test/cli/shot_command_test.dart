@@ -246,8 +246,11 @@ void main() {
       'text:Open, then close',
       '--press',
       'key:save',
+      '--enter=key:name=Koji=K',
       '--tap',
       'type:DropdownButton<String>',
+      '--enter',
+      'type:TextField=',
       '--capture',
       'screen',
       '--viewport',
@@ -258,19 +261,23 @@ void main() {
     expect(
       [
         for (final action in request.actions)
-          (action.kind, action.by, action.value),
+          (action.kind, action.by, action.value, action.text),
       ],
       [
-        (ActionKind.tap, TargetKind.text, 'Open, then close'),
-        (ActionKind.tap, TargetKind.type, 'DropdownButton<String>'),
-        (ActionKind.press, TargetKind.key, 'save'),
+        (ActionKind.tap, TargetKind.text, 'Open, then close', null),
+        (ActionKind.enter, TargetKind.key, 'name', 'Koji=K'),
+        (ActionKind.tap, TargetKind.type, 'DropdownButton<String>', null),
+        (ActionKind.enter, TargetKind.type, 'TextField', ''),
+        (ActionKind.press, TargetKind.key, 'save', null),
       ],
     );
     expect((request.screen, request.viewport), (true, (390.0, 844.0)));
     final report = loadYaml(result.stdout) as YamlMap;
     const labels = [
       'tap text:Open, then close',
+      'enter key:name=Koji=K',
       'tap type:DropdownButton<String>',
+      'enter type:TextField=',
       'press key:save',
     ];
     expect(report['actions'], labels);
@@ -349,6 +356,7 @@ void main() {
       ('--tap', 'Save'),
       ('--tap', 'label:Save'),
       ('--tap', 'text:'),
+      ('--enter', 'name=Koji'),
     ]) {
       final bad = await run(['--widget', 'x', option, target]);
       expect(bad.exitCode, 64, reason: target);
@@ -360,6 +368,9 @@ void main() {
         ),
       );
     }
+    final noText = await run(['--widget', 'x', '--enter', 'key:name']);
+    expect(noText.exitCode, 64);
+    expect(noText.stderr, contains('--enter must be <target>=<text>'));
     for (final second in ['--focus', '--press']) {
       final held = await run([
         '--widget',

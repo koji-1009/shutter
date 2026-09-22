@@ -5,6 +5,9 @@ enum ActionKind {
   /// Taps it: a pointer down and up.
   tap,
 
+  /// Enters text into it, as a keyboard would.
+  enter,
+
   /// Holds a pointer down on it through the capture.
   press,
 
@@ -27,20 +30,31 @@ enum TargetKind {
   type,
 }
 
-/// One `shot --tap`, `--press`, `--hover`, or `--focus`.
+/// One `shot --tap`, `--enter`, `--press`, `--hover`, or `--focus`.
 class const ShotAction({
   required final ActionKind kind,
   required final TargetKind by,
 
   /// The key, text, or type name.
   required final String value,
+
+  /// The text `--enter` types.
+  final String? text,
 }) {
   /// As given on the command line, and recorded in the manifest:
-  /// `tap text:Save`.
-  String get label => '${kind.name} ${by.name}:$value';
+  /// `tap text:Save`, `enter key:name=Koji`.
+  String get label => switch (text) {
+    final text? => '${kind.name} ${by.name}:$value=$text',
+    null => '${kind.name} ${by.name}:$value',
+  };
 
   /// The harness's `ShutterAction` for this action, as Dart source.
-  String get source =>
+  String get source => switch (text) {
+    final text? =>
       '\$shutter.ShutterAction(.${kind.name}, .${by.name}, '
-      '${dartString(value)})';
+          '${dartString(value)}, text: ${dartString(text)})',
+    null =>
+      '\$shutter.ShutterAction(.${kind.name}, .${by.name}, '
+          '${dartString(value)})',
+  };
 }

@@ -53,8 +53,9 @@ int parseCount(ArgResults results, String name) {
   );
 }
 
-/// The actions of `shot`: every `--tap` in order, then the one `--press`,
-/// `--hover`, or `--focus`, whose state lasts through the capture.
+/// The actions of `shot`: every `--tap` and `--enter` in the order given,
+/// then the one `--press`, `--hover`, or `--focus`, whose state lasts
+/// through the capture.
 List<ShotAction> parseActions(ArgResults results) {
   final held = [
     for (final kind in const [
@@ -69,25 +70,47 @@ List<ShotAction> parseActions(ArgResults results) {
       'Give at most one of --press, --hover, and --focus.',
     );
   }
+  // The parser keeps each option's values in order, but not the order
+  // between options, which the command line still has.
+  final steps = {
+    for (final kind in const [ActionKind.tap, ActionKind.enter])
+      kind: [...results.multiOption(kind.name)],
+  };
   return [
-    for (final raw in results.multiOption('tap')) _action(ActionKind.tap, raw),
+    for (final argument in results.arguments.takeWhile((a) => a != '--'))
+      for (final MapEntry(key: kind, value: values) in steps.entries)
+        if ((argument == '--${kind.name}' ||
+                argument.startsWith('--${kind.name}=')) &&
+            values.isNotEmpty)
+          _action(kind, values.removeAt(0)),
     for (final (kind, raw) in held) _action(kind, raw),
   ];
 }
 
 ShotAction _action(ActionKind kind, String raw) {
-  final colon = raw.indexOf(':');
+  var target = raw;
+  String? text;
+  if (kind == ActionKind.enter) {
+    final equals = raw.indexOf('=');
+    if (equals < 0) {
+      throw ShutterException.usage(
+        '--enter must be <target>=<text>, e.g. key:name=Koji (got "$raw").',
+      );
+    }
+    (target, text) = (raw.substring(0, equals), raw.substring(equals + 1));
+  }
+  final colon = target.indexOf(':');
   final by = colon < 0
       ? null
-      : TargetKind.values.asNameMap()[raw.substring(0, colon)];
-  final value = raw.substring(colon + 1);
+      : TargetKind.values.asNameMap()[target.substring(0, colon)];
+  final value = target.substring(colon + 1);
   if (by == null || value.isEmpty) {
     throw ShutterException.usage(
       '--${kind.name} must name its widget by key:<key>, text:<text>, or '
       'type:<Widget> (got "$raw").',
     );
   }
-  return ShotAction(kind: kind, by: by, value: value);
+  return ShotAction(kind: kind, by: by, value: value, text: text);
 }
 
 /// Help of the target the action options take.

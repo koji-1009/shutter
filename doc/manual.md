@@ -43,20 +43,21 @@ A widget expression that does not compile is an `error` shot carrying the compil
 
 ## Actions
 
-A state that comes from a gesture is shot by acting on the preview before the capture:
+A state that comes from a gesture or from typing is shot by acting on the preview before the capture:
 
-* `--tap <target>` taps the widget: a pointer down and up at its centre. Repeatable; the taps run in the order given.
+* `--tap <target>` taps the widget: a pointer down and up at its centre. Repeatable.
+* `--enter <target>=<text>` enters the text into the text field the target is or holds (exactly one `EditableText`), as the platform's keyboard does: the field takes focus and its text is replaced. The target ends at the first `=`. Repeatable; taps and entries run in the order given.
 * `--press <target>` holds a pointer down on it through the capture: its pressed state, with the ink the press has drawn by then.
 * `--hover <target>` keeps a mouse pointer over it through the capture.
 * `--focus <target>` gives it keyboard focus, highlighted as with a keyboard: `flutter_test` runs as a touch device, where focus draws no highlight. The node is the first focus node inside the widget (a button's or text field's own), else the one around it.
-* At most one of `--press`, `--hover`, and `--focus`; it follows the taps.
+* At most one of `--press`, `--hover`, and `--focus`; it follows the taps and entries.
 
 A target is `key:<value>` (a `ValueKey<String>`), `text:<string>` (a `Text` showing exactly that string, or an `EditableText` holding it), or `type:<Widget>` (a widget of that type, with or without type arguments: `type:Checkbox`, `type:DropdownButton<String>`); offstage widgets do not count.
 Each action is followed by `--settle` milliseconds drawn in 16 ms frames, as on a device, so `--settle` is also how long after an action the capture comes: an animation the action starts (ink, a check mark, a menu opening) is shot at that point of its course.
 `flutter test` runs as Android, so Material 3 presses use `InkSparkle`: its sparkle shows from about 100 ms to about 600 ms of a press, then the flat pressed overlay stays, as on a device.
 
 The actions apply to every preview of the run.
-A preview is an `error` shot, without a PNG and with `at` pointing at the preview, when a target matches no widget or more than one, when a pointer at the target's centre does not reach it (covered, outside the viewport, or ignoring pointers), or when a `--focus` target cannot take focus.
+A preview is an `error` shot, without a PNG and with `at` pointing at the preview, when a target matches no widget or more than one, when a pointer at the target's centre does not reach it (covered, outside the viewport, or ignoring pointers), when an `--enter` target holds no text field or more than one, or when a `--focus` target cannot take focus.
 
 The run records its actions in `manifest.json`; `shot` prints them, and `diff` prints both runs' when they differ, since they change every image without any widget changing.
 They are not part of shot ids, so a run with actions pairs shot for shot with one without.
@@ -166,7 +167,8 @@ Fonts bundled in the project's assets are used as they are.
 
 These come from rendering through `flutter test`.
 
-* One capture per preview, after the actions: scrolling, dragging, and typing are not shot. A sequence of states, such as the course of an animation, is shot as one run per point in time, each with its own `--settle`.
+* One capture per preview, after the actions: scrolling and dragging are not shot. A sequence of states, such as the course of an animation, is shot as one run per point in time, each with its own `--settle`.
+* No on-screen keyboard: text entered with `--enter` reaches the field, but the keyboard a device would show is not drawn, even with `--capture screen`.
 * HTTP is blocked, so network images fail to load.
 * `flutter test` runs the engine with test fonts, which has no system font fallback. Shutter's host fonts are added to the text themes and the default text style, so a text style that sets its own `fontFamilyFallback` does not get them. google_fonts styles do this: glyphs outside the Google font (for example Japanese in a Latin-only font) render as boxes, where a device would fall back to a system font.
 
@@ -231,11 +233,11 @@ Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter 
 
 ## Commands
 
-| command  | purpose                                                                                                                                                                                    |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `agent`  | the step-by-step playbook                                                                                                                                                                  |
-| `manual` | this document                                                                                                                                                                              |
-| `doctor` | SDK version, font cache, shell (`--shell`)                                                                                                                                                 |
-| `init`   | write `shell.dart` (`--shell`)                                                                                                                                                             |
-| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`) |
-| `diff`   | compare two runs (`--images`)                                                                                                                                                              |
+| command  | purpose                                                                                                                                                                                              |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`  | the step-by-step playbook                                                                                                                                                                            |
+| `manual` | this document                                                                                                                                                                                        |
+| `doctor` | SDK version, font cache, shell (`--shell`)                                                                                                                                                           |
+| `init`   | write `shell.dart` (`--shell`)                                                                                                                                                                       |
+| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`) |
+| `diff`   | compare two runs (`--images`)                                                                                                                                                                        |

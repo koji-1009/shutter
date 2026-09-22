@@ -48,21 +48,26 @@ class const ShutterConfig({
 });
 
 /// What an action does to its target.
-enum ShutterActionKind { tap, press, hover, focus }
+enum ShutterActionKind { tap, enter, press, hover, focus }
 
 /// How an action's target is found.
 enum ShutterTarget { key, text, type }
 
-/// One `--tap`, `--press`, `--hover`, or `--focus` of the CLI.
+/// One `--tap`, `--enter`, `--press`, `--hover`, or `--focus` of the CLI.
 class const ShutterAction(
   final ShutterActionKind kind,
   final ShutterTarget by,
 
   /// The key, text, or type name.
-  final String value,
-) {
-  /// As given on the command line: `tap text:Save`.
-  String get label => '${kind.name} ${by.name}:$value';
+  final String value, {
+
+  /// The text `--enter` types.
+  final String? text,
+}) {
+  /// As given on the command line: `tap text:Save`, `enter key:name=Koji`.
+  String get label => text == null
+      ? '${kind.name} ${by.name}:$value'
+      : '${kind.name} ${by.name}:$value=$text';
 
   Finder get finder => switch (by) {
     .key => find.byKey(ValueKey<String>(value)),
@@ -450,6 +455,11 @@ Future<void> _act(
     switch (action.kind) {
       case .tap:
         await tester.tapAt(_hitPoint(tester, action, element));
+      case .enter:
+        _textField(action, element);
+        // Focuses the field and replaces its text, as the platform's
+        // keyboard does; the test engine draws no keyboard.
+        await tester.enterText(action.finder, action.text!);
       case .press:
         final gesture = await tester.startGesture(
           _hitPoint(tester, action, element),
@@ -519,6 +529,26 @@ Offset _hitPoint(WidgetTester tester, ShutterAction action, Element element) {
     );
   }
   return point;
+}
+
+/// Checks that [element] is, or holds, exactly one `EditableText`, which
+/// `enterText` types into.
+void _textField(ShutterAction action, Element element) {
+  var fields = element.widget is EditableText ? 1 : 0;
+  void visit(Element child) {
+    if (child.widget is EditableText) fields++;
+    child.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  if (fields == 0) {
+    throw _ActionError('${action.label}: the widget holds no text field');
+  }
+  if (fields > 1) {
+    throw _ActionError(
+      '${action.label}: the widget holds $fields text fields; name one',
+    );
+  }
 }
 
 /// The focus node of [element]: the first one inside it (a button's or

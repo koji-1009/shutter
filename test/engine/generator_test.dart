@@ -131,6 +131,7 @@ void main() {
           settleMs: 300,
           actions: const [
             ShotAction(kind: .tap, by: .text, value: r"it's $1"),
+            ShotAction(kind: .enter, by: .key, value: 'name', text: "O'Hara"),
             ShotAction(kind: .focus, by: .type, value: 'TextField'),
           ],
           screen: true,
@@ -147,6 +148,8 @@ void main() {
       contains(
         '      actions: [\n'
         "        \$shutter.ShutterAction(.tap, .text, 'it\\'s \\\$1'),\n"
+        "        \$shutter.ShutterAction(.enter, .key, 'name', "
+        "text: 'O\\'Hara'),\n"
         "        \$shutter.ShutterAction(.focus, .type, 'TextField'),\n"
         '      ],\n'
         '      screen: true,\n'

@@ -70,16 +70,17 @@ shutter shot --widget 'PrimaryButton(label: "OK")' --import lib/ui/button.dart -
 * Without `--size` the widget is shot at its own size; `--size` fixes both dimensions and stretches the widget to them.
 * The same `--widget` and `--import` give the same shot id in every run, so before and after line up in `diff`.
 
-## Pressed, hovered, focused, opened
+## Pressed, hovered, focused, opened, typed
 
-A preview shows the state its construction gives. For a state a gesture gives, act on the preview in the shot:
+A preview shows the state its construction gives. For a state a gesture or typing gives, act on the preview in the shot:
 
 ```bash
 shutter shot lib/preview/button_preview.dart --press text:Save
 shutter shot lib/preview/filter_preview.dart --tap 'type:DropdownButton<String>' --capture screen --viewport 390x400
+shutter shot lib/preview/login_preview.dart --enter 'key:email=example@example.com' --tap 'text:Sign in' --settle 700
 ```
 
-* `--tap` (repeatable, run in the order given), then at most one of `--press`, `--hover`, `--focus`. A target is `key:<ValueKey<String>>`, `text:<Text data>`, or `type:<Widget>`.
+* `--tap` and `--enter <target>=<text>` (both repeatable, run in the order given), then at most one of `--press`, `--hover`, `--focus`. A target is `key:<ValueKey<String>>`, `text:<Text data>`, or `type:<Widget>`.
 * The actions apply to every preview of the named files; a preview where the target matches no widget, or several, is an `error` shot. Name the files whose previews have the target, and give the same actions to the before and after shots.
 * Menus, dialogs, bottom sheets, and tooltips open above the preview and are in the image only with `--capture screen`; `--viewport` gives a small preview the room they open into.
 * `--settle` (default 300 ms) is how long after the last action the image is taken. A tapped button's ink is still fading at 300 ms and gone by 700 ms: pass `--settle 700` for the state after a tap without it.

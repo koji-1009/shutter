@@ -45,7 +45,15 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         'tap',
         help:
             'Tap this widget of every shot before the capture: '
-            '$targetHelp. Repeatable, in order.',
+            '$targetHelp. Repeatable; taps and --enter run in the order '
+            'given.',
+        splitCommas: false,
+      )
+      ..addMultiOption(
+        'enter',
+        help:
+            'Enter text into this text field, as <target>=<text>, e.g. '
+            'key:name=Koji. Repeatable.',
         splitCommas: false,
       )
       // Multi-options, so that a second --press is rejected rather than

@@ -23,6 +23,13 @@ class const CaptureRequest({
 
   /// Performed on every preview before the capture, in order.
   final List<ShotAction> actions = const [],
+
+  /// Capture the whole viewport, overlays included, rather than the
+  /// preview.
+  final bool screen = false,
+
+  /// Logical viewport replacing the one the preview's size gives.
+  final (double, double)? viewport,
 });
 
 /// The only swappable layer: turns scanned previews and a `--widget` into

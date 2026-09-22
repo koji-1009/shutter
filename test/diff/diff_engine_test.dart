@@ -42,6 +42,8 @@ void main() {
         shots: [],
         shell: (path: 'lib/preview/shell.dart', sha256: '1f2e'),
         actions: ['press text:OK'],
+        screen: true,
+        viewport: (390, 844),
       )..write(dir),
     );
     final diff = diffRuns(run('plain', const [], const {}), pressed);
@@ -49,6 +51,10 @@ void main() {
     expect(diff.afterShell?.path, 'lib/preview/shell.dart');
     expect(diff.beforeSetup.actions, isEmpty);
     expect(diff.afterSetup.actions, ['press text:OK']);
+    expect(
+      (diff.afterSetup.screen, diff.afterSetup.viewport),
+      (true, (390.0, 844.0)),
+    );
   });
 
   test('classifies every id; --images writes diff images', () {

@@ -146,7 +146,8 @@ entries:
     });
   });
 
-  test('the actions of both runs, only when they differ', () async {
+  test('the actions, capture, and viewport of both runs, each only when '
+      'they differ', () async {
     Future<YamlMap> report(RunSetup before, RunSetup after) async => loadYaml(
       await collect(
         (sink) => reportDiff(
@@ -162,11 +163,28 @@ entries:
         ),
       ),
     ) as YamlMap;
-    const pressed = (actions: ['press text:OK']);
-    expect((await report(pressed, pressed)).containsKey('actions'), isFalse);
-    expect((await report(plainSetup, pressed))['actions'], {
+    const pressed = (actions: ['press text:OK'], screen: false, viewport: null);
+    const screen = (
+      actions: ['press text:OK'],
+      screen: true,
+      viewport: (390.0, 844.0),
+    );
+    final same = await report(pressed, pressed);
+    for (final key in ['actions', 'capture', 'viewport']) {
+      expect(same.containsKey(key), isFalse, reason: key);
+    }
+    final pressedOnly = await report(plainSetup, pressed);
+    expect(pressedOnly['actions'], {
       'before': <Object?>[],
       'after': ['press text:OK'],
+    });
+    expect(pressedOnly.containsKey('capture'), isFalse);
+    final captured = await report(pressed, screen);
+    expect(captured.containsKey('actions'), isFalse);
+    expect(captured['capture'], {'before': 'preview', 'after': 'screen'});
+    expect(captured['viewport'], {
+      'before': 'default',
+      'after': [390, 844],
     });
   });
 

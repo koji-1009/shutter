@@ -118,7 +118,8 @@ void main() {
     expect(withFonts, contains("asset: 'Lobster-Regular.ttf',"));
   });
 
-  test('mainSource passes the actions to the harness; none by default', () {
+  test('mainSource passes the actions and the capture to the harness; '
+      'none by default', () {
     final project = Project.load(createProject());
     final source = mainSource(
       const [],
@@ -132,6 +133,8 @@ void main() {
             ShotAction(kind: .tap, by: .text, value: r"it's $1"),
             ShotAction(kind: .focus, by: .type, value: 'TextField'),
           ],
+          screen: true,
+          viewport: (390, 844.5),
         ),
         materialFontsDir: '/sdk/fonts',
         design: const DesignSupport(available: [], shell: null),
@@ -145,10 +148,15 @@ void main() {
         '      actions: [\n'
         "        \$shutter.ShutterAction(.tap, .text, 'it\\'s \\\$1'),\n"
         "        \$shutter.ShutterAction(.focus, .type, 'TextField'),\n"
-        '      ],\n',
+        '      ],\n'
+        '      screen: true,\n'
+        '      viewport: (390.0, 844.5),\n',
       ),
     );
-    expect(mainSource(const [], config(project)), isNot(contains('actions:')));
+    final plain = mainSource(const [], config(project));
+    expect(plain, isNot(contains('actions:')));
+    expect(plain, isNot(contains('screen:')));
+    expect(plain, isNot(contains('viewport:')));
   });
 
   test('a --widget helper imports unprefixed, escapes the expression in the '

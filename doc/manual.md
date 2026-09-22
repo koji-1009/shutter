@@ -64,7 +64,16 @@ They are not part of shot ids, so a run with actions pairs shot for shot with on
 ### Taps that navigate
 
 A page is shot through a preview of its own: returned from a preview function, it is shot from its first frame, with an id of its own.
-A tap that pushes a page covers the preview, which is then no longer painted: the shot is an `error` saying so.
+A tap that pushes a page covers the preview, which is then no longer painted: without `--capture screen` the shot is an `error` saying so.
+With `--capture screen` the page is shot; its transition takes 450 ms (`flutter test` runs as Android), so `--settle 700` shoots it once it is in place.
+
+## Capturing the screen
+
+`--capture screen` captures the whole viewport instead of the captured region: the shell's surface, and what the app draws above the preview in its overlay, such as menus, dialogs, bottom sheets, and tooltips, which the captured region never holds.
+The shot's size is the viewport's.
+`--viewport <width>x<height>` sets the viewport, with the preview at its top left: give a small preview the room a menu or a dialog opens into.
+Without it, the viewport is the drawing model's.
+The run records the capture and the viewport as it does its actions.
 
 ## Drawing model
 
@@ -78,7 +87,7 @@ Per preview, from the outside in:
 3. The preview at the top left.
 4. The captured region: `SizedBox(size)`, then `theme.apply`, then `wrapper`, then the preview.
 
-The PNG holds what is painted inside the captured region, and nothing outside it: the shell's surface lies outside, so where the preview paints no background the PNG is transparent, and the viewer's own background shows through.
+The PNG holds what is painted inside the captured region (the whole viewport with `--capture screen`), and nothing outside it: the shell's surface lies outside, so where the preview paints no background the PNG is transparent, and the viewer's own background shows through.
 A screen with a `Scaffold` paints its own; a widget is shot on no background, since shutter cannot know where the app places it.
 To shoot a widget on the surface it sits on, paint it inside the preview: a `wrapper`, or a `ColoredBox` or `Material` around the widget in the preview function.
 The same holds for ink: a press, hover, or focus is drawn on the nearest `Material` above the widget, which for a widget without its own (an `InkWell`, a `ListTile`) is the shell's surface; a `Material` in the preview brings it into the PNG.
@@ -91,10 +100,10 @@ A shell made for one task and not meant to be committed goes under `.dart_tool/`
 `--shell` takes any path; a shell outside `lib/` is imported by its file URI, so it imports the app with `package:` URIs.
 Each run records its shell file in `manifest.json`, with the sha256 of its bytes (not of the files it imports).
 
-Viewport: `size` when both dimensions are finite; a missing or infinite dimension uses 800×600 logical pixels.
+Viewport: `--viewport` when given; else `size` when both dimensions are finite; a missing or infinite dimension uses 800×600 logical pixels.
 The captured region takes a finite dimension of `size` as it is.
 Without a finite width, the preview takes its own width, up to the viewport's, as on a screen.
-Without a finite height, the preview gets unbounded height, as in a scrolling list, and is shot at its own height, even past the viewport: `Size(360, double.infinity)` shoots a widget 360 wide at the height it has in a list.
+Without a finite height, the preview gets unbounded height, as in a scrolling list, and is shot at its own height, even past the viewport (with `--capture screen`, the PNG stops at the viewport): `Size(360, double.infinity)` shoots a widget 360 wide at the height it has in a list.
 A widget that needs a bounded height (a `Scaffold`, a `ListView`, an `Expanded` in a `Column`) fails there; give it a finite height.
 `brightness` sets the platform brightness and `textScaleFactor` the platform text scale, so the shell's app widget picks them up as on a device.
 Images render at a device pixel ratio of 2.
@@ -171,7 +180,7 @@ When Flutter ships a capture command in the previewer itself, it replaces v1 wit
 
 ## Runs
 
-`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shell` when a shell file was used, `actions` when given, `shots`).
+`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shell` when a shell file was used, `actions`, `capture`, and `viewport` when given, `shots`).
 `<run-id>` is the UTC time of the shot (`20260918T101530Z`), suffixed `-2`, `-3`, ... when taken; a hidden `.<run-id>` file claims the name, so runs started in the same second get distinct ids.
 `shot` prints the run directory as `run:`; `diff` accepts a run's directory, its id, `latest` for the newest run, or `latest~N` for the run N before it.
 `latest` counts runs in id order (time, then suffix) and skips a run still being shot, whose `manifest.json` is not written yet.
@@ -207,8 +216,8 @@ When the two runs were shot with different shells (path or sha256), `shell` show
 ## Output
 
 `shot` and `diff` print YAML starting with the comment `# shutter ai-report v1`, with absolute paths to open.
-`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `actions` (when given), `summary`, and `shots`, errors first.
-`diff` gives `diff` (with `--images`), `before`, `after`, `shell` and `actions` (each when the two runs differ in it), `summary`, and `entries` in the order changed → added → removed → unchanged.
+`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `actions`, `capture`, and `viewport` (when given), `summary`, and `shots`, errors first.
+`diff` gives `diff` (with `--images`), `before`, `after`, `shell`, `actions`, `capture`, and `viewport` (each when the two runs differ in it), `summary`, and `entries` in the order changed → added → removed → unchanged.
 
 ## Exit codes
 
@@ -222,11 +231,11 @@ Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter 
 
 ## Commands
 
-| command  | purpose                                                                                                                                                          |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent`  | the step-by-step playbook                                                                                                                                        |
-| `manual` | this document                                                                                                                                                    |
-| `doctor` | SDK version, font cache, shell (`--shell`)                                                                                                                       |
-| `init`   | write `shell.dart` (`--shell`)                                                                                                                                   |
-| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--press`/`--hover`/`--focus`) |
-| `diff`   | compare two runs (`--images`)                                                                                                                                    |
+| command  | purpose                                                                                                                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `agent`  | the step-by-step playbook                                                                                                                                                                  |
+| `manual` | this document                                                                                                                                                                              |
+| `doctor` | SDK version, font cache, shell (`--shell`)                                                                                                                                                 |
+| `init`   | write `shell.dart` (`--shell`)                                                                                                                                                             |
+| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`) |
+| `diff`   | compare two runs (`--images`)                                                                                                                                                              |

@@ -39,8 +39,9 @@ int parseCount(ArgResults results, String name) {
   return value;
 }
 
-/// Parses `--size` as `<width>x<height>` in logical pixels.
-(double, double) parseSize(String raw) {
+/// Parses option [name] (`--size`, `--viewport`) as `<width>x<height>`
+/// in logical pixels.
+(double, double) parseSize(String raw, {String name = 'size'}) {
   final parts = raw.split('x');
   final values = [for (final part in parts) double.tryParse(part)];
   if (values case [final width?, final height?]
@@ -48,7 +49,7 @@ int parseCount(ArgResults results, String name) {
     return (width, height);
   }
   throw ShutterException.usage(
-    '--size must be <width>x<height>, e.g. 390x844 (got "$raw").',
+    '--$name must be <width>x<height>, e.g. 390x844 (got "$raw").',
   );
 }
 

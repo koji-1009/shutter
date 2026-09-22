@@ -19,10 +19,24 @@ String formatShell(ShellFile? shell) => switch (shell) {
 String formatActions(List<String> actions) =>
     '[${actions.map(yamlScalar).join(', ')}]';
 
-/// The `actions` line of a run's [setup], only when it has actions.
+/// `screen` or `preview`.
+String formatCapture(bool screen) => screen ? 'screen' : 'preview';
+
+/// `[390, 844]`, or `default` for the viewport the preview's size gives.
+String formatViewport((double, double)? viewport) => switch (viewport) {
+  final size? => formatSize(size),
+  null => 'default',
+};
+
+/// The `actions`, `capture`, and `viewport` lines of a run's [setup],
+/// each only when set.
 void writeSetup(StringBuffer body, RunSetup setup) {
   if (setup.actions.isNotEmpty) {
     body.writeln('actions: ${formatActions(setup.actions)}');
+  }
+  if (setup.screen) body.writeln('capture: ${formatCapture(true)}');
+  if (setup.viewport case final viewport?) {
+    body.writeln('viewport: ${formatViewport(viewport)}');
   }
 }
 

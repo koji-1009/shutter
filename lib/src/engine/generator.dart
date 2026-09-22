@@ -167,6 +167,10 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
     }
     buffer.writeln('      ],');
   }
+  if (request.screen) buffer.writeln('      screen: true,');
+  if (request.viewport case (final width, final height)?) {
+    buffer.writeln('      viewport: ($width, $height),');
+  }
   buffer
     ..writeln('    ),')
     ..writeln(r'    defaultShell: $design.defaultShell,')

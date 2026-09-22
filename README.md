@@ -136,25 +136,27 @@ shutter shot --widget 'PrimaryButton(label: "OK")' --import lib/ui/button.dart -
 `--import` names a file under `lib/`, or a `package:` URI of a dependency, that the widget expression needs imported (repeatable; `package:flutter/widgets.dart` is always imported).
 The same `--widget` and `--import` give the same shot id, so two such runs line up in `diff`.
 
-A state that comes from a gesture is shot by acting on the preview first:
+A state that comes from a gesture is shot by acting on the preview first, and what opens above it by capturing the whole screen:
 
 ```bash
 shutter shot lib/preview/button_preview.dart --press text:Save
+shutter shot lib/preview/filter_preview.dart --tap 'type:DropdownButton<String>' --capture screen --viewport 390x400
 ```
 
 `--tap` (repeatable, in the order given), then `--press`, `--hover`, or `--focus`, name their widget by `key:`, `text:`, or `type:`.
 Each is followed by `--settle` milliseconds; shoot again with another `--settle` for another point of an animation.
+`--capture screen` holds the whole viewport, with the menus, dialogs, and tooltips the app draws above the preview.
 
 ## Subcommands
 
-| Command        | Purpose                                                                                                                                                           |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent`        | The step-by-step playbook for AI agents.                                                                                                                          |
-| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                                                         |
-| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                               |
-| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                          |
-| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--press`/`--hover`/`--focus`). |
-| `diff <a> <b>` | Compare two runs (`--images`).                                                                                                                                    |
+| Command        | Purpose                                                                                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`        | The step-by-step playbook for AI agents.                                                                                                                                                    |
+| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                                                                                   |
+| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                                                         |
+| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                                                    |
+| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`). |
+| `diff <a> <b>` | Compare two runs (`--images`).                                                                                                                                                              |
 
 ## Exit codes
 

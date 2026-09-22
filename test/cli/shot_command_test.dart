@@ -235,7 +235,7 @@ void main() {
   });
 
   test('actions: every --tap in order, then the held one; recorded in the '
-      'manifest and the report', () async {
+      'manifest and the report with the capture', () async {
     final root = createProject();
     final engine = FakeEngine(const []);
     final result = await runCli([
@@ -248,6 +248,10 @@ void main() {
       'key:save',
       '--tap',
       'type:DropdownButton<String>',
+      '--capture',
+      'screen',
+      '--viewport',
+      '390x844',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
     final request = engine.requests.single;
@@ -262,6 +266,7 @@ void main() {
         (ActionKind.press, TargetKind.key, 'save'),
       ],
     );
+    expect((request.screen, request.viewport), (true, (390.0, 844.0)));
     final report = loadYaml(result.stdout) as YamlMap;
     const labels = [
       'tap text:Open, then close',
@@ -269,8 +274,11 @@ void main() {
       'press key:save',
     ];
     expect(report['actions'], labels);
+    expect(report['capture'], 'screen');
+    expect(report['viewport'], [390, 844]);
     final manifest = RunManifest.read(report['run'] as String);
     expect(manifest.actions, labels);
+    expect((manifest.screen, manifest.viewport), (true, (390.0, 844.0)));
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),
@@ -284,7 +292,9 @@ void main() {
         flag,
         'type:TextField',
       ], fakeContext(root, engine: held));
-      expect(held.requests.single.actions.single.kind, kind);
+      final request = held.requests.single;
+      expect(request.actions.single.kind, kind);
+      expect((request.screen, request.viewport), (false, null));
     }
   });
 
@@ -362,6 +372,19 @@ void main() {
       expect(held.exitCode, 64, reason: second);
       expect(held.stderr, contains('at most one of --press, --hover'));
     }
+    final viewport = await run(['--widget', 'x', '--viewport', '390x844']);
+    expect(viewport.exitCode, 64);
+    expect(viewport.stderr, contains('--viewport needs --capture screen.'));
+    final badViewport = await run([
+      '--widget',
+      'x',
+      '--capture',
+      'screen',
+      '--viewport',
+      '390',
+    ]);
+    expect(badViewport.exitCode, 64);
+    expect(badViewport.stderr, contains('--viewport must be <width>x<height>'));
     final outside = await run(['--widget', 'x', '--import', 'outside.dart']);
     expect(outside.exitCode, 64);
     expect(outside.stderr, contains('--import must be under lib/'));

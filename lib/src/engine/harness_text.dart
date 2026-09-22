@@ -38,6 +38,13 @@ class const ShutterConfig({
 
   /// Performed on every preview before the capture, in order.
   final List<ShutterAction> actions = const [],
+
+  /// Capture the whole viewport, overlays included, rather than the
+  /// preview.
+  final bool screen = false,
+
+  /// Logical viewport replacing the one the preview's size gives.
+  final (double, double)? viewport,
 });
 
 /// What an action does to its target.
@@ -257,10 +264,13 @@ Future<void> _capture(
     final size = preview.size;
     final width = size != null && size.width.isFinite ? size.width : null;
     final height = size != null && size.height.isFinite ? size.height : null;
-    final viewport = Size(
-      width ?? _fallbackViewport.width,
-      height ?? _fallbackViewport.height,
-    );
+    final viewport = switch (config.viewport) {
+      (final width, final height)? => Size(width, height),
+      null => Size(
+        width ?? _fallbackViewport.width,
+        height ?? _fallbackViewport.height,
+      ),
+    };
     tester.view.devicePixelRatio = _pixelRatio;
     tester.view.physicalSize = viewport * _pixelRatio;
     if (preview.brightness != null) {
@@ -328,17 +338,29 @@ Future<void> _capture(
     // A preview the shell never paints has nothing to act on.
     final shown = painted() != null;
     if (shown) await _act(tester, config, releases);
+    // The screen is the root layer: the shell's surface and what is drawn
+    // above the preview (menus, dialogs, tooltips, a pushed route).
+    final screen = config.screen && shown
+        ? tester.binding.renderViews.first
+        : null;
     final boundary = painted();
-    if (shown && boundary == null) {
+    if (shown && screen == null && boundary == null) {
       firstError ??= {
         'error': 'the preview is no longer painted after the actions (a '
-            'page covers it); shoot that page through its own preview',
+            'page covers it); shoot that page through its own preview, or '
+            'use --capture screen',
         ..._entryAt(entry),
       };
     }
-    if (boundary != null) {
-      final size = boundary.size;
-      final image = boundary.toImageSync(pixelRatio: _pixelRatio);
+    if (screen != null || boundary != null) {
+      final size = screen?.size ?? boundary!.size;
+      // The root layer already scales to the device pixel ratio, so it is
+      // drawn at 1 over its bounds in physical pixels.
+      final image = screen == null
+          ? boundary!.toImageSync(pixelRatio: _pixelRatio)
+          : (screen.debugLayer! as OffsetLayer).toImageSync(
+              screen.paintBounds,
+            );
       final bytes = await tester.runAsync(
         () => image.toByteData(format: ui.ImageByteFormat.png),
       );

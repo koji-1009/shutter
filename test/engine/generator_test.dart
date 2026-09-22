@@ -5,6 +5,7 @@ import 'package:shutter/src/engine/design.dart';
 import 'package:shutter/src/engine/engine.dart';
 import 'package:shutter/src/engine/generator.dart';
 import 'package:shutter/src/engine/harness_text.dart';
+import 'package:shutter/src/engine/interaction.dart';
 import 'package:shutter/src/engine/widget_shot.dart';
 import 'package:shutter/src/fonts/font_cache.dart';
 import 'package:shutter/src/fonts/google_fonts.dart';
@@ -115,6 +116,39 @@ void main() {
     );
     expect(withFonts, contains('googleFonts: true,'));
     expect(withFonts, contains("asset: 'Lobster-Regular.ttf',"));
+  });
+
+  test('mainSource passes the actions to the harness; none by default', () {
+    final project = Project.load(createProject());
+    final source = mainSource(
+      const [],
+      GeneratorConfig(
+        request: CaptureRequest(
+          project: project,
+          libraries: const [],
+          runDir: '/runs/r1',
+          settleMs: 300,
+          actions: const [
+            ShotAction(kind: .tap, by: .text, value: r"it's $1"),
+            ShotAction(kind: .focus, by: .type, value: 'TextField'),
+          ],
+        ),
+        materialFontsDir: '/sdk/fonts',
+        design: const DesignSupport(available: [], shell: null),
+        googleFonts: false,
+        fonts: const [],
+      ),
+    );
+    expect(
+      source,
+      contains(
+        '      actions: [\n'
+        "        \$shutter.ShutterAction(.tap, .text, 'it\\'s \\\$1'),\n"
+        "        \$shutter.ShutterAction(.focus, .type, 'TextField'),\n"
+        '      ],\n',
+      ),
+    );
+    expect(mainSource(const [], config(project)), isNot(contains('actions:')));
   });
 
   test('a --widget helper imports unprefixed, escapes the expression in the '

@@ -4,6 +4,7 @@ import 'package:args/args.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
+import '../engine/interaction.dart';
 import '../engine/widget_shot.dart';
 import '../project/project.dart';
 import '../run/manifest.dart';
@@ -50,6 +51,46 @@ int parseCount(ArgResults results, String name) {
     '--size must be <width>x<height>, e.g. 390x844 (got "$raw").',
   );
 }
+
+/// The actions of `shot`: every `--tap` in order, then the one `--press`,
+/// `--hover`, or `--focus`, whose state lasts through the capture.
+List<ShotAction> parseActions(ArgResults results) {
+  final held = [
+    for (final kind in const [
+      ActionKind.press,
+      ActionKind.hover,
+      ActionKind.focus,
+    ])
+      for (final raw in results.multiOption(kind.name)) (kind, raw),
+  ];
+  if (held.length > 1) {
+    throw ShutterException.usage(
+      'Give at most one of --press, --hover, and --focus.',
+    );
+  }
+  return [
+    for (final raw in results.multiOption('tap')) _action(ActionKind.tap, raw),
+    for (final (kind, raw) in held) _action(kind, raw),
+  ];
+}
+
+ShotAction _action(ActionKind kind, String raw) {
+  final colon = raw.indexOf(':');
+  final by = colon < 0
+      ? null
+      : TargetKind.values.asNameMap()[raw.substring(0, colon)];
+  final value = raw.substring(colon + 1);
+  if (by == null || value.isEmpty) {
+    throw ShutterException.usage(
+      '--${kind.name} must name its widget by key:<key>, text:<text>, or '
+      'type:<Widget> (got "$raw").',
+    );
+  }
+  return ShotAction(kind: kind, by: by, value: value);
+}
+
+/// Help of the target the action options take.
+const targetHelp = 'key:<ValueKey<String>>, text:<Text data>, or type:<Widget>';
 
 String _importUri(Project project, String import, String workingDirectory) =>
     import.startsWith('package:')

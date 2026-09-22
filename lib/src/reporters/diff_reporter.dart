@@ -27,6 +27,19 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
       ..writeln('  before: ${formatShell(diff.beforeShell)}')
       ..writeln('  after: ${formatShell(diff.afterShell)}');
   }
+  // Likewise the actions: pressing a button changes the image without the
+  // widget changing.
+  final (before, after) = (diff.beforeSetup, diff.afterSetup);
+  for (final (key, a, b) in [
+    ('actions', formatActions(before.actions), formatActions(after.actions)),
+  ]) {
+    if (a != b) {
+      body
+        ..writeln('$key:')
+        ..writeln('  before: $a')
+        ..writeln('  after: $b');
+    }
+  }
   body
     ..writeln('summary: {$summary}')
     ..writeln(listHeader('entries', diff.entries.length));

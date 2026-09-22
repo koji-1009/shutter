@@ -35,10 +35,38 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
       )
       ..addOption(
         'settle',
-        help: 'Milliseconds pumped once before capture.',
+        help:
+            'Milliseconds pumped once before capture, and again, in 16 ms '
+            'frames, after each action.',
         defaultsTo: '300',
       )
-      ..addOption('shell', help: shellHelp);
+      ..addOption('shell', help: shellHelp)
+      ..addMultiOption(
+        'tap',
+        help:
+            'Tap this widget of every shot before the capture: '
+            '$targetHelp. Repeatable, in order.',
+        splitCommas: false,
+      )
+      // Multi-options, so that a second --press is rejected rather than
+      // silently replacing the first.
+      ..addMultiOption(
+        'press',
+        help: 'Hold a pointer down on this widget through the capture.',
+        splitCommas: false,
+      )
+      ..addMultiOption(
+        'hover',
+        help: 'Keep a mouse pointer over this widget through the capture.',
+        splitCommas: false,
+      )
+      ..addMultiOption(
+        'focus',
+        help:
+            'Give this widget keyboard focus, highlighted as with a '
+            'keyboard.',
+        splitCommas: false,
+      );
   }
 
   @override
@@ -63,6 +91,7 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
       final raw? => parseSize(raw),
       null => null,
     };
+    final actions = parseActions(args);
     final files = args.rest;
     if (source == null && (imports.isNotEmpty || size != null)) {
       throw ShutterException.usage('--import and --size need --widget.');
@@ -130,12 +159,14 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         settleMs: settle,
         widget: widget,
         shell: shell,
+        actions: actions,
       ),
     );
     final manifest = RunManifest(
       run: p.basename(runDir),
       shots: [...shots]..sort(Shot.bySource),
       shell: shellRecord,
+      actions: [for (final action in actions) action.label],
     )..write(runDir);
     reportShots(manifest, runDir, ShutterIO.stdoutSink);
     return manifest.exitCode;

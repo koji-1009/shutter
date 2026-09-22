@@ -70,4 +70,19 @@ void main() {
     expect(back.toJson().keys, ['run', 'shell', 'shots']);
     expect(RunManifest.fromJson(const {'run': 'r', 'shots': []}).shell, isNull);
   });
+
+  test('the actions round-trip; a plain run writes none', () {
+    final dir = tempDir();
+    const RunManifest(
+      run: 'r',
+      shots: [],
+      actions: ['tap text:Open', 'press key:save'],
+    ).write(dir);
+    final back = RunManifest.read(dir);
+    expect(back.setup.actions, ['tap text:Open', 'press key:save']);
+    expect(back.toJson().keys, ['run', 'actions', 'shots']);
+    final plain = RunManifest.fromJson(const {'run': 'r', 'shots': []});
+    expect(plain.toJson().keys, ['run', 'shots']);
+    expect(plain.setup.actions, isEmpty);
+  });
 }

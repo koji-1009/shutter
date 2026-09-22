@@ -146,6 +146,30 @@ entries:
     });
   });
 
+  test('the actions of both runs, only when they differ', () async {
+    Future<YamlMap> report(RunSetup before, RunSetup after) async => loadYaml(
+      await collect(
+        (sink) => reportDiff(
+          RunDiff(
+            before: 'a',
+            after: 'b',
+            entries: const [],
+            beforeSetup: before,
+            afterSetup: after,
+          ),
+          null,
+          sink,
+        ),
+      ),
+    ) as YamlMap;
+    const pressed = (actions: ['press text:OK']);
+    expect((await report(pressed, pressed)).containsKey('actions'), isFalse);
+    expect((await report(plainSetup, pressed))['actions'], {
+      'before': <Object?>[],
+      'after': ['press text:OK'],
+    });
+  });
+
   test('a change of one pixel in many keeps a nonzero ratio', () async {
     const one = RunDiff(
       before: 'a',

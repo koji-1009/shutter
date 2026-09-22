@@ -38,6 +38,10 @@ class const RunDiff({
   /// The shell file of each run, null for the default shell.
   final ShellFile? beforeShell,
   final ShellFile? afterShell,
+
+  /// The actions and capture of each run.
+  final RunSetup beforeSetup = plainSetup,
+  final RunSetup afterSetup = plainSetup,
 }) {
   /// Count per status, every status present.
   Map<DiffStatus, int> get summary => {

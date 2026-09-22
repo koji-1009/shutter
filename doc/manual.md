@@ -41,10 +41,35 @@ The shot id hashes the expression and the resolved imports, so the same `--widge
 A widget expression that does not compile is an `error` shot carrying the compiler message; it has no `file` or `at`.
 `--widget` and preview files cannot be combined in one shot.
 
+## Actions
+
+A state that comes from a gesture is shot by acting on the preview before the capture:
+
+* `--tap <target>` taps the widget: a pointer down and up at its centre. Repeatable; the taps run in the order given.
+* `--press <target>` holds a pointer down on it through the capture: its pressed state, with the ink the press has drawn by then.
+* `--hover <target>` keeps a mouse pointer over it through the capture.
+* `--focus <target>` gives it keyboard focus, highlighted as with a keyboard: `flutter_test` runs as a touch device, where focus draws no highlight. The node is the first focus node inside the widget (a button's or text field's own), else the one around it.
+* At most one of `--press`, `--hover`, and `--focus`; it follows the taps.
+
+A target is `key:<value>` (a `ValueKey<String>`), `text:<string>` (a `Text` showing exactly that string, or an `EditableText` holding it), or `type:<Widget>` (a widget of that type, with or without type arguments: `type:Checkbox`, `type:DropdownButton<String>`); offstage widgets do not count.
+Each action is followed by `--settle` milliseconds drawn in 16 ms frames, as on a device, so `--settle` is also how long after an action the capture comes: an animation the action starts (ink, a check mark, a menu opening) is shot at that point of its course.
+`flutter test` runs as Android, so Material 3 presses use `InkSparkle`: its sparkle shows from about 100 ms to about 600 ms of a press, then the flat pressed overlay stays, as on a device.
+
+The actions apply to every preview of the run.
+A preview is an `error` shot, without a PNG and with `at` pointing at the preview, when a target matches no widget or more than one, when a pointer at the target's centre does not reach it (covered, outside the viewport, or ignoring pointers), or when a `--focus` target cannot take focus.
+
+The run records its actions in `manifest.json`; `shot` prints them, and `diff` prints both runs' when they differ, since they change every image without any widget changing.
+They are not part of shot ids, so a run with actions pairs shot for shot with one without.
+
+### Taps that navigate
+
+A page is shot through a preview of its own: returned from a preview function, it is shot from its first frame, with an id of its own.
+A tap that pushes a page covers the preview, which is then no longer painted: the shot is an `error` saying so.
+
 ## Drawing model
 
-The engine renders each preview in a `flutter_test` binding, one frame, no interaction.
-State comes from the widget's construction expression; a widget that fetches or builds state internally can only be shot in the state it reaches on its own.
+The engine renders each preview in a `flutter_test` binding: one frame, then the run's actions, then the capture.
+State comes from the widget's construction expression or from the actions; a widget that fetches or builds state internally can only be shot in the state it reaches on its own.
 
 Per preview, from the outside in:
 
@@ -56,6 +81,7 @@ Per preview, from the outside in:
 The PNG holds what is painted inside the captured region, and nothing outside it: the shell's surface lies outside, so where the preview paints no background the PNG is transparent, and the viewer's own background shows through.
 A screen with a `Scaffold` paints its own; a widget is shot on no background, since shutter cannot know where the app places it.
 To shoot a widget on the surface it sits on, paint it inside the preview: a `wrapper`, or a `ColoredBox` or `Material` around the widget in the preview function.
+The same holds for ink: a press, hover, or focus is drawn on the nearest `Material` above the widget, which for a widget without its own (an `InkWell`, a `ListTile`) is the shell's surface; a `Material` in the preview brings it into the PNG.
 
 The project's shell replaces the default one entirely, so it decides what surrounds every shot: a Material surface (what `shutter init` writes, and what widgets such as `ListTile` or `TextField` need), a `CupertinoApp`, or a `WidgetsApp` with the app's own design system.
 Shutter adds no design library to a shell without one.
@@ -79,7 +105,7 @@ The test engine has no system font fallback, so a glyph missing from the style's
 Cupertino text names the system font through the families `CupertinoSystemText` and `CupertinoSystemDisplay`, which the test engine does not resolve. On a macOS host they get SF Pro from `/System/Library/Fonts/`, as a macOS app does and as iOS draws; on other hosts, Roboto, the Android system font.
 Host fonts come from the machine that shoots, so compare runs made on the same machine.
 
-Settling: `Image` widgets are precached, then one `pump(settle)` (`--settle`, default 300 ms). `pumpAndSettle` is never used, because a loading indicator never settles.
+Settling: `Image` widgets are precached, then one `pump(settle)` (`--settle`, default 300 ms); after each action, `--settle` ms more in 16 ms frames. `pumpAndSettle` is never used, because a loading indicator never settles.
 
 HTTP is blocked by the test binding. A `NetworkImage` fails and the shot is `error`.
 
@@ -131,7 +157,7 @@ Fonts bundled in the project's assets are used as they are.
 
 These come from rendering through `flutter test`.
 
-* One frame, no interaction: taps, hovers, scrolling, and mid-animation states are not shot.
+* One capture per preview, after the actions: scrolling, dragging, and typing are not shot. A sequence of states, such as the course of an animation, is shot as one run per point in time, each with its own `--settle`.
 * HTTP is blocked, so network images fail to load.
 * `flutter test` runs the engine with test fonts, which has no system font fallback. Shutter's host fonts are added to the text themes and the default text style, so a text style that sets its own `fontFamilyFallback` does not get them. google_fonts styles do this: glyphs outside the Google font (for example Japanese in a Latin-only font) render as boxes, where a device would fall back to a system font.
 
@@ -145,7 +171,7 @@ When Flutter ships a capture command in the previewer itself, it replaces v1 wit
 
 ## Runs
 
-`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shell` when a shell file was used, `shots`).
+`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shell` when a shell file was used, `actions` when given, `shots`).
 `<run-id>` is the UTC time of the shot (`20260918T101530Z`), suffixed `-2`, `-3`, ... when taken; a hidden `.<run-id>` file claims the name, so runs started in the same second get distinct ids.
 `shot` prints the run directory as `run:`; `diff` accepts a run's directory, its id, `latest` for the newest run, or `latest~N` for the run N before it.
 `latest` counts runs in id order (time, then suffix) and skips a run still being shot, whose `manifest.json` is not written yet.
@@ -181,8 +207,8 @@ When the two runs were shot with different shells (path or sha256), `shell` show
 ## Output
 
 `shot` and `diff` print YAML starting with the comment `# shutter ai-report v1`, with absolute paths to open.
-`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `summary`, and `shots`, errors first.
-`diff` gives `diff` (with `--images`), `before`, `after`, `shell` (when the shells differ), `summary`, and `entries` in the order changed → added → removed → unchanged.
+`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `actions` (when given), `summary`, and `shots`, errors first.
+`diff` gives `diff` (with `--images`), `before`, `after`, `shell` and `actions` (each when the two runs differ in it), `summary`, and `entries` in the order changed → added → removed → unchanged.
 
 ## Exit codes
 
@@ -196,11 +222,11 @@ Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter 
 
 ## Commands
 
-| command  | purpose                                                                                                                   |
-| -------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `agent`  | the step-by-step playbook                                                                                                 |
-| `manual` | this document                                                                                                             |
-| `doctor` | SDK version, font cache, shell (`--shell`)                                                                                |
-| `init`   | write `shell.dart` (`--shell`)                                                                                            |
-| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`) |
-| `diff`   | compare two runs (`--images`)                                                                                             |
+| command  | purpose                                                                                                                                                          |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`  | the step-by-step playbook                                                                                                                                        |
+| `manual` | this document                                                                                                                                                    |
+| `doctor` | SDK version, font cache, shell (`--shell`)                                                                                                                       |
+| `init`   | write `shell.dart` (`--shell`)                                                                                                                                   |
+| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--press`/`--hover`/`--focus`) |
+| `diff`   | compare two runs (`--images`)                                                                                                                                    |

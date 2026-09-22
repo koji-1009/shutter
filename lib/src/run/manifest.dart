@@ -108,6 +108,13 @@ class const Shot({
 /// absolute outside the project) and the sha256 of its bytes.
 typedef ShellFile = ({String path, String sha256});
 
+/// What a run did to every preview besides rendering it: the actions
+/// performed before the capture.
+typedef RunSetup = ({List<String> actions});
+
+/// The setup of a run shot without actions.
+const RunSetup plainSetup = (actions: []);
+
 /// `manifest.json` of one run directory.
 class const RunManifest({
   /// Run id (`YYYYMMDDTHHMMSSZ`, suffixed on collision).
@@ -116,6 +123,10 @@ class const RunManifest({
 
   /// The shell file, or null for the default shell.
   final ShellFile? shell,
+
+  /// The actions performed on every preview before the capture, as given
+  /// (`tap text:Save`).
+  final List<String> actions = const [],
 }) {
   factory RunManifest.fromJson(Map<String, Object?> json) => RunManifest(
     run: json['run'] as String,
@@ -130,6 +141,7 @@ class const RunManifest({
       ),
       _ => null,
     },
+    actions: [...?(json['actions'] as List<Object?>?)?.cast<String>()],
   );
 
   /// Reads `<dir>/manifest.json`.
@@ -138,6 +150,8 @@ class const RunManifest({
         as Map<String, Object?>,
   );
 
+  RunSetup get setup => (actions: actions);
+
   /// 0 when every shot is ok, 2 when any is an `error`.
   int get exitCode => shots.any((s) => s.status == ShotStatus.error) ? 2 : 0;
 
@@ -145,6 +159,7 @@ class const RunManifest({
     'run': run,
     if (shell case (:final path, :final sha256)?)
       'shell': {'path': path, 'sha256': sha256},
+    if (actions.isNotEmpty) 'actions': actions,
     'shots': [for (final shot in shots) shot.toJson()],
   };
 

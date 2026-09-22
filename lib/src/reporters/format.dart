@@ -15,6 +15,17 @@ String formatShell(ShellFile? shell) => switch (shell) {
   null => 'default',
 };
 
+/// `["tap text:Save", "press key:ok"]`.
+String formatActions(List<String> actions) =>
+    '[${actions.map(yamlScalar).join(', ')}]';
+
+/// The `actions` line of a run's [setup], only when it has actions.
+void writeSetup(StringBuffer body, RunSetup setup) {
+  if (setup.actions.isNotEmpty) {
+    body.writeln('actions: ${formatActions(setup.actions)}');
+  }
+}
+
 /// `<key>: []` or `<key>:`, the list header of a report.
 String listHeader(String key, int length) => length == 0 ? '$key: []' : '$key:';
 

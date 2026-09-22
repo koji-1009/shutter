@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
+import 'package:shutter/src/engine/interaction.dart';
 import 'package:shutter/src/engine/widget_shot.dart';
 import 'package:shutter/src/run/manifest.dart';
 import 'package:test/test.dart';
@@ -233,6 +234,60 @@ void main() {
     expect(missing.stderr, contains('--shell nope.dart does not exist.'));
   });
 
+  test('actions: every --tap in order, then the held one; recorded in the '
+      'manifest and the report', () async {
+    final root = createProject();
+    final engine = FakeEngine(const []);
+    final result = await runCli([
+      'shot',
+      '--widget',
+      'A()',
+      '--tap',
+      'text:Open, then close',
+      '--press',
+      'key:save',
+      '--tap',
+      'type:DropdownButton<String>',
+    ], fakeContext(root, engine: engine));
+    expect(result.exitCode, 0, reason: result.stderr);
+    final request = engine.requests.single;
+    expect(
+      [
+        for (final action in request.actions)
+          (action.kind, action.by, action.value),
+      ],
+      [
+        (ActionKind.tap, TargetKind.text, 'Open, then close'),
+        (ActionKind.tap, TargetKind.type, 'DropdownButton<String>'),
+        (ActionKind.press, TargetKind.key, 'save'),
+      ],
+    );
+    final report = loadYaml(result.stdout) as YamlMap;
+    const labels = [
+      'tap text:Open, then close',
+      'tap type:DropdownButton<String>',
+      'press key:save',
+    ];
+    expect(report['actions'], labels);
+    final manifest = RunManifest.read(report['run'] as String);
+    expect(manifest.actions, labels);
+
+    for (final (flag, kind) in [
+      ('--hover', ActionKind.hover),
+      ('--focus', ActionKind.focus),
+    ]) {
+      final held = FakeEngine(const []);
+      await runCli([
+        'shot',
+        '--widget',
+        'A()',
+        flag,
+        'type:TextField',
+      ], fakeContext(root, engine: held));
+      expect(held.requests.single.actions.single.kind, kind);
+    }
+  });
+
   test('a named file without previews is missing input', () async {
     final root = createProject(
       resolvable: true,
@@ -279,6 +334,33 @@ void main() {
       final bad = await run(['--widget', 'x', '--settle', settle]);
       expect(bad.exitCode, 64, reason: settle);
       expect(bad.stderr, contains('--settle must be a whole number'));
+    }
+    for (final (option, target) in [
+      ('--tap', 'Save'),
+      ('--tap', 'label:Save'),
+      ('--tap', 'text:'),
+    ]) {
+      final bad = await run(['--widget', 'x', option, target]);
+      expect(bad.exitCode, 64, reason: target);
+      expect(
+        bad.stderr,
+        contains(
+          '$option must name its widget by key:<key>, text:<text>, or '
+          'type:<Widget>',
+        ),
+      );
+    }
+    for (final second in ['--focus', '--press']) {
+      final held = await run([
+        '--widget',
+        'x',
+        '--press',
+        'key:a',
+        second,
+        'key:b',
+      ]);
+      expect(held.exitCode, 64, reason: second);
+      expect(held.stderr, contains('at most one of --press, --hover'));
     }
     final outside = await run(['--widget', 'x', '--import', 'outside.dart']);
     expect(outside.exitCode, 64);

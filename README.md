@@ -136,16 +136,25 @@ shutter shot --widget 'PrimaryButton(label: "OK")' --import lib/ui/button.dart -
 `--import` names a file under `lib/`, or a `package:` URI of a dependency, that the widget expression needs imported (repeatable; `package:flutter/widgets.dart` is always imported).
 The same `--widget` and `--import` give the same shot id, so two such runs line up in `diff`.
 
+A state that comes from a gesture is shot by acting on the preview first:
+
+```bash
+shutter shot lib/preview/button_preview.dart --press text:Save
+```
+
+`--tap` (repeatable, in the order given), then `--press`, `--hover`, or `--focus`, name their widget by `key:`, `text:`, or `type:`.
+Each is followed by `--settle` milliseconds; shoot again with another `--settle` for another point of an animation.
+
 ## Subcommands
 
-| Command        | Purpose                                                                                                                    |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `agent`        | The step-by-step playbook for AI agents.                                                                                   |
-| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                  |
-| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                        |
-| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                   |
-| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`). |
-| `diff <a> <b>` | Compare two runs (`--images`).                                                                                             |
+| Command        | Purpose                                                                                                                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`        | The step-by-step playbook for AI agents.                                                                                                                          |
+| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                                                         |
+| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                               |
+| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                          |
+| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--press`/`--hover`/`--focus`). |
+| `diff <a> <b>` | Compare two runs (`--images`).                                                                                                                                    |
 
 ## Exit codes
 
@@ -159,7 +168,7 @@ The same `--widget` and `--import` give the same shot id, so two such runs line 
 
 ## Limits
 
-* One frame, no interaction: taps, hovers, scrolling, and mid-animation states are not shot. State comes from the widget's construction expression.
+* One capture per preview: state comes from the widget's construction expression and from taps, a press, a hover, or focus before the capture; scrolling, dragging, and typing are not shot.
 * HTTP is blocked while rendering, so network images fail to load.
 * Text renders with the project's fonts plus Roboto; CJK and emoji fall back to the host's system fonts, and Cupertino text uses SF Pro on macOS (Roboto elsewhere), as a device would. Compare runs made on the same machine.
 

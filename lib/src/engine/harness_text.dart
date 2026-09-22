@@ -16,6 +16,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widget_previews.dart';
@@ -34,7 +35,43 @@ class const ShutterConfig({
 
   /// The project depends on google_fonts.
   required final bool googleFonts,
+
+  /// Performed on every preview before the capture, in order.
+  final List<ShutterAction> actions = const [],
 });
+
+/// What an action does to its target.
+enum ShutterActionKind { tap, press, hover, focus }
+
+/// How an action's target is found.
+enum ShutterTarget { key, text, type }
+
+/// One `--tap`, `--press`, `--hover`, or `--focus` of the CLI.
+class const ShutterAction(
+  final ShutterActionKind kind,
+  final ShutterTarget by,
+
+  /// The key, text, or type name.
+  final String value,
+) {
+  /// As given on the command line: `tap text:Save`.
+  String get label => '${kind.name} ${by.name}:$value';
+
+  Finder get finder => switch (by) {
+    .key => find.byKey(ValueKey<String>(value)),
+    .text => find.text(value),
+    .type => find.byWidgetPredicate((widget) {
+      final type = '${widget.runtimeType}';
+      return type == value || type.split('<').first == value;
+    }),
+  };
+}
+
+/// An action that cannot be performed; the shot is an error.
+class _ActionError(final String message) implements Exception {
+  @override
+  String toString() => message;
+}
 
 /// A google_fonts file cached by the CLI.
 class const ShutterFont({
@@ -213,6 +250,9 @@ Future<void> _capture(
       'text_scale_factor': preview.textScaleFactor,
   };
   LocalizationsResolver? resolver;
+  // What undoes a held action: a pressed or hovering pointer, the focus
+  // highlight strategy.
+  final releases = <Future<void> Function()>[];
   try {
     final size = preview.size;
     final width = size != null && size.width.isFinite ? size.width : null;
@@ -279,8 +319,25 @@ Future<void> _capture(
     await _precacheImages(tester);
     await tester.pump(Duration(milliseconds: config.settleMs));
 
-    final boundary = key.currentContext?.findRenderObject();
-    if (boundary is RenderRepaintBoundary && !boundary.debugNeedsPaint) {
+    RenderRepaintBoundary? painted() =>
+        switch (key.currentContext?.findRenderObject()) {
+          final RenderRepaintBoundary region when !region.debugNeedsPaint =>
+            region,
+          _ => null,
+        };
+    // A preview the shell never paints has nothing to act on.
+    final shown = painted() != null;
+    if (shown) await _act(tester, config, releases);
+    final boundary = painted();
+    if (shown && boundary == null) {
+      firstError ??= {
+        'error': 'the preview is no longer painted after the actions (a '
+            'page covers it); shoot that page through its own preview',
+        ..._entryAt(entry),
+      };
+    }
+    if (boundary != null) {
+      final size = boundary.size;
       final image = boundary.toImageSync(pixelRatio: _pixelRatio);
       final bytes = await tester.runAsync(
         () => image.toByteData(format: ui.ImageByteFormat.png),
@@ -292,10 +349,7 @@ Future<void> _capture(
           bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
         );
         result['png'] = png;
-        result['size'] = [
-          _round(boundary.size.width),
-          _round(boundary.size.height),
-        ];
+        result['size'] = [_round(size.width), _round(size.height)];
       }
     }
   } catch (error, stack) {
@@ -307,6 +361,12 @@ Future<void> _capture(
     FlutterError.onError = previous;
     debugPrint = previousPrint;
     debugDisableShadows = previousShadows;
+  }
+  // Released while the tree they point into is still mounted.
+  for (final release in releases.reversed) {
+    try {
+      await release();
+    } catch (_) {}
   }
   try {
     await tester.pumpWidget(const SizedBox.shrink());
@@ -354,6 +414,112 @@ Future<void> _precacheImages(WidgetTester tester) async {
     ]);
   });
   await tester.pump();
+}
+
+/// Performs the run's actions on the mounted preview, each followed by
+/// one `pump(settle)`. What undoes a held action goes to [releases].
+Future<void> _act(
+  WidgetTester tester,
+  ShutterConfig config,
+  List<Future<void> Function()> releases,
+) async {
+  for (final action in config.actions) {
+    final element = _target(action);
+    switch (action.kind) {
+      case .tap:
+        await tester.tapAt(_hitPoint(tester, action, element));
+      case .press:
+        final gesture = await tester.startGesture(
+          _hitPoint(tester, action, element),
+        );
+        releases.add(gesture.cancel);
+      case .hover:
+        // Added where it hovers, so it passes over no other widget.
+        final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+        await mouse.addPointer(location: _hitPoint(tester, action, element));
+        releases.add(mouse.removePointer);
+      case .focus:
+        final node = _focusNode(action, element);
+        // flutter_test runs as a touch device, where focus draws no
+        // highlight; a keyboard would.
+        final manager = FocusManager.instance;
+        final previous = manager.highlightStrategy;
+        manager.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+        releases.add(() async => manager.highlightStrategy = previous);
+        node.requestFocus();
+    }
+    await _frames(tester, config.settleMs);
+  }
+}
+
+/// Frame interval of a 60 Hz display.
+const _frame = Duration(milliseconds: 16);
+
+/// Advances [ms] in frames, as a device draws them. One long pump would
+/// draw a single frame, in which an animation an action starts (ink, a
+/// check mark, a route) is only beginning, and a timer the action set (a
+/// tap's down, after `kPressTimeout`) would start its animation there.
+Future<void> _frames(WidgetTester tester, int ms) async {
+  final total = Duration(milliseconds: ms);
+  var elapsed = Duration.zero;
+  do {
+    final step = total - elapsed < _frame ? total - elapsed : _frame;
+    await tester.pump(step);
+    elapsed += step;
+  } while (elapsed < total);
+}
+
+/// The one widget [action] names.
+Element _target(ShutterAction action) {
+  final found = action.finder.evaluate().toList();
+  return switch (found) {
+    [final element] => element,
+    [] => throw _ActionError('${action.label}: no widget matches'),
+    _ => throw _ActionError(
+      '${action.label}: ${found.length} widgets match; name one',
+    ),
+  };
+}
+
+/// The centre of [element], where a pointer reaches it; as `tap` in
+/// flutter_test, but a miss is an error rather than a warning.
+Offset _hitPoint(WidgetTester tester, ShutterAction action, Element element) {
+  final box = element.renderObject;
+  if (box is! RenderBox || !box.hasSize) {
+    throw _ActionError('${action.label}: the widget is not laid out');
+  }
+  final point = box.localToGlobal(box.size.center(Offset.zero));
+  final hit = tester.hitTestOnBinding(point);
+  if (!hit.path.any((entry) => entry.target == box)) {
+    throw _ActionError(
+      '${action.label}: a pointer at its centre does not reach it '
+      '(covered, outside the viewport, or ignoring pointers)',
+    );
+  }
+  return point;
+}
+
+/// The focus node of [element]: the first one inside it (a button's or
+/// text field's own), else the one around it.
+FocusNode _focusNode(ShutterAction action, Element element) {
+  final around = Focus.maybeOf(element, createDependency: false);
+  FocusNode? inside;
+  void visit(Element child) {
+    if (inside != null) return;
+    final node = Focus.maybeOf(child, createDependency: false);
+    if (node != null && node != around) {
+      inside = node;
+      return;
+    }
+    child.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  final node = inside ?? around;
+  if (node == null || !node.canRequestFocus) {
+    throw _ActionError('${action.label}: the widget cannot take focus');
+  }
+  return node;
 }
 
 /// The first line of the error, and `at`: the first `lib/` location in its

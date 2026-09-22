@@ -1,6 +1,7 @@
 import '../project/project.dart';
 import '../run/manifest.dart';
 import '../scan/candidate.dart';
+import 'interaction.dart';
 import 'widget_shot.dart';
 
 /// What an engine is asked to capture.
@@ -19,6 +20,9 @@ class const CaptureRequest({
 
   /// Absolute path of the shell file, or null for the default shell.
   final String? shell,
+
+  /// Performed on every preview before the capture, in order.
+  final List<ShotAction> actions = const [],
 });
 
 /// The only swappable layer: turns scanned previews and a `--widget` into

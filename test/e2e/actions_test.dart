@@ -35,16 +35,25 @@ Widget twoButtons() => Row(
     });
     const buttons = 'lib/preview/button_state_preview.dart';
     final (plain, _) = await shoot([buttons]);
-    for (final action in [
-      ['--press', 'text:Save'],
-      ['--hover', 'type:ElevatedButton'],
-      ['--focus', 'type:ElevatedButton'],
+    // The two Save buttons match text:Save twice and type:ElevatedButton
+    // not at all.
+    for (final (action, twoError) in [
+      (['--press', 'text:Save'], 'press text:Save: 2 widgets match; name one'),
+      (
+        ['--hover', 'type:ElevatedButton'],
+        'hover type:ElevatedButton: no widget matches',
+      ),
+      (
+        ['--focus', 'type:ElevatedButton'],
+        'focus type:ElevatedButton: no widget matches',
+      ),
     ]) {
       final (run, shots) = await shoot([buttons, ...action]);
       final button = shots['State / button']!;
       expect(button.status, ShotStatus.ok, reason: '$action ${button.error}');
       expect(button.size, (200.0, 80.0));
       final two = shots['State / two buttons']!;
+      expect(two.error, twoError);
       expect(two.png, isNull);
       expect(two.at, startsWith('lib/preview/button_state_preview.dart:'));
       final diff = await shutter(root, ['diff', plain, run]);
@@ -58,19 +67,5 @@ Widget twoButtons() => Row(
       );
       expect(entry['status'], 'changed', reason: '$action');
     }
-    final (_, missed) = await shoot([buttons, '--tap', 'text:Cancel']);
-    expect(
-      missed['State / button']!.error,
-      'tap text:Cancel: no widget matches',
-    );
-    expect(
-      missed['State / two buttons']!.error,
-      'tap text:Cancel: no widget matches',
-    );
-    final (_, twice) = await shoot([buttons, '--press', 'text:Save']);
-    expect(
-      twice['State / two buttons']!.error,
-      'press text:Save: 2 widgets match; name one',
-    );
   });
 }

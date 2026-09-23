@@ -21,9 +21,9 @@ const _maxFontRounds = 3;
 /// `flutter test` exits 79 when a suite registers no tests.
 const _noTestsRan = 79;
 
-/// Engine v1: generates a `flutter_test` file under
-/// `.dart_tool/shutter/test/`, runs
-/// it with `flutter test`, and deletes it.
+/// Engine v1: generates a `flutter_test` suite in a per-run directory,
+/// `.dart_tool/shutter/test/<run-id>/`, runs it with `flutter test`, and
+/// deletes the directory.
 class FlutterTestEngine implements Engine {
   FlutterTestEngine({
     required this.sdk,

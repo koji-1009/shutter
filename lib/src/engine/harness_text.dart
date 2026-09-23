@@ -1,9 +1,9 @@
-/// Source of `.dart_tool/shutter/test/<run-id>/shutter_harness.dart`, the runtime
-/// half of the `flutter_test` engine. It is plain Flutter test code: it
-/// depends on `flutter` and `flutter_test` only, so the target project
-/// gains no dependency on shutter. The generated `shutter_test.dart` calls [run]
-/// with the scanned entries; each preview becomes one `testWidgets` that
-/// writes `<run>/<id>.png` and `<run>/.results/<id>.json`.
+/// Source of `.dart_tool/shutter/test/<run-id>/shutter_harness.dart`, the
+/// runtime half of the `flutter_test` engine. It is plain Flutter test code:
+/// it depends on `flutter` and `flutter_test` only, so the target project
+/// gains no dependency on shutter. The generated `shutter_test.dart` calls
+/// [run] with the scanned entries; each preview becomes one `testWidgets`
+/// that writes `<run>/<id>.png` and `<run>/.results/<id>.json`.
 ///
 /// The end-to-end tests under `test/e2e/` compile and run this text
 /// against `example/`.

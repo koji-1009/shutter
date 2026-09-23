@@ -45,7 +45,12 @@ class FlutterTestEngine implements Engine {
     final googleFonts = request.project.packageRoot('google_fonts');
     final cache = FontCache(request.project.googleFontsDir, fetch: fetchFont);
     final design = DesignSupport.detect(request.project, sdk);
-    var pass = await _capture(request, design, cache.list());
+    var pass = await _capture(
+      request,
+      design,
+      cache.list(),
+      googleFonts: googleFonts != null,
+    );
     if (googleFonts == null) return pass.shots;
     final known = <String, GoogleFontFile>{};
     final failures = <String, String>{};
@@ -82,7 +87,7 @@ class FlutterTestEngine implements Engine {
 
       await Future.wait(pending.map(fetch));
       if (!added) break;
-      pass = await _capture(request, design, cache.list());
+      pass = await _capture(request, design, cache.list(), googleFonts: true);
     }
     return [
       for (final shot in pass.shots)
@@ -101,8 +106,9 @@ class FlutterTestEngine implements Engine {
   Future<({List<Shot> shots, Map<String, Set<String>> missingFonts})> _capture(
     CaptureRequest request,
     DesignSupport design,
-    List<CachedFont> fonts,
-  ) async {
+    List<CachedFont> fonts, {
+    required bool googleFonts,
+  }) async {
     final project = request.project;
     final shots = <Shot>[
       for (final library in request.libraries)
@@ -114,7 +120,7 @@ class FlutterTestEngine implements Engine {
         request: request,
         materialFontsDir: sdk.materialFontsDir,
         design: design,
-        googleFonts: project.packageRoot('google_fonts') != null,
+        googleFonts: googleFonts,
         fonts: fonts,
       ),
     );

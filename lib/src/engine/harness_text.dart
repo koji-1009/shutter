@@ -196,8 +196,8 @@ Map<String, Object?> _entryFields(
 ) => {
   'id': id,
   'name': name,
-  if (entry.file != null) 'file': entry.file,
-  if (entry.line != null) 'line': entry.line,
+  'file': ?entry.file,
+  'line': ?entry.line,
 };
 
 /// `at` pointing at the declaration; none for an expression.
@@ -258,9 +258,8 @@ Future<void> _capture(
   };
   final result = <String, Object?>{
     ..._entryFields(entry, id, name),
-    if (preview.brightness != null) 'brightness': preview.brightness!.name,
-    if (preview.textScaleFactor != null)
-      'text_scale_factor': preview.textScaleFactor,
+    'brightness': ?preview.brightness?.name,
+    'text_scale_factor': ?preview.textScaleFactor,
   };
   LocalizationsResolver? resolver;
   // What undoes a held action: a pressed or hovering pointer, the focus

@@ -38,7 +38,7 @@ class const GeneratorConfig({
 });
 
 /// Name of the helper library shooting [CaptureRequest.widget].
-const widgetHelper = 'widget';
+const _widgetHelper = 'widget';
 
 /// Writes `.dart_tool/shutter/test/<run-id>/`: the harness, the design library
 /// adapters, one helper library per source library (and one for the
@@ -65,9 +65,9 @@ String writeGeneratedTest(GeneratorConfig config) {
     helpers.add('l$i');
   }
   if (request.widget case final widget?) {
-    File(p.join(dir, 'sources', '$widgetHelper.dart'))
+    File(p.join(dir, 'sources', '$_widgetHelper.dart'))
         .writeAsStringSync(widget.helperSource());
-    helpers.add(widgetHelper);
+    helpers.add(_widgetHelper);
   }
 
   final testPath = p.join(dir, 'shutter_test.dart');

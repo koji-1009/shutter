@@ -83,9 +83,11 @@ shots:
       const RunManifest(
         run: 'r',
         shots: [],
-        actions: ['tap text:Open', 'press key:save'],
-        screen: true,
-        viewport: (390, 844),
+        setup: (
+          actions: ['tap text:Open', 'press key:save'],
+          screen: true,
+          viewport: (390, 844),
+        ),
       ),
     );
     expect(
@@ -99,7 +101,11 @@ shots:
       ),
     );
     final screenOnly = await render(
-      const RunManifest(run: 'r', shots: [], screen: true),
+      const RunManifest(
+        run: 'r',
+        shots: [],
+        setup: (actions: [], screen: true, viewport: null),
+      ),
     );
     expect(screenOnly, contains('shell: default\ncapture: screen\nsummary:'));
   });

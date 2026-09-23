@@ -284,8 +284,9 @@ void main() {
     expect(report['capture'], 'screen');
     expect(report['viewport'], [390, 844]);
     final manifest = RunManifest.read(report['run'] as String);
-    expect(manifest.actions, labels);
-    expect((manifest.screen, manifest.viewport), (true, (390.0, 844.0)));
+    final setup = manifest.setup;
+    expect(setup.actions, labels);
+    expect((setup.screen, setup.viewport), (true, (390.0, 844.0)));
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),

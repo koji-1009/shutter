@@ -198,9 +198,11 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
       run: p.basename(runDir),
       shots: [...shots]..sort(Shot.bySource),
       shell: shellRecord,
-      actions: [for (final action in actions) action.label],
-      screen: screen,
-      viewport: viewport,
+      setup: (
+        actions: [for (final action in actions) action.label],
+        screen: screen,
+        viewport: viewport,
+      ),
     )..write(runDir);
     reportShots(manifest, runDir, ShutterIO.stdoutSink);
     return manifest.exitCode;

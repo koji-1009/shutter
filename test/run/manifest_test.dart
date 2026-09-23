@@ -76,9 +76,11 @@ void main() {
     const RunManifest(
       run: 'r',
       shots: [],
-      actions: ['tap text:Open', 'press key:save'],
-      screen: true,
-      viewport: (390, 844.5),
+      setup: (
+        actions: ['tap text:Open', 'press key:save'],
+        screen: true,
+        viewport: (390, 844.5),
+      ),
     ).write(dir);
     final back = RunManifest.read(dir);
     final setup = back.setup;

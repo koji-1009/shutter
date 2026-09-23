@@ -47,18 +47,21 @@ class const ShotAction({
 }) {
   /// As given on the command line, and recorded in the manifest:
   /// `tap text:Save`, `enter key:name=Koji`.
-  String get label => switch (text) {
-    final text? => '${kind.name} ${by.name}:$value=$text',
-    null => '${kind.name} ${by.name}:$value',
-  };
+  String get label {
+    final text = switch (this.text) {
+      final text? => '=$text',
+      null => '',
+    };
+    return '${kind.name} ${by.name}:$value$text';
+  }
 
   /// The harness's `ShutterAction` for this action, as Dart source.
-  String get source => switch (text) {
-    final text? =>
-      '\$shutter.ShutterAction(.${kind.name}, .${by.name}, '
-          '${dartString(value)}, text: ${dartString(text)})',
-    null =>
-      '\$shutter.ShutterAction(.${kind.name}, .${by.name}, '
-          '${dartString(value)})',
-  };
+  String get source {
+    final text = switch (this.text) {
+      final text? => ', text: ${dartString(text)}',
+      null => '',
+    };
+    return '\$shutter.ShutterAction(.${kind.name}, .${by.name}, '
+        '${dartString(value)}$text)';
+  }
 }

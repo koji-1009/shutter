@@ -38,6 +38,8 @@ RunDiff diffRuns(StoredRun before, StoredRun after, {String? imagesDir}) {
     entries: entries,
     beforeShell: before.manifest.shell,
     afterShell: after.manifest.shell,
+    beforeSetup: before.manifest.setup,
+    afterSetup: after.manifest.setup,
   );
 }
 

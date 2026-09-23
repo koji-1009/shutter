@@ -15,6 +15,31 @@ String formatShell(ShellFile? shell) => switch (shell) {
   null => 'default',
 };
 
+/// `["tap text:Save", "press key:ok"]`.
+String formatActions(List<String> actions) =>
+    '[${actions.map(yamlScalar).join(', ')}]';
+
+/// `screen` or `preview`.
+String formatCapture(bool screen) => screen ? 'screen' : 'preview';
+
+/// `[390, 844]`, or `default` for the viewport the preview's size gives.
+String formatViewport((double, double)? viewport) => switch (viewport) {
+  final size? => formatSize(size),
+  null => 'default',
+};
+
+/// The `actions`, `capture`, and `viewport` lines of a run's [setup],
+/// each only when set.
+void writeSetup(StringBuffer body, RunSetup setup) {
+  if (setup.actions.isNotEmpty) {
+    body.writeln('actions: ${formatActions(setup.actions)}');
+  }
+  if (setup.screen) body.writeln('capture: ${formatCapture(true)}');
+  if (setup.viewport case final viewport?) {
+    body.writeln('viewport: ${formatViewport(viewport)}');
+  }
+}
+
 /// `<key>: []` or `<key>:`, the list header of a report.
 String listHeader(String key, int length) => length == 0 ? '$key: []' : '$key:';
 

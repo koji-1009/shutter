@@ -4,6 +4,7 @@ import 'package:args/args.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
+import '../engine/interaction.dart';
 import '../engine/widget_shot.dart';
 import '../project/project.dart';
 import '../run/manifest.dart';
@@ -38,8 +39,9 @@ int parseCount(ArgResults results, String name) {
   return value;
 }
 
-/// Parses `--size` as `<width>x<height>` in logical pixels.
-(double, double) parseSize(String raw) {
+/// Parses option [name] (`--size`, `--viewport`) as `<width>x<height>`
+/// in logical pixels.
+(double, double) parseSize(String raw, {String name = 'size'}) {
   final parts = raw.split('x');
   final values = [for (final part in parts) double.tryParse(part)];
   if (values case [final width?, final height?]
@@ -47,9 +49,74 @@ int parseCount(ArgResults results, String name) {
     return (width, height);
   }
   throw ShutterException.usage(
-    '--size must be <width>x<height>, e.g. 390x844 (got "$raw").',
+    '--$name must be <width>x<height>, e.g. 390x844 (got "$raw").',
   );
 }
+
+/// The actions of `shot`: every `--tap` and `--enter` in the order given,
+/// then the one `--press`, `--hover`, or `--focus`, whose state lasts
+/// through the capture.
+List<ShotAction> parseActions(ArgResults results) {
+  final held = [
+    for (final kind in const [
+      ActionKind.press,
+      ActionKind.hover,
+      ActionKind.focus,
+    ])
+      for (final raw in results.multiOption(kind.name)) (kind, raw),
+  ];
+  if (held.length > 1) {
+    throw ShutterException.usage(
+      'Give at most one of --press, --hover, and --focus.',
+    );
+  }
+  // The parser keeps each option's values in order, but not the order
+  // between options, which the command line still has.
+  final steps = {
+    for (final kind in const [ActionKind.tap, ActionKind.enter])
+      kind: [...results.multiOption(kind.name)],
+  };
+  return [
+    for (final argument in results.arguments.takeWhile((a) => a != '--'))
+      for (final MapEntry(key: kind, value: values) in steps.entries)
+        if ((argument == '--${kind.name}' ||
+                argument.startsWith('--${kind.name}=')) &&
+            values.isNotEmpty)
+          _action(kind, values.removeAt(0)),
+    for (final (kind, raw) in held) _action(kind, raw),
+  ];
+}
+
+ShotAction _action(ActionKind kind, String raw) {
+  var target = raw;
+  String? text;
+  if (kind == ActionKind.enter) {
+    final equals = raw.indexOf('=');
+    if (equals < 0) {
+      throw ShutterException.usage(
+        '--enter must be <target>=<text>, e.g. key:name=Koji (got "$raw").',
+      );
+    }
+    (target, text) = (raw.substring(0, equals), raw.substring(equals + 1));
+  }
+  final colon = target.indexOf(':');
+  final by = colon < 0
+      ? null
+      : TargetKind.values.asNameMap()[target.substring(0, colon)];
+  final value = target.substring(colon + 1);
+  if (by == null || value.isEmpty) {
+    throw ShutterException.usage(
+      '--${kind.name} must name its widget by key:<key>, text:<text>, '
+      'label:<label>, or type:<Widget> (got "$raw").',
+    );
+  }
+  return ShotAction(kind: kind, by: by, value: value, text: text);
+}
+
+/// Help of the target the action options take.
+const targetHelp =
+    'key:<ValueKey<String>>, text:<Text data>, label:<semantics label>, or '
+    'type:<Widget>';
 
 String _importUri(Project project, String import, String workingDirectory) =>
     import.startsWith('package:')

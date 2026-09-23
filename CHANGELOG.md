@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0
+
+States that come from a gesture or typing, and what opens above a preview.
+
+* `shutter shot --tap` and `--enter <target>=<text>` (repeatable, run in the order given), then one of `--press`, `--hover`, or `--focus`, act on every preview before the capture. A target is `key:<value>`, `text:<string>`, `label:<semantics label>` (a text field's label or hint, a button's text), or `type:<Widget>`; a target that matches no widget, several, or cannot be reached makes the shot an error. Each action is followed by `--settle` milliseconds drawn in 16 ms frames; `shutter agent` suggests `--settle 700` for the state after a tap, once its ink is over, and another `--settle` for another point of an animation.
+* `shutter shot --capture screen` captures the whole viewport, with the shell's surface and the menus, dialogs, bottom sheets, and tooltips the app draws above the preview; `--viewport <width>x<height>` sets the viewport, the preview at its top left.
+* `shot` prints the run's actions and capture, `manifest.json` records them, and `diff` prints both runs' when they differ. They are not part of shot ids.
+* The `shutter-visual-check` skill also covers pressed, hovered, focused, opened, and typed states.
+
 ## 0.1.1
 
 Documentation and package metadata; the tool behaves as in 0.1.0.

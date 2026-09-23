@@ -32,6 +32,31 @@ Shot ok(String id, {String? file, int? line, (double, double) size = (1, 1)}) =>
     );
 
 void main() {
+  test("carries each run's shell and setup", () {
+    final dir = p.join(tempDir(), 'pressed');
+    Directory(dir).createSync();
+    final pressed = StoredRun(
+      dir,
+      const RunManifest(
+        run: 'pressed',
+        shots: [],
+        shell: (path: 'lib/preview/shell.dart', sha256: '1f2e'),
+        actions: ['press text:OK'],
+        screen: true,
+        viewport: (390, 844),
+      )..write(dir),
+    );
+    final diff = diffRuns(run('plain', const [], const {}), pressed);
+    expect(diff.beforeShell, isNull);
+    expect(diff.afterShell?.path, 'lib/preview/shell.dart');
+    expect(diff.beforeSetup.actions, isEmpty);
+    expect(diff.afterSetup.actions, ['press text:OK']);
+    expect(
+      (diff.afterSetup.screen, diff.afterSetup.viewport),
+      (true, (390.0, 844.0)),
+    );
+  });
+
   test('classifies every id; --images writes diff images', () {
     final black = png(4, 4);
     final white = png(4, 4, [255, 255, 255, 255]);

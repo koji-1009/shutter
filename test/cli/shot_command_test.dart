@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
+import 'package:shutter/src/engine/interaction.dart';
 import 'package:shutter/src/engine/widget_shot.dart';
 import 'package:shutter/src/run/manifest.dart';
 import 'package:test/test.dart';
@@ -233,6 +234,77 @@ void main() {
     expect(missing.stderr, contains('--shell nope.dart does not exist.'));
   });
 
+  test('actions: every --tap in order, then the held one; recorded in the '
+      'manifest and the report with the capture', () async {
+    final root = createProject();
+    final engine = FakeEngine(const []);
+    final result = await runCli([
+      'shot',
+      '--widget',
+      'A()',
+      '--tap',
+      'text:Open, then close',
+      '--press',
+      'key:save',
+      '--enter=key:name=Koji=K',
+      '--tap',
+      'type:DropdownButton<String>',
+      '--enter',
+      'label:Email=',
+      '--capture',
+      'screen',
+      '--viewport',
+      '390x844',
+    ], fakeContext(root, engine: engine));
+    expect(result.exitCode, 0, reason: result.stderr);
+    final request = engine.requests.single;
+    expect(
+      [
+        for (final action in request.actions)
+          (action.kind, action.by, action.value, action.text),
+      ],
+      [
+        (ActionKind.tap, TargetKind.text, 'Open, then close', null),
+        (ActionKind.enter, TargetKind.key, 'name', 'Koji=K'),
+        (ActionKind.tap, TargetKind.type, 'DropdownButton<String>', null),
+        (ActionKind.enter, TargetKind.label, 'Email', ''),
+        (ActionKind.press, TargetKind.key, 'save', null),
+      ],
+    );
+    expect((request.screen, request.viewport), (true, (390.0, 844.0)));
+    final report = loadYaml(result.stdout) as YamlMap;
+    const labels = [
+      'tap text:Open, then close',
+      'enter key:name=Koji=K',
+      'tap type:DropdownButton<String>',
+      'enter label:Email=',
+      'press key:save',
+    ];
+    expect(report['actions'], labels);
+    expect(report['capture'], 'screen');
+    expect(report['viewport'], [390, 844]);
+    final manifest = RunManifest.read(report['run'] as String);
+    expect(manifest.actions, labels);
+    expect((manifest.screen, manifest.viewport), (true, (390.0, 844.0)));
+
+    for (final (flag, kind) in [
+      ('--hover', ActionKind.hover),
+      ('--focus', ActionKind.focus),
+    ]) {
+      final held = FakeEngine(const []);
+      await runCli([
+        'shot',
+        '--widget',
+        'A()',
+        flag,
+        'type:TextField',
+      ], fakeContext(root, engine: held));
+      final request = held.requests.single;
+      expect(request.actions.single.kind, kind);
+      expect((request.screen, request.viewport), (false, null));
+    }
+  });
+
   test('a named file without previews is missing input', () async {
     final root = createProject(
       resolvable: true,
@@ -280,6 +352,50 @@ void main() {
       expect(bad.exitCode, 64, reason: settle);
       expect(bad.stderr, contains('--settle must be a whole number'));
     }
+    for (final (option, target) in [
+      ('--tap', 'Save'),
+      ('--tap', 'name:Save'),
+      ('--tap', 'text:'),
+      ('--enter', 'name=Koji'),
+    ]) {
+      final bad = await run(['--widget', 'x', option, target]);
+      expect(bad.exitCode, 64, reason: target);
+      expect(
+        bad.stderr,
+        contains(
+          '$option must name its widget by key:<key>, text:<text>, '
+          'label:<label>, or type:<Widget>',
+        ),
+      );
+    }
+    final noText = await run(['--widget', 'x', '--enter', 'key:name']);
+    expect(noText.exitCode, 64);
+    expect(noText.stderr, contains('--enter must be <target>=<text>'));
+    for (final second in ['--focus', '--press']) {
+      final held = await run([
+        '--widget',
+        'x',
+        '--press',
+        'key:a',
+        second,
+        'key:b',
+      ]);
+      expect(held.exitCode, 64, reason: second);
+      expect(held.stderr, contains('at most one of --press, --hover'));
+    }
+    final viewport = await run(['--widget', 'x', '--viewport', '390x844']);
+    expect(viewport.exitCode, 64);
+    expect(viewport.stderr, contains('--viewport needs --capture screen.'));
+    final badViewport = await run([
+      '--widget',
+      'x',
+      '--capture',
+      'screen',
+      '--viewport',
+      '390',
+    ]);
+    expect(badViewport.exitCode, 64);
+    expect(badViewport.stderr, contains('--viewport must be <width>x<height>'));
     final outside = await run(['--widget', 'x', '--import', 'outside.dart']);
     expect(outside.exitCode, 64);
     expect(outside.stderr, contains('--import must be under lib/'));

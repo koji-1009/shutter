@@ -58,6 +58,53 @@ String lastRun(String root) => (Directory(
   p.join(root, '.dart_tool', 'shutter', 'runs'),
 ).listSync().map((d) => d.path).toList()..sort()).last;
 
+/// Shoots [args] in [root]: the run directory and its shots by name.
+Future<(String, Map<String, Shot>)> shootIn(
+  String root,
+  List<String> args,
+) async {
+  final result = await shutter(root, ['shot', ...args]);
+  final run = (loadYaml(result.stdout) as YamlMap)['run'] as String;
+  return (run, {for (final s in RunManifest.read(run).shots) s.name: s});
+}
+
+/// A button that pushes a page.
+const routePreview = '''
+import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+
+@Preview(name: 'Route', size: Size(200, 100))
+Widget route() => Builder(
+  builder: (context) => ElevatedButton(
+    onPressed: () => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(body: Text('Next page')),
+      ),
+    ),
+    child: const Text('Go'),
+  ),
+);
+''';
+
+/// A dropdown whose menu opens below its 60-high preview.
+const menuPreview = '''
+import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+
+@Preview(name: 'State / menu', size: Size(200, 60))
+Widget menu() => Align(
+  alignment: Alignment.topLeft,
+  child: DropdownButton<String>(
+    value: 'a',
+    items: const [
+      DropdownMenuItem(value: 'a', child: Text('Alpha')),
+      DropdownMenuItem(value: 'b', child: Text('Beta')),
+    ],
+    onChanged: (_) {},
+  ),
+);
+''';
+
 void main() {
   test('shot → edit → shot → diff on the example app', () async {
     final root = await exampleCopy();
@@ -423,6 +470,352 @@ Widget tile() => const ListTile(title: Text('x'));
     // A material_ui button needs material_ui's Material above it.
     expect(result.exitCode, 0, reason: result.stdout + result.stderr);
     expect(RunManifest.read(lastRun(root)).shots.single.status, ShotStatus.ok);
+  });
+
+  test(
+    'actions change the shot; a target they cannot reach is an error',
+    () async {
+      final root = await exampleCopy();
+      Future<(String, Map<String, Shot>)> shoot(List<String> args) =>
+          shootIn(root, args);
+      writeFiles(root, {
+        'lib/preview/route_preview.dart': routePreview,
+        'lib/preview/button_state_preview.dart': '''
+import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+
+@Preview(name: 'State / button', size: Size(200, 80))
+Widget button() => Center(
+  child: ElevatedButton(onPressed: () {}, child: const Text('Save')),
+);
+
+@Preview(name: 'State / two buttons', size: Size(200, 80))
+Widget twoButtons() => Row(
+  children: [
+    TextButton(onPressed: () {}, child: const Text('Save')),
+    TextButton(onPressed: () {}, child: const Text('Save')),
+  ],
+);
+''',
+      });
+      const buttons = 'lib/preview/button_state_preview.dart';
+      final (plain, _) = await shoot([buttons]);
+      for (final action in [
+        ['--press', 'text:Save'],
+        ['--hover', 'type:ElevatedButton'],
+        ['--focus', 'type:ElevatedButton'],
+      ]) {
+        final (run, shots) = await shoot([buttons, ...action]);
+        final button = shots['State / button']!;
+        expect(button.status, ShotStatus.ok, reason: '$action ${button.error}');
+        expect(button.size, (200.0, 80.0));
+        final two = shots['State / two buttons']!;
+        expect(two.png, isNull);
+        expect(two.at, startsWith('lib/preview/button_state_preview.dart:'));
+        final diff = await shutter(root, ['diff', plain, run]);
+        final report = loadYaml(diff.stdout) as YamlMap;
+        expect(report['actions'], {
+          'before': <Object?>[],
+          'after': ['${action[0].substring(2)} ${action[1]}'],
+        });
+        final entry = (report['entries'] as YamlList)
+            .cast<YamlMap>()
+            .singleWhere((e) => e['name'] == 'State / button');
+        expect(entry['status'], 'changed', reason: '$action');
+      }
+      final (_, missed) = await shoot([buttons, '--tap', 'text:Cancel']);
+      expect(
+        missed['State / button']!.error,
+        'tap text:Cancel: no widget matches',
+      );
+      expect(
+        missed['State / two buttons']!.error,
+        'tap text:Cancel: no widget matches',
+      );
+      final (_, twice) = await shoot([buttons, '--press', 'text:Save']);
+      expect(
+        twice['State / two buttons']!.error,
+        'press text:Save: 2 widgets match; name one',
+      );
+      writeFiles(root, {
+        'lib/preview/unreachable_preview.dart': '''
+import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+
+@Preview(name: 'Ignored', size: Size(200, 80))
+Widget ignored() => IgnorePointer(
+  child: Center(
+    child: ElevatedButton(onPressed: () {}, child: const Text('Hidden')),
+  ),
+);
+
+@Preview(name: 'Plain', size: Size(200, 80))
+Widget plain() => const Text('Plain');
+''',
+      });
+      const unreachable = 'lib/preview/unreachable_preview.dart';
+      final (_, ignored) = await shoot([unreachable, '--tap', 'text:Hidden']);
+      expect(
+        ignored['Ignored']!.error,
+        startsWith(
+          'tap text:Hidden: a pointer at its centre does not reach it',
+        ),
+      );
+      expect(ignored['Ignored']!.at, 'lib/preview/unreachable_preview.dart:4');
+      final (_, unfocusable) = await shoot([
+        unreachable,
+        '--focus',
+        'text:Plain',
+      ]);
+      expect(
+        unfocusable['Plain']!.error,
+        'focus text:Plain: the widget cannot take focus',
+      );
+
+      // A tap that pushes a page covers the preview.
+      const route = ['lib/preview/route_preview.dart', '--tap', 'text:Go'];
+      final (_, covered) = await shoot(route);
+      expect(covered['Route']!.png, isNull);
+      expect(
+        covered['Route']!.error,
+        startsWith('the preview is no longer painted after the actions'),
+      );
+
+      // Taps run in order: the second finds what the first expanded.
+      writeFiles(root, {
+        'lib/preview/tile_state_preview.dart': '''
+import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+
+@Preview(name: 'State / tile', size: Size(240, 200))
+Widget tile() => const Material(
+  child: ExpansionTile(title: Text('More'), children: [_Agree()]),
+);
+
+class _Agree extends StatefulWidget {
+  const _Agree();
+
+  @override
+  State<_Agree> createState() => _AgreeState();
+}
+
+class _AgreeState extends State<_Agree> {
+  bool agreed = false;
+
+  @override
+  Widget build(BuildContext context) => Checkbox(
+    value: agreed,
+    onChanged: (value) => setState(() => agreed = value!),
+  );
+}
+''',
+      });
+      const tile = 'lib/preview/tile_state_preview.dart';
+      final (expanded, _) = await shoot([tile, '--tap', 'text:More']);
+      final (checked, checkedShots) = await shoot([
+        tile,
+        '--tap',
+        'text:More',
+        '--tap',
+        'type:Checkbox',
+      ]);
+      final agreed = checkedShots['State / tile']!;
+      expect(agreed.status, ShotStatus.ok, reason: agreed.error);
+      expect((await shutter(root, ['diff', expanded, checked])).exitCode, 1);
+      final (_, reversed) = await shoot([
+        tile,
+        '--tap',
+        'type:Checkbox',
+        '--tap',
+        'text:More',
+      ]);
+      expect(
+        reversed['State / tile']!.error,
+        'tap type:Checkbox: no widget matches',
+      );
+    },
+  );
+
+  test('--capture screen holds the viewport and what opens above the '
+      'preview', () async {
+    final root = await exampleCopy();
+    Future<(String, Map<String, Shot>)> shoot(List<String> args) =>
+        shootIn(root, args);
+    writeFiles(root, {
+      'lib/preview/menu_state_preview.dart': menuPreview,
+      'lib/preview/route_preview.dart': routePreview,
+      'lib/preview/box_preview.dart': '''
+import 'package:flutter/widget_previews.dart';
+import 'package:flutter/widgets.dart';
+
+@Preview(name: 'Box', size: Size(100, 50))
+Widget box() => const ColoredBox(color: Color(0xFF0000FF));
+''',
+    });
+    // The screen is drawn at the same scale as the preview: a 100x50 box
+    // at the top left of a 200x100 viewport fills a quarter of the image.
+    final (boxRun, boxShots) = await shoot([
+      'lib/preview/box_preview.dart',
+      '--capture',
+      'screen',
+      '--viewport',
+      '200x100',
+    ]);
+    final boxImage = img.decodePng(
+      File(p.join(boxRun, boxShots['Box']!.png!)).readAsBytesSync(),
+    )!;
+    expect((boxImage.width, boxImage.height), (400, 200));
+    bool blue(int x, int y) {
+      final pixel = boxImage.getPixel(x, y);
+      return (pixel.r, pixel.g, pixel.b) == (0, 0, 255);
+    }
+
+    expect(blue(199, 99), isTrue);
+    expect(blue(201, 50), isFalse);
+    expect(blue(50, 101), isFalse);
+
+    // The menu's second item lies below the 60-high preview, in the
+    // screen only.
+    const menu = 'lib/preview/menu_state_preview.dart';
+    final screen = ['--capture', 'screen', '--viewport', '200x240'];
+    final (closed, closedShots) = await shoot([menu, ...screen]);
+    expect(closedShots['State / menu']!.size, (200.0, 240.0));
+    final (open, openShots) = await shoot([
+      menu,
+      ...screen,
+      '--tap',
+      'type:DropdownButton<String>',
+    ]);
+    final opened = openShots['State / menu']!;
+    expect(opened.status, ShotStatus.ok, reason: opened.error);
+    final image = img.decodePng(
+      File(p.join(open, opened.png!)).readAsBytesSync(),
+    )!;
+    expect((image.width, image.height), (400, 480));
+    final closedImage = img.decodePng(
+      File(p.join(closed, closedShots['State / menu']!.png!)).readAsBytesSync(),
+    )!;
+    var differing = 0;
+    for (var y = 120; y < 480; y++) {
+      for (var x = 0; x < 400; x++) {
+        final (a, b) = (image.getPixel(x, y), closedImage.getPixel(x, y));
+        if ((a.r, a.g, a.b, a.a) != (b.r, b.g, b.b, b.a)) differing++;
+      }
+    }
+    expect(differing, greaterThan(0));
+
+    // A page a tap pushes is in the screen; its transition takes 450 ms,
+    // still under way at the default 300, over by 700.
+    const route = ['lib/preview/route_preview.dart', '--tap', 'text:Go'];
+    Future<String> settled(String ms) async =>
+        (await shoot([...route, '--capture', 'screen', '--settle', ms])).$1;
+    final at300 = await settled('300');
+    final pushed = RunManifest.read(at300).shots.single;
+    expect(pushed.status, ShotStatus.ok, reason: pushed.error);
+    expect(pushed.size, (200.0, 100.0));
+    final (at700, at800) = (await settled('700'), await settled('800'));
+    expect((await shutter(root, ['diff', at300, at700])).exitCode, 1);
+    expect((await shutter(root, ['diff', at700, at800])).exitCode, 0);
+  });
+
+  test('--enter types into a field, in order with the taps', () async {
+    final root = await exampleCopy();
+    Future<(String, Map<String, Shot>)> shoot(List<String> args) =>
+        shootIn(root, args);
+    writeFiles(root, {
+      'lib/preview/form_preview.dart': '''
+import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+
+@Preview(name: 'Form', size: Size(240, 160))
+Widget form() => const Material(child: _Greeting());
+
+class _Greeting extends StatefulWidget {
+  const _Greeting();
+
+  @override
+  State<_Greeting> createState() => _GreetingState();
+}
+
+class _GreetingState extends State<_Greeting> {
+  final controller = TextEditingController();
+  String? shown;
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      TextField(key: const ValueKey('name'), controller: controller),
+      TextButton(
+        onPressed: () => setState(
+          () => shown = controller.text.isEmpty
+              ? 'Name is empty'
+              : 'Hello, \${controller.text}',
+        ),
+        child: const Text('Submit'),
+      ),
+      if (shown case final shown?) Text(shown),
+    ],
+  );
+}
+''',
+    });
+    const form = 'lib/preview/form_preview.dart';
+    final (blank, _) = await shoot([form]);
+    final (typed, typedShots) = await shoot([form, '--enter', 'key:name=Koji']);
+    expect(typedShots['Form']!.status, ShotStatus.ok);
+    expect((await shutter(root, ['diff', blank, typed])).exitCode, 1);
+    final (enterFirst, _) = await shoot([
+      form,
+      '--enter',
+      'key:name=Koji',
+      '--tap',
+      'text:Submit',
+      '--settle',
+      '700',
+    ]);
+    final (tapFirst, _) = await shoot([
+      form,
+      '--tap',
+      'text:Submit',
+      '--enter',
+      'key:name=Koji',
+      '--settle',
+      '700',
+    ]);
+    expect((await shutter(root, ['diff', enterFirst, tapFirst])).exitCode, 1);
+    final (_, noField) = await shoot([form, '--enter', 'text:Submit=x']);
+    expect(
+      noField['Form']!.error,
+      'enter text:Submit=x: the widget holds no text field',
+    );
+
+    // Fields without keys are named by their labels: the example's
+    // LoginForm, as the app has it.
+    const login = [
+      '--widget',
+      'const LoginForm()',
+      '--import',
+      'lib/ui/login_form.dart',
+      '--size',
+      '390x400',
+    ];
+    final (empty, _) = await shoot(login);
+    final (filled, filledShots) = await shoot([
+      ...login,
+      '--enter',
+      'label:Email=example@example.com',
+      '--enter',
+      'label:Password=secret',
+    ]);
+    final signIn = filledShots.values.single;
+    expect(signIn.status, ShotStatus.ok, reason: signIn.error);
+    expect((await shutter(root, ['diff', empty, filled])).exitCode, 1);
   });
 
   test('shadowing, throwing, resolved, unpainted, and crashing previews '

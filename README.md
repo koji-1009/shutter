@@ -136,16 +136,28 @@ shutter shot --widget 'PrimaryButton(label: "OK")' --import lib/ui/button.dart -
 `--import` names a file under `lib/`, or a `package:` URI of a dependency, that the widget expression needs imported (repeatable; `package:flutter/widgets.dart` is always imported).
 The same `--widget` and `--import` give the same shot id, so two such runs line up in `diff`.
 
+A state that comes from a gesture or typing is shot by acting on the preview first, and what opens above it by capturing the whole screen:
+
+```bash
+shutter shot lib/preview/button_preview.dart --press text:Save
+shutter shot lib/preview/filter_preview.dart --tap 'type:DropdownButton<String>' --capture screen --viewport 390x400
+shutter shot lib/preview/login_preview.dart --enter 'label:Email=example@example.com' --tap 'text:Sign in' --settle 700
+```
+
+`--tap` and `--enter` (repeatable, in the order given), then `--press`, `--hover`, or `--focus`, name their widget by `key:`, `text:`, `label:` (a semantics label, such as a text field's label), or `type:`.
+Each is followed by `--settle` milliseconds; shoot again with another `--settle` for another point of an animation.
+`--capture screen` holds the whole viewport, with the menus, dialogs, and tooltips the app draws above the preview.
+
 ## Subcommands
 
-| Command        | Purpose                                                                                                                    |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `agent`        | The step-by-step playbook for AI agents.                                                                                   |
-| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                  |
-| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                        |
-| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                   |
-| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`). |
-| `diff <a> <b>` | Compare two runs (`--images`).                                                                                             |
+| Command        | Purpose                                                                                                                                                                                               |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`        | The step-by-step playbook for AI agents.                                                                                                                                                              |
+| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                                                                                             |
+| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                                                                   |
+| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                                                              |
+| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`). |
+| `diff <a> <b>` | Compare two runs (`--images`).                                                                                                                                                                        |
 
 ## Exit codes
 
@@ -159,7 +171,7 @@ The same `--widget` and `--import` give the same shot id, so two such runs line 
 
 ## Limits
 
-* One frame, no interaction: taps, hovers, scrolling, and mid-animation states are not shot. State comes from the widget's construction expression.
+* One capture per preview: state comes from the widget's construction expression and from taps, entered text, a press, a hover, or focus before the capture; scrolling and dragging are not shot, nor is the on-screen keyboard.
 * HTTP is blocked while rendering, so network images fail to load.
 * Text renders with the project's fonts plus Roboto; CJK and emoji fall back to the host's system fonts, and Cupertino text uses SF Pro on macOS (Roboto elsewhere), as a device would. Compare runs made on the same machine.
 

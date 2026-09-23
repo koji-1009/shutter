@@ -78,6 +78,32 @@ shots:
     );
   });
 
+  test('the actions and the capture after the shell', () async {
+    final text = await render(
+      const RunManifest(
+        run: 'r',
+        shots: [],
+        actions: ['tap text:Open', 'press key:save'],
+        screen: true,
+        viewport: (390, 844),
+      ),
+    );
+    expect(
+      text,
+      contains(
+        'shell: default\n'
+        'actions: ["tap text:Open", "press key:save"]\n'
+        'capture: screen\n'
+        'viewport: [390, 844]\n'
+        'summary:',
+      ),
+    );
+    final screenOnly = await render(
+      const RunManifest(run: 'r', shots: [], screen: true),
+    );
+    expect(screenOnly, contains('shell: default\ncapture: screen\nsummary:'));
+  });
+
   test('no shots; the shell file with its sha256', () async {
     final text = await render(
       const RunManifest(

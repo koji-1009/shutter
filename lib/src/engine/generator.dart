@@ -159,7 +159,19 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
     ..writeln('      packageName: ${dartString(project.name)},')
     ..writeln('      materialFontsDir: ${dartString(config.materialFontsDir)},')
     ..writeln('      settleMs: ${request.settleMs},')
-    ..writeln('      googleFonts: ${config.googleFonts},')
+    ..writeln('      googleFonts: ${config.googleFonts},');
+  if (request.actions.isNotEmpty) {
+    buffer.writeln('      actions: [');
+    for (final action in request.actions) {
+      buffer.writeln('        ${action.source},');
+    }
+    buffer.writeln('      ],');
+  }
+  if (request.screen) buffer.writeln('      screen: true,');
+  if (request.viewport case (final width, final height)?) {
+    buffer.writeln('      viewport: ($width, $height),');
+  }
+  buffer
     ..writeln('    ),')
     ..writeln(r'    defaultShell: $design.defaultShell,')
     ..writeln(r'    themeFallback: $design.themeFallback,');

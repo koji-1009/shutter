@@ -35,10 +35,60 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
       )
       ..addOption(
         'settle',
-        help: 'Milliseconds pumped once before capture.',
+        help:
+            'Milliseconds pumped once before capture, and again, in 16 ms '
+            'frames, after each action.',
         defaultsTo: '300',
       )
-      ..addOption('shell', help: shellHelp);
+      ..addOption('shell', help: shellHelp)
+      ..addMultiOption(
+        'tap',
+        help:
+            'Tap this widget of every shot before the capture: '
+            '$targetHelp. Repeatable; taps and --enter run in the order '
+            'given.',
+        splitCommas: false,
+      )
+      ..addMultiOption(
+        'enter',
+        help:
+            'Enter text into this text field, as <target>=<text>, e.g. '
+            'key:name=Koji. Repeatable.',
+        splitCommas: false,
+      )
+      // Multi-options, so that a second --press is rejected rather than
+      // silently replacing the first.
+      ..addMultiOption(
+        'press',
+        help: 'Hold a pointer down on this widget through the capture.',
+        splitCommas: false,
+      )
+      ..addMultiOption(
+        'hover',
+        help: 'Keep a mouse pointer over this widget through the capture.',
+        splitCommas: false,
+      )
+      ..addMultiOption(
+        'focus',
+        help:
+            'Give this widget keyboard focus, highlighted as with a '
+            'keyboard.',
+        splitCommas: false,
+      )
+      ..addOption(
+        'capture',
+        help:
+            'What the PNG holds: the preview, or the whole screen (the '
+            'viewport, with menus and dialogs above the preview).',
+        allowed: ['preview', 'screen'],
+        defaultsTo: 'preview',
+      )
+      ..addOption(
+        'viewport',
+        help:
+            'Logical size of the screen for --capture screen, e.g. 390x844; '
+            'the preview sits at its top left.',
+      );
   }
 
   @override
@@ -63,9 +113,18 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
       final raw? => parseSize(raw),
       null => null,
     };
+    final actions = parseActions(args);
+    final screen = args.option('capture') == 'screen';
+    final viewport = switch (args.option('viewport')) {
+      final raw? => parseSize(raw, name: 'viewport'),
+      null => null,
+    };
     final files = args.rest;
     if (source == null && (imports.isNotEmpty || size != null)) {
       throw ShutterException.usage('--import and --size need --widget.');
+    }
+    if (viewport != null && !screen) {
+      throw ShutterException.usage('--viewport needs --capture screen.');
     }
     if ((source == null) == files.isEmpty) {
       throw ShutterException.usage(
@@ -130,12 +189,18 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         settleMs: settle,
         widget: widget,
         shell: shell,
+        actions: actions,
+        screen: screen,
+        viewport: viewport,
       ),
     );
     final manifest = RunManifest(
       run: p.basename(runDir),
       shots: [...shots]..sort(Shot.bySource),
       shell: shellRecord,
+      actions: [for (final action in actions) action.label],
+      screen: screen,
+      viewport: viewport,
     )..write(runDir);
     reportShots(manifest, runDir, ShutterIO.stdoutSink);
     return manifest.exitCode;

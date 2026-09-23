@@ -108,6 +108,18 @@ class const Shot({
 /// absolute outside the project) and the sha256 of its bytes.
 typedef ShellFile = ({String path, String sha256});
 
+/// What a run did to every preview besides rendering it: the actions
+/// performed before the capture, whether the whole viewport was
+/// captured, and the `--viewport`.
+typedef RunSetup = ({
+  List<String> actions,
+  bool screen,
+  (double, double)? viewport,
+});
+
+/// The setup of a run shot without actions, of the preview alone.
+const RunSetup plainSetup = (actions: [], screen: false, viewport: null);
+
 /// `manifest.json` of one run directory.
 class const RunManifest({
   /// Run id (`YYYYMMDDTHHMMSSZ`, suffixed on collision).
@@ -116,6 +128,16 @@ class const RunManifest({
 
   /// The shell file, or null for the default shell.
   final ShellFile? shell,
+
+  /// The actions performed on every preview before the capture, as given
+  /// (`tap text:Save`).
+  final List<String> actions = const [],
+
+  /// The whole viewport was captured (`--capture screen`).
+  final bool screen = false,
+
+  /// The `--viewport` the shots were taken in.
+  final (double, double)? viewport,
 }) {
   factory RunManifest.fromJson(Map<String, Object?> json) => RunManifest(
     run: json['run'] as String,
@@ -130,6 +152,12 @@ class const RunManifest({
       ),
       _ => null,
     },
+    actions: [...?(json['actions'] as List<Object?>?)?.cast<String>()],
+    screen: json['capture'] == 'screen',
+    viewport: switch (json['viewport']) {
+      [final num w, final num h] => (w.toDouble(), h.toDouble()),
+      _ => null,
+    },
   );
 
   /// Reads `<dir>/manifest.json`.
@@ -138,6 +166,8 @@ class const RunManifest({
         as Map<String, Object?>,
   );
 
+  RunSetup get setup => (actions: actions, screen: screen, viewport: viewport);
+
   /// 0 when every shot is ok, 2 when any is an `error`.
   int get exitCode => shots.any((s) => s.status == ShotStatus.error) ? 2 : 0;
 
@@ -145,6 +175,10 @@ class const RunManifest({
     'run': run,
     if (shell case (:final path, :final sha256)?)
       'shell': {'path': path, 'sha256': sha256},
+    if (actions.isNotEmpty) 'actions': actions,
+    if (screen) 'capture': 'screen',
+    if (viewport case (final w, final h)?)
+      'viewport': [jsonNumber(w), jsonNumber(h)],
     'shots': [for (final shot in shots) shot.toJson()],
   };
 

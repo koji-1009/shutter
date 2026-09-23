@@ -74,4 +74,6 @@ jobs:
       - run: flutter analyze
         working-directory: example
       - run: dart pub get
-      - run: dart test -P e2e
+      # Each e2e file spends its time in flutter test subprocesses; run as
+      # many files as the runner has processors, not the default half.
+      - run: dart test -P e2e -j "$(nproc)"

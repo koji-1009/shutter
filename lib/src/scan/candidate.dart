@@ -33,14 +33,12 @@ class Candidate({
   /// without being compiled.
   final String? error,
 }) {
-  /// First 16 hex of `sha256("<file>|<symbol>|<annotationIndex>")`.
-  String get staticId => shotStaticId(file, symbol, annotationIndex);
+  /// Static half of a shot id: the first 16 hex of
+  /// `sha256("<file>|<symbol>|<annotationIndex>")`. The runtime half (the
+  /// index of the `Preview` produced by `transform()`) is appended after
+  /// a `.`.
+  String get staticId => shortHash('$file|$symbol|$annotationIndex');
 }
-
-/// Static half of a shot id. The runtime half (the index of the
-/// `Preview` produced by `transform()`) is appended after a `.`.
-String shotStaticId(String file, String symbol, int annotationIndex) =>
-    shortHash('$file|$symbol|$annotationIndex');
 
 /// First 16 hex digits of `sha256(input)`.
 String shortHash(String input) =>

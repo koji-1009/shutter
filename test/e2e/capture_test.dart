@@ -31,44 +31,48 @@ Widget menu() => Align(
 ''';
 
 void main() {
-  test('--capture screen holds the viewport and what opens above the '
-      'preview', () async {
-    final root = await exampleCopy();
-    Future<(String, Map<String, Shot>)> shoot(List<String> args) =>
-        shootIn(root, args);
-    writeFiles(root, {
-      'lib/preview/menu_state_preview.dart': menuPreview,
-      'lib/preview/route_preview.dart': routePreview,
-      'lib/preview/box_preview.dart': '''
+  test(
+    '--capture screen draws the viewport at the scale of the preview',
+    () async {
+      final root = await exampleCopy();
+      writeFiles(root, {
+        'lib/preview/box_preview.dart': '''
 import 'package:flutter/widget_previews.dart';
 import 'package:flutter/widgets.dart';
 
 @Preview(name: 'Box', size: Size(100, 50))
 Widget box() => const ColoredBox(color: Color(0xFF0000FF));
 ''',
-    });
-    // The screen is drawn at the same scale as the preview: a 100x50 box
-    // at the top left of a 200x100 viewport fills a quarter of the image.
-    final (boxRun, boxShots) = await shoot([
-      'lib/preview/box_preview.dart',
-      '--capture',
-      'screen',
-      '--viewport',
-      '200x100',
-    ]);
-    final boxImage = img.decodePng(
-      File(p.join(boxRun, boxShots['Box']!.png!)).readAsBytesSync(),
-    )!;
-    expect((boxImage.width, boxImage.height), (400, 200));
-    bool blue(int x, int y) {
-      final pixel = boxImage.getPixel(x, y);
-      return (pixel.r, pixel.g, pixel.b) == (0, 0, 255);
-    }
+      });
+      // The screen is drawn at the same scale as the preview: a 100x50 box
+      // at the top left of a 200x100 viewport fills a quarter of the image.
+      final (boxRun, boxShots) = await shootIn(root, [
+        'lib/preview/box_preview.dart',
+        '--capture',
+        'screen',
+        '--viewport',
+        '200x100',
+      ]);
+      final boxImage = img.decodePng(
+        File(p.join(boxRun, boxShots['Box']!.png!)).readAsBytesSync(),
+      )!;
+      expect((boxImage.width, boxImage.height), (400, 200));
+      bool blue(int x, int y) {
+        final pixel = boxImage.getPixel(x, y);
+        return (pixel.r, pixel.g, pixel.b) == (0, 0, 255);
+      }
 
-    expect(blue(199, 99), isTrue);
-    expect(blue(201, 50), isFalse);
-    expect(blue(50, 101), isFalse);
+      expect(blue(199, 99), isTrue);
+      expect(blue(201, 50), isFalse);
+      expect(blue(50, 101), isFalse);
+    },
+  );
 
+  test('--capture screen holds a menu that opens below the preview', () async {
+    final root = await exampleCopy();
+    Future<(String, Map<String, Shot>)> shoot(List<String> args) =>
+        shootIn(root, args);
+    writeFiles(root, {'lib/preview/menu_state_preview.dart': menuPreview});
     // The menu's second item lies below the 60-high preview, in the
     // screen only.
     const menu = 'lib/preview/menu_state_preview.dart';
@@ -98,12 +102,22 @@ Widget box() => const ColoredBox(color: Color(0xFF0000FF));
       }
     }
     expect(differing, greaterThan(0));
+  });
 
+  test('--capture screen holds a pushed page; --settle lets its transition '
+      'end', () async {
+    final root = await exampleCopy();
+    writeFiles(root, {'lib/preview/route_preview.dart': routePreview});
     // A page a tap pushes is in the screen; its transition takes 450 ms,
     // still under way at the default 300, over by 700.
     const route = ['lib/preview/route_preview.dart', '--tap', 'text:Go'];
-    Future<String> settled(String ms) async =>
-        (await shoot([...route, '--capture', 'screen', '--settle', ms])).$1;
+    Future<String> settled(String ms) async => (await shootIn(root, [
+      ...route,
+      '--capture',
+      'screen',
+      '--settle',
+      ms,
+    ])).$1;
     final at300 = await settled('300');
     final pushed = RunManifest.read(at300).shots.single;
     expect(pushed.status, ShotStatus.ok, reason: pushed.error);

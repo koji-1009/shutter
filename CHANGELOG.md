@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+The layout of a screen while its on-screen keyboard is up.
+
+* `shutter shot --keyboard <height>` (experimental) lays every preview out as a device does while its on-screen keyboard is up: the view reports a bottom inset of that many logical pixels (`MediaQuery.viewInsets`) from the first frame. A `Scaffold`, or any layout reading the inset, makes room for the keyboard; the keyboard itself is not drawn. There is no default height.
+* `shot` prints the height, `manifest.json` records it, and `diff` prints both runs' when they differ. It is not part of shot ids.
+
 ## 0.2.0
 
 States that come from a gesture or typing, and what opens above a preview.

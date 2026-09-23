@@ -57,7 +57,7 @@ class Button extends Widget {
     );
     expect(c.target, r'$i2.a');
     expect(c.error, isNull);
-    expect(c.staticId, shotStaticId('lib/preview/a.dart', 'a', 0));
+    expect(c.staticId, shortHash('lib/preview/a.dart|a|0'));
   });
 
   test('only Flutter\'s Preview and MultiPreview make previews; a '

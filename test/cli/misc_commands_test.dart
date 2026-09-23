@@ -96,7 +96,7 @@ void main() {
     expect(first.stdout, 'wrote    lib/preview/shell.dart\n');
     expect(
       File(p.join(root, 'lib', 'preview', 'shell.dart')).readAsStringSync(),
-      shellTemplate(const {}).trimLeft(),
+      shellTemplate(const {}),
     );
     writeFiles(root, {'lib/preview/shell.dart': '// mine'});
     final second = await runCli(['init'], fakeContext(root));

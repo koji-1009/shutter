@@ -79,7 +79,7 @@ class InitCommand(final ShutterContext context) extends Command<int> {
     } else {
       File(path)
         ..createSync(recursive: true)
-        ..writeAsStringSync(shellTemplate(project.dependencies).trimLeft());
+        ..writeAsStringSync(shellTemplate(project.dependencies));
       ShutterIO.stdoutSink.writeln('wrote    ${project.shown(path)}');
     }
     return 0;

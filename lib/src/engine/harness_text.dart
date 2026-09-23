@@ -1,9 +1,9 @@
-/// Source of `.dart_tool/shutter/test/<run-id>/shutter_harness.dart`, the runtime
-/// half of the `flutter_test` engine. It is plain Flutter test code: it
-/// depends on `flutter` and `flutter_test` only, so the target project
-/// gains no dependency on shutter. The generated `shutter_test.dart` calls [run]
-/// with the scanned entries; each preview becomes one `testWidgets` that
-/// writes `<run>/<id>.png` and `<run>/.results/<id>.json`.
+/// Source of `.dart_tool/shutter/test/<run-id>/shutter_harness.dart`, the
+/// runtime half of the `flutter_test` engine. It is plain Flutter test code:
+/// it depends on `flutter` and `flutter_test` only, so the target project
+/// gains no dependency on shutter. The generated `shutter_test.dart` calls
+/// [run] with the scanned entries; each preview becomes one `testWidgets`
+/// that writes `<run>/<id>.png` and `<run>/.results/<id>.json`.
 ///
 /// The end-to-end tests under `test/e2e/` compile and run this text
 /// against `example/`.
@@ -196,8 +196,8 @@ Map<String, Object?> _entryFields(
 ) => {
   'id': id,
   'name': name,
-  if (entry.file != null) 'file': entry.file,
-  if (entry.line != null) 'line': entry.line,
+  'file': ?entry.file,
+  'line': ?entry.line,
 };
 
 /// `at` pointing at the declaration; none for an expression.
@@ -258,9 +258,8 @@ Future<void> _capture(
   };
   final result = <String, Object?>{
     ..._entryFields(entry, id, name),
-    if (preview.brightness != null) 'brightness': preview.brightness!.name,
-    if (preview.textScaleFactor != null)
-      'text_scale_factor': preview.textScaleFactor,
+    'brightness': ?preview.brightness?.name,
+    'text_scale_factor': ?preview.textScaleFactor,
   };
   LocalizationsResolver? resolver;
   // What undoes a held action: a pressed or hovering pointer, the focus

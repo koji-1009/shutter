@@ -48,7 +48,9 @@ Future<(String, Map<String, Shot>)> shootIn(
   List<String> args,
 ) async {
   final result = await shutter(root, ['shot', ...args]);
-  final run = (loadYaml(result.stdout) as YamlMap)['run'] as String;
+  final report = loadYaml(result.stdout);
+  expect(report, isA<YamlMap>(), reason: result.stdout + result.stderr);
+  final run = (report as YamlMap)['run'] as String;
   return (run, {for (final s in RunManifest.read(run).shots) s.name: s});
 }
 

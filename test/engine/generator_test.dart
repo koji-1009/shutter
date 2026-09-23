@@ -136,6 +136,7 @@ void main() {
           ],
           screen: true,
           viewport: (390, 844.5),
+          keyboard: 336,
         ),
         materialFontsDir: '/sdk/fonts',
         design: const DesignSupport(available: [], shell: null),
@@ -153,13 +154,15 @@ void main() {
         "        \$shutter.ShutterAction(.focus, .label, 'Email'),\n"
         '      ],\n'
         '      screen: true,\n'
-        '      viewport: (390.0, 844.5),\n',
+        '      viewport: (390.0, 844.5),\n'
+        '      keyboard: 336.0,\n',
       ),
     );
     final plain = mainSource(const [], config(project));
     expect(plain, isNot(contains('actions:')));
     expect(plain, isNot(contains('screen:')));
     expect(plain, isNot(contains('viewport:')));
+    expect(plain, isNot(contains('keyboard:')));
   });
 
   test('a --widget helper imports unprefixed, escapes the expression in the '

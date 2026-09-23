@@ -38,6 +38,11 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
       formatViewport(before.viewport),
       formatViewport(after.viewport),
     ),
+    (
+      'keyboard',
+      formatKeyboard(before.keyboard),
+      formatKeyboard(after.keyboard),
+    ),
   ]) {
     if (a != b) {
       body

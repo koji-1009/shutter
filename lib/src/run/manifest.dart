@@ -110,15 +110,21 @@ typedef ShellFile = ({String path, String sha256});
 
 /// What a run did to every preview besides rendering it: the actions
 /// performed before the capture, whether the whole viewport was
-/// captured, and the `--viewport`.
+/// captured, the `--viewport`, and the `--keyboard` height.
 typedef RunSetup = ({
   List<String> actions,
   bool screen,
   (double, double)? viewport,
+  double? keyboard,
 });
 
 /// The setup of a run shot without actions, of the preview alone.
-const RunSetup plainSetup = (actions: [], screen: false, viewport: null);
+const RunSetup plainSetup = (
+  actions: [],
+  screen: false,
+  viewport: null,
+  keyboard: null,
+);
 
 /// `manifest.json` of one run directory.
 class const RunManifest({
@@ -152,6 +158,7 @@ class const RunManifest({
         [final num w, final num h] => (w.toDouble(), h.toDouble()),
         _ => null,
       },
+      keyboard: (json['keyboard'] as num?)?.toDouble(),
     ),
   );
 
@@ -165,7 +172,7 @@ class const RunManifest({
   int get exitCode => shots.any((s) => s.status == ShotStatus.error) ? 2 : 0;
 
   Map<String, Object?> toJson() {
-    final (:actions, :screen, :viewport) = setup;
+    final (:actions, :screen, :viewport, :keyboard) = setup;
     return {
       'run': run,
       if (shell case (:final path, :final sha256)?)
@@ -174,6 +181,7 @@ class const RunManifest({
       if (screen) 'capture': 'screen',
       if (viewport case (final w, final h)?)
         'viewport': [jsonNumber(w), jsonNumber(h)],
+      if (keyboard != null) 'keyboard': jsonNumber(keyboard),
       'shots': [for (final shot in shots) shot.toJson()],
     };
   }

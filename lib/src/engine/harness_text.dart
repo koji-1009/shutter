@@ -47,6 +47,10 @@ class const ShutterConfig({
 
   /// Logical viewport replacing the one the preview's size gives.
   final (double, double)? viewport,
+
+  /// Logical height of an on-screen keyboard, reported to the app as the
+  /// bottom view inset.
+  final double? keyboard,
 });
 
 /// What an action does to its target.
@@ -280,6 +284,11 @@ Future<void> _capture(
     };
     tester.view.devicePixelRatio = _pixelRatio;
     tester.view.physicalSize = viewport * _pixelRatio;
+    // The inset a device reports while its keyboard is up; the keyboard
+    // itself is not drawn.
+    if (config.keyboard case final keyboard?) {
+      tester.view.viewInsets = FakeViewPadding(bottom: keyboard * _pixelRatio);
+    }
     if (preview.brightness != null) {
       tester.platformDispatcher.platformBrightnessTestValue =
           preview.brightness!;

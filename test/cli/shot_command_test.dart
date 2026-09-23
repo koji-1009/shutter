@@ -255,6 +255,8 @@ void main() {
       'screen',
       '--viewport',
       '390x844',
+      '--keyboard',
+      '336.5',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
     final request = engine.requests.single;
@@ -272,6 +274,7 @@ void main() {
       ],
     );
     expect((request.screen, request.viewport), (true, (390.0, 844.0)));
+    expect(request.keyboard, 336.5);
     final report = loadYaml(result.stdout) as YamlMap;
     const labels = [
       'tap text:Open, then close',
@@ -283,10 +286,12 @@ void main() {
     expect(report['actions'], labels);
     expect(report['capture'], 'screen');
     expect(report['viewport'], [390, 844]);
+    expect(report['keyboard'], 336.5);
     final manifest = RunManifest.read(report['run'] as String);
     final setup = manifest.setup;
     expect(setup.actions, labels);
     expect((setup.screen, setup.viewport), (true, (390.0, 844.0)));
+    expect(setup.keyboard, 336.5);
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),
@@ -303,6 +308,7 @@ void main() {
       final request = held.requests.single;
       expect(request.actions.single.kind, kind);
       expect((request.screen, request.viewport), (false, null));
+      expect(request.keyboard, isNull);
     }
   });
 
@@ -397,6 +403,14 @@ void main() {
     ]);
     expect(badViewport.exitCode, 64);
     expect(badViewport.stderr, contains('--viewport must be <width>x<height>'));
+    for (final keyboard in ['0', '-1', 'tall', 'Infinity', 'NaN']) {
+      final bad = await run(['--widget', 'x', '--keyboard', keyboard]);
+      expect(bad.exitCode, 64, reason: keyboard);
+      expect(
+        bad.stderr,
+        contains('--keyboard must be a height in logical pixels'),
+      );
+    }
     final outside = await run(['--widget', 'x', '--import', 'outside.dart']);
     expect(outside.exitCode, 64);
     expect(outside.stderr, contains('--import must be under lib/'));

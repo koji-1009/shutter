@@ -87,6 +87,7 @@ shots:
           actions: ['tap text:Open', 'press key:save'],
           screen: true,
           viewport: (390, 844),
+          keyboard: 336,
         ),
       ),
     );
@@ -97,6 +98,7 @@ shots:
         'actions: ["tap text:Open", "press key:save"]\n'
         'capture: screen\n'
         'viewport: [390, 844]\n'
+        'keyboard: 336\n'
         'summary:',
       ),
     );
@@ -104,7 +106,7 @@ shots:
       const RunManifest(
         run: 'r',
         shots: [],
-        setup: (actions: [], screen: true, viewport: null),
+        setup: (actions: [], screen: true, viewport: null, keyboard: null),
       ),
     );
     expect(screenOnly, contains('shell: default\ncapture: screen\nsummary:'));

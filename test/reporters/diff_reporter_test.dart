@@ -146,8 +146,8 @@ entries:
     });
   });
 
-  test('the actions, capture, and viewport of both runs, each only when '
-      'they differ', () async {
+  test('the actions, capture, viewport, and keyboard of both runs, each only '
+      'when they differ', () async {
     Future<YamlMap> report(RunSetup before, RunSetup after) async => loadYaml(
       await collect(
         (sink) => reportDiff(
@@ -163,14 +163,20 @@ entries:
         ),
       ),
     ) as YamlMap;
-    const pressed = (actions: ['press text:OK'], screen: false, viewport: null);
+    const pressed = (
+      actions: ['press text:OK'],
+      screen: false,
+      viewport: null,
+      keyboard: null,
+    );
     const screen = (
       actions: ['press text:OK'],
       screen: true,
       viewport: (390.0, 844.0),
+      keyboard: null,
     );
     final same = await report(pressed, pressed);
-    for (final key in ['actions', 'capture', 'viewport']) {
+    for (final key in ['actions', 'capture', 'viewport', 'keyboard']) {
       expect(same.containsKey(key), isFalse, reason: key);
     }
     final pressedOnly = await report(plainSetup, pressed);
@@ -186,6 +192,15 @@ entries:
       'before': 'default',
       'after': [390, 844],
     });
+    expect(captured.containsKey('keyboard'), isFalse);
+    const typing = (
+      actions: <String>[],
+      screen: false,
+      viewport: null,
+      keyboard: 336.0,
+    );
+    final keyboard = await report(plainSetup, typing);
+    expect(keyboard['keyboard'], {'before': 'none', 'after': 336});
   });
 
   test('a change of one pixel in many keeps a nonzero ratio', () async {

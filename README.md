@@ -13,6 +13,8 @@ Rendering happens in `flutter test`, without launching the app, and the preview 
 | ------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
 | ![NotificationTile before](doc/images/notification_tile_before.png) | ![NotificationTile after](doc/images/notification_tile_after.png) | ![Differing pixels in red](doc/images/notification_tile_diff.png) |
 
+The article [Before-and-After Images for Flutter UI Changes, Without Launching the App](https://koji-1009.medium.com/before-and-after-images-for-flutter-ui-changes-without-launching-the-app-2b9df412b1c5) walks through why shutter exists and a first before-and-after.
+
 ## When to reach for it
 
 * A change going up for review: the images show what moved, which a description of it cannot.

@@ -84,9 +84,13 @@ class _GreetingState extends State<_Greeting> {
       noField['Form']!.error,
       'enter text:Submit=x: the widget holds no text field',
     );
+  });
 
-    // Fields without keys are named by their labels: the example's
-    // LoginForm, as the app has it.
+  test('--enter names a field without a key by its label', () async {
+    final root = await exampleCopy();
+    Future<(String, Map<String, Shot>)> shoot(List<String> args) =>
+        shootIn(root, args);
+    // The example's LoginForm, as the app has it.
     const login = [
       '--widget',
       'const LoginForm()',

@@ -132,7 +132,7 @@ void main() {
           actions: const [
             ShotAction(kind: .tap, by: .text, value: r"it's $1"),
             ShotAction(kind: .enter, by: .key, value: 'name', text: "O'Hara"),
-            ShotAction(kind: .focus, by: .type, value: 'TextField'),
+            ShotAction(kind: .focus, by: .label, value: 'Email'),
           ],
           screen: true,
           viewport: (390, 844.5),
@@ -150,7 +150,7 @@ void main() {
         "        \$shutter.ShutterAction(.tap, .text, 'it\\'s \\\$1'),\n"
         "        \$shutter.ShutterAction(.enter, .key, 'name', "
         "text: 'O\\'Hara'),\n"
-        "        \$shutter.ShutterAction(.focus, .type, 'TextField'),\n"
+        "        \$shutter.ShutterAction(.focus, .label, 'Email'),\n"
         '      ],\n'
         '      screen: true,\n'
         '      viewport: (390.0, 844.5),\n',

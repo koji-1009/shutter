@@ -28,6 +28,10 @@ enum TargetKind {
 
   /// A widget by its type name, with or without type arguments.
   type,
+
+  /// A widget whose semantics label is exactly this string: a text
+  /// field's label or hint, a button's text.
+  label,
 }
 
 /// One `shot --tap`, `--enter`, `--press`, `--hover`, or `--focus`.

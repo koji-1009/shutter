@@ -794,6 +794,28 @@ class _GreetingState extends State<_Greeting> {
       noField['Form']!.error,
       'enter text:Submit=x: the widget holds no text field',
     );
+
+    // Fields without keys are named by their labels: the example's
+    // LoginForm, as the app has it.
+    const login = [
+      '--widget',
+      'const LoginForm()',
+      '--import',
+      'lib/ui/login_form.dart',
+      '--size',
+      '390x400',
+    ];
+    final (empty, _) = await shoot(login);
+    final (filled, filledShots) = await shoot([
+      ...login,
+      '--enter',
+      'label:Email=example@example.com',
+      '--enter',
+      'label:Password=secret',
+    ]);
+    final signIn = filledShots.values.single;
+    expect(signIn.status, ShotStatus.ok, reason: signIn.error);
+    expect((await shutter(root, ['diff', empty, filled])).exitCode, 1);
   });
 
   test('shadowing, throwing, resolved, unpainted, and crashing previews '

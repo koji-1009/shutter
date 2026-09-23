@@ -141,10 +141,10 @@ A state that comes from a gesture or typing is shot by acting on the preview fir
 ```bash
 shutter shot lib/preview/button_preview.dart --press text:Save
 shutter shot lib/preview/filter_preview.dart --tap 'type:DropdownButton<String>' --capture screen --viewport 390x400
-shutter shot lib/preview/login_preview.dart --enter 'key:email=example@example.com' --tap 'text:Sign in' --settle 700
+shutter shot lib/preview/login_preview.dart --enter 'label:Email=example@example.com' --tap 'text:Sign in' --settle 700
 ```
 
-`--tap` and `--enter` (repeatable, in the order given), then `--press`, `--hover`, or `--focus`, name their widget by `key:`, `text:`, or `type:`.
+`--tap` and `--enter` (repeatable, in the order given), then `--press`, `--hover`, or `--focus`, name their widget by `key:`, `text:`, `label:` (a semantics label, such as a text field's label), or `type:`.
 Each is followed by `--settle` milliseconds; shoot again with another `--settle` for another point of an animation.
 `--capture screen` holds the whole viewport, with the menus, dialogs, and tooltips the app draws above the preview.
 

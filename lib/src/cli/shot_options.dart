@@ -106,15 +106,17 @@ ShotAction _action(ActionKind kind, String raw) {
   final value = target.substring(colon + 1);
   if (by == null || value.isEmpty) {
     throw ShutterException.usage(
-      '--${kind.name} must name its widget by key:<key>, text:<text>, or '
-      'type:<Widget> (got "$raw").',
+      '--${kind.name} must name its widget by key:<key>, text:<text>, '
+      'label:<label>, or type:<Widget> (got "$raw").',
     );
   }
   return ShotAction(kind: kind, by: by, value: value, text: text);
 }
 
 /// Help of the target the action options take.
-const targetHelp = 'key:<ValueKey<String>>, text:<Text data>, or type:<Widget>';
+const targetHelp =
+    'key:<ValueKey<String>>, text:<Text data>, label:<semantics label>, or '
+    'type:<Widget>';
 
 String _importUri(Project project, String import, String workingDirectory) =>
     import.startsWith('package:')

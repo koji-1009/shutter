@@ -51,7 +51,7 @@ class const ShutterConfig({
 enum ShutterActionKind { tap, enter, press, hover, focus }
 
 /// How an action's target is found.
-enum ShutterTarget { key, text, type }
+enum ShutterTarget { key, text, type, label }
 
 /// One `--tap`, `--enter`, `--press`, `--hover`, or `--focus` of the CLI.
 class const ShutterAction(
@@ -76,6 +76,7 @@ class const ShutterAction(
       final type = '${widget.runtimeType}';
       return type == value || type.split('<').first == value;
     }),
+    .label => find.bySemanticsLabel(value),
   };
 }
 
@@ -450,6 +451,13 @@ Future<void> _act(
   ShutterConfig config,
   List<Future<void> Function()> releases,
 ) async {
+  // Semantics labels exist only while semantics are on; one frame builds
+  // them, without advancing the clock.
+  if (config.actions.any((action) => action.by == .label)) {
+    final semantics = tester.ensureSemantics();
+    releases.add(() async => semantics.dispose());
+    await tester.pump();
+  }
   for (final action in config.actions) {
     final element = _target(action);
     switch (action.kind) {

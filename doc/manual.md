@@ -52,7 +52,8 @@ A state that comes from a gesture or from typing is shot by acting on the previe
 * `--focus <target>` gives it keyboard focus, highlighted as with a keyboard: `flutter_test` runs as a touch device, where focus draws no highlight. The node is the first focus node inside the widget (a button's or text field's own), else the one around it.
 * At most one of `--press`, `--hover`, and `--focus`; it follows the taps and entries.
 
-A target is `key:<value>` (a `ValueKey<String>`), `text:<string>` (a `Text` showing exactly that string, or an `EditableText` holding it), or `type:<Widget>` (a widget of that type, with or without type arguments: `type:Checkbox`, `type:DropdownButton<String>`); offstage widgets do not count.
+A target is `key:<value>` (a `ValueKey<String>`), `text:<string>` (a `Text` showing exactly that string, or an `EditableText` holding it), `label:<string>` (a widget whose semantics label is exactly that string: a text field's `labelText` or `hintText`, a button's text), or `type:<Widget>` (a widget of that type, with or without type arguments: `type:Checkbox`, `type:DropdownButton<String>`); offstage widgets do not count.
+`label:` names a text field without a key: `--enter 'label:Email=example@example.com'`.
 Each action is followed by `--settle` milliseconds drawn in 16 ms frames, as on a device, so `--settle` is also how long after an action the capture comes: an animation the action starts (ink, a check mark, a menu opening) is shot at that point of its course.
 `flutter test` runs as Android, so Material 3 presses use `InkSparkle`: its sparkle shows from about 100 ms to about 600 ms of a press, then the flat pressed overlay stays, as on a device.
 

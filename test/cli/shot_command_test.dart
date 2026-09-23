@@ -250,7 +250,7 @@ void main() {
       '--tap',
       'type:DropdownButton<String>',
       '--enter',
-      'type:TextField=',
+      'label:Email=',
       '--capture',
       'screen',
       '--viewport',
@@ -267,7 +267,7 @@ void main() {
         (ActionKind.tap, TargetKind.text, 'Open, then close', null),
         (ActionKind.enter, TargetKind.key, 'name', 'Koji=K'),
         (ActionKind.tap, TargetKind.type, 'DropdownButton<String>', null),
-        (ActionKind.enter, TargetKind.type, 'TextField', ''),
+        (ActionKind.enter, TargetKind.label, 'Email', ''),
         (ActionKind.press, TargetKind.key, 'save', null),
       ],
     );
@@ -277,7 +277,7 @@ void main() {
       'tap text:Open, then close',
       'enter key:name=Koji=K',
       'tap type:DropdownButton<String>',
-      'enter type:TextField=',
+      'enter label:Email=',
       'press key:save',
     ];
     expect(report['actions'], labels);
@@ -354,7 +354,7 @@ void main() {
     }
     for (final (option, target) in [
       ('--tap', 'Save'),
-      ('--tap', 'label:Save'),
+      ('--tap', 'name:Save'),
       ('--tap', 'text:'),
       ('--enter', 'name=Koji'),
     ]) {
@@ -363,8 +363,8 @@ void main() {
       expect(
         bad.stderr,
         contains(
-          '$option must name its widget by key:<key>, text:<text>, or '
-          'type:<Widget>',
+          '$option must name its widget by key:<key>, text:<text>, '
+          'label:<label>, or type:<Widget>',
         ),
       );
     }

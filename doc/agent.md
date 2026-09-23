@@ -74,10 +74,10 @@ A preview shows the state its construction gives. For a state a gesture or typin
 ```bash
 shutter shot lib/preview/button_preview.dart --press text:Save
 shutter shot lib/preview/filter_preview.dart --tap 'type:DropdownButton<String>' --capture screen --viewport 390x400
-shutter shot lib/preview/login_preview.dart --enter 'key:email=example@example.com' --tap 'text:Sign in' --settle 700
+shutter shot lib/preview/login_preview.dart --enter 'label:Email=example@example.com' --tap 'text:Sign in' --settle 700
 ```
 
-* `--tap` and `--enter <target>=<text>` (both repeatable, run in the order given), then at most one of `--press`, `--hover`, `--focus`. A target is `key:<ValueKey<String>>`, `text:<Text data>`, or `type:<Widget>`.
+* `--tap` and `--enter <target>=<text>` (both repeatable, run in the order given), then at most one of `--press`, `--hover`, `--focus`. A target is `key:<ValueKey<String>>`, `text:<Text data>`, `label:<semantics label>` (a text field's label or hint, a button's text), or `type:<Widget>`.
 * The actions apply to every preview of the named files; a preview where the target matches no widget, or several, is an `error` shot. Name the files whose previews have the target, and give the same actions to the before and after shots.
 * Menus, dialogs, bottom sheets, and tooltips open above the preview and are in the image only with `--capture screen`; `--viewport` gives a small preview the room they open into.
 * `--settle` (default 300 ms) is how long after the last action the image is taken. A tapped button's ink is still fading at 300 ms and gone by 700 ms: pass `--settle 700` for the state after a tap without it.

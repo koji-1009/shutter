@@ -171,6 +171,9 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
   if (request.viewport case (final width, final height)?) {
     buffer.writeln('      viewport: ($width, $height),');
   }
+  if (request.keyboard case final keyboard?) {
+    buffer.writeln('      keyboard: $keyboard,');
+  }
   buffer
     ..writeln('    ),')
     ..writeln(r'    defaultShell: $design.defaultShell,')

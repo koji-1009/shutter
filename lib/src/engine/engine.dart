@@ -30,6 +30,10 @@ class const CaptureRequest({
 
   /// Logical viewport replacing the one the preview's size gives.
   final (double, double)? viewport,
+
+  /// Logical height of an on-screen keyboard, reported to the app as the
+  /// bottom view inset.
+  final double? keyboard,
 });
 
 /// The only swappable layer: turns scanned previews and a `--widget` into

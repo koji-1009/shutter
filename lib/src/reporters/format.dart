@@ -28,8 +28,14 @@ String formatViewport((double, double)? viewport) => switch (viewport) {
   null => 'default',
 };
 
-/// The `actions`, `capture`, and `viewport` lines of a run's [setup],
-/// each only when set.
+/// `336`, or `none` for a run shot without `--keyboard`.
+String formatKeyboard(double? keyboard) => switch (keyboard) {
+  final height? => formatNumber(height),
+  null => 'none',
+};
+
+/// The `actions`, `capture`, `viewport`, and `keyboard` lines of a run's
+/// [setup], each only when set.
 void writeSetup(StringBuffer body, RunSetup setup) {
   if (setup.actions.isNotEmpty) {
     body.writeln('actions: ${formatActions(setup.actions)}');
@@ -37,6 +43,9 @@ void writeSetup(StringBuffer body, RunSetup setup) {
   if (setup.screen) body.writeln('capture: ${formatCapture(true)}');
   if (setup.viewport case final viewport?) {
     body.writeln('viewport: ${formatViewport(viewport)}');
+  }
+  if (setup.keyboard case final keyboard?) {
+    body.writeln('keyboard: ${formatKeyboard(keyboard)}');
   }
 }
 

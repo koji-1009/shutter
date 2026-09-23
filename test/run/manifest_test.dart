@@ -80,23 +80,28 @@ void main() {
         actions: ['tap text:Open', 'press key:save'],
         screen: true,
         viewport: (390, 844.5),
+        keyboard: 336,
       ),
     ).write(dir);
     final back = RunManifest.read(dir);
     final setup = back.setup;
     expect(setup.actions, ['tap text:Open', 'press key:save']);
     expect((setup.screen, setup.viewport), (true, (390.0, 844.5)));
+    expect(setup.keyboard, 336.0);
     expect(back.toJson().keys, [
       'run',
       'actions',
       'capture',
       'viewport',
+      'keyboard',
       'shots',
     ]);
     expect(jsonEncode(back.toJson()['viewport']), '[390,844.5]');
+    expect(jsonEncode(back.toJson()['keyboard']), '336');
     final plain = RunManifest.fromJson(const {'run': 'r', 'shots': []});
     expect(plain.toJson().keys, ['run', 'shots']);
     expect(plain.setup.actions, isEmpty);
     expect((plain.setup.screen, plain.setup.viewport), (false, null));
+    expect(plain.setup.keyboard, isNull);
   });
 }

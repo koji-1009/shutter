@@ -53,6 +53,15 @@ int parseCount(ArgResults results, String name) {
   );
 }
 
+/// Parses `--keyboard` as a height in logical pixels.
+double parseKeyboard(String raw) {
+  final height = double.tryParse(raw);
+  if (height != null && height > 0 && height.isFinite) return height;
+  throw ShutterException.usage(
+    '--keyboard must be a height in logical pixels, e.g. 336 (got "$raw").',
+  );
+}
+
 /// The actions of `shot`: every `--tap` and `--enter` in the order given,
 /// then the one `--press`, `--hover`, or `--focus`, whose state lasts
 /// through the capture.

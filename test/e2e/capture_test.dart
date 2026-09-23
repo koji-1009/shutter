@@ -104,6 +104,85 @@ Widget box() => const ColoredBox(color: Color(0xFF0000FF));
     expect(differing, greaterThan(0));
   });
 
+  test('--keyboard lays out a Scaffold, and a layout reading the inset, above '
+      'the keyboard; the screen shows what the app paints under it', () async {
+    final root = await exampleCopy();
+    writeFiles(root, {
+      'lib/preview/keyboard_preview.dart': '''
+import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+
+const _bar = ColoredBox(
+  color: Color(0xFFFF0000),
+  child: SizedBox(width: double.infinity, height: 20),
+);
+
+@Preview(name: 'Keyboard / scaffold', size: Size(200, 300))
+Widget scaffold() => const Scaffold(
+  backgroundColor: Color(0xFF00FF00),
+  body: Column(children: [Spacer(), _bar]),
+);
+
+@Preview(name: 'Keyboard / not resized', size: Size(200, 300))
+Widget notResized() => const Scaffold(
+  resizeToAvoidBottomInset: false,
+  body: Column(children: [Spacer(), _bar]),
+);
+
+@Preview(name: 'Keyboard / own layout', size: Size(200, 300))
+Widget own() => Builder(
+  builder: (context) => Padding(
+    padding: MediaQuery.viewInsetsOf(context),
+    child: const Column(children: [Spacer(), _bar]),
+  ),
+);
+''',
+    });
+    const file = 'lib/preview/keyboard_preview.dart';
+    const red = (255, 0, 0);
+    final plain = await shootIn(root, [file]);
+    final typing = await shootIn(root, [file, '--keyboard', '100']);
+    final screen = await shootIn(root, [
+      file,
+      '--keyboard',
+      '100',
+      '--capture',
+      'screen',
+      '--viewport',
+      '200x300',
+    ]);
+    expect(RunManifest.read(typing.$1).setup.keyboard, 100);
+    (int, int, int) color((String, Map<String, Shot>) run, String name, int y) {
+      final shot = run.$2[name]!;
+      expect(shot.status, ShotStatus.ok, reason: shot.error);
+      final image = img.decodePng(
+        File(p.join(run.$1, shot.png!)).readAsBytesSync(),
+      )!;
+      expect((image.width, image.height), (400, 600), reason: name);
+      final pixel = image.getPixel(200, y);
+      return (pixel.r.toInt(), pixel.g.toInt(), pixel.b.toInt());
+    }
+
+    // The bar ends at the bottom of the 300-high preview, and above a
+    // 100-high keyboard with --keyboard.
+    for (final name in ['Keyboard / scaffold', 'Keyboard / own layout']) {
+      expect(color(plain, name, 580), red, reason: name);
+      expect(color(plain, name, 380), isNot(red), reason: name);
+      for (final run in [typing, screen]) {
+        expect(color(run, name, 380), red, reason: name);
+        expect(color(run, name, 580), isNot(red), reason: name);
+      }
+    }
+    // A Scaffold that does not resize keeps its bar under the keyboard.
+    for (final run in [plain, typing]) {
+      expect(color(run, 'Keyboard / not resized', 580), red);
+      expect(color(run, 'Keyboard / not resized', 380), isNot(red));
+    }
+    // No keyboard is drawn: under it, the screen holds what the app paints
+    // there, the Scaffold's background.
+    expect(color(screen, 'Keyboard / scaffold', 500), (0, 255, 0));
+  });
+
   test('--capture screen holds a pushed page; --settle lets its transition '
       'end', () async {
     final root = await exampleCopy();

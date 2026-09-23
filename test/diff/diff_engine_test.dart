@@ -41,7 +41,12 @@ void main() {
         run: 'pressed',
         shots: [],
         shell: (path: 'lib/preview/shell.dart', sha256: '1f2e'),
-        setup: (actions: ['press text:OK'], screen: true, viewport: (390, 844)),
+        setup: (
+          actions: ['press text:OK'],
+          screen: true,
+          viewport: (390, 844),
+          keyboard: null,
+        ),
       )..write(dir),
     );
     final diff = diffRuns(run('plain', const [], const {}), pressed);

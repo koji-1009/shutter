@@ -88,6 +88,12 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         help:
             'Logical size of the screen for --capture screen, e.g. 390x844; '
             'the preview sits at its top left.',
+      )
+      ..addOption(
+        'keyboard',
+        help:
+            'Lay out as with an on-screen keyboard this many logical pixels '
+            'high, e.g. 336 (experimental); the keyboard is not drawn.',
       );
   }
 
@@ -117,6 +123,10 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
     final screen = args.option('capture') == 'screen';
     final viewport = switch (args.option('viewport')) {
       final raw? => parseSize(raw, name: 'viewport'),
+      null => null,
+    };
+    final keyboard = switch (args.option('keyboard')) {
+      final raw? => parseKeyboard(raw),
       null => null,
     };
     final files = args.rest;
@@ -192,6 +202,7 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         actions: actions,
         screen: screen,
         viewport: viewport,
+        keyboard: keyboard,
       ),
     );
     final manifest = RunManifest(
@@ -202,6 +213,7 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         actions: [for (final action in actions) action.label],
         screen: screen,
         viewport: viewport,
+        keyboard: keyboard,
       ),
     )..write(runDir);
     reportShots(manifest, runDir, ShutterIO.stdoutSink);

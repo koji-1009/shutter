@@ -24,6 +24,10 @@ class const DiffEntry({
   /// Image marking the differing pixels, inside the diff directory
   /// (`shutter diff --images`, `changed` entries only).
   final String? diffPng,
+
+  /// Sheet holding the before, diff and after panels, inside the diff
+  /// directory (`shutter diff --composite`).
+  final String? compositePng,
 });
 
 /// The outcome of comparing two runs.

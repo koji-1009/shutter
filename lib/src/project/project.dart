@@ -9,6 +9,15 @@ import '../shutter_exception.dart';
 /// How to add the one dev dependency shutter needs.
 const flutterTestHint = 'flutter pub add dev:flutter_test --sdk=flutter';
 
+/// Throws unless [project] can run `flutter test`, which every render
+/// needs.
+void requireFlutterTest(Project project) {
+  if (project.hasFlutterTest) return;
+  throw const ShutterException(
+    'flutter_test is not in dev_dependencies; add it (`$flutterTestHint`).',
+  );
+}
+
 /// The Flutter project shutter operates on: the directory holding the
 /// nearest `pubspec.yaml` at or above the working directory.
 class Project({

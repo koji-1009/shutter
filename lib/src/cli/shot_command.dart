@@ -142,11 +142,7 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
       );
     }
     final project = context.project();
-    if (!project.hasFlutterTest) {
-      throw const ShutterException(
-        'flutter_test is not in dev_dependencies; add it (`$flutterTestHint`).',
-      );
-    }
+    requireFlutterTest(project);
     final shell = resolveShell(
       project,
       args.option('shell'),

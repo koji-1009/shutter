@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:shutter/src/cli/context.dart';
@@ -7,11 +8,12 @@ import 'package:shutter/src/run/manifest.dart';
 
 import '../helpers.dart';
 
-/// Engine returning [shots], writing a PNG for each shot naming one.
+/// Engine returning [shots], writing [bytes] for each shot naming a PNG.
 class FakeEngine implements Engine {
-  FakeEngine(this.shots);
+  FakeEngine(this.shots, {Uint8List? bytes}) : bytes = bytes ?? pngBytes;
 
   final List<Shot> shots;
+  final Uint8List bytes;
   final requests = <CaptureRequest>[];
 
   @override
@@ -19,7 +21,7 @@ class FakeEngine implements Engine {
     requests.add(request);
     for (final shot in shots) {
       if (shot.png case final png?) {
-        File(p.join(request.runDir, png)).writeAsBytesSync(pngBytes);
+        File(p.join(request.runDir, png)).writeAsBytesSync(bytes);
       }
     }
     return shots;

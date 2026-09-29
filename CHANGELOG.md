@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+One image per change: before, diff and after on a single sheet.
+
+* `shutter diff --composite` writes `<id>-composite.png` per entry into `.dart_tool/shutter/diffs/<diff-id>/`, next to what `--images` writes: the before, diff and after panels on the union canvas of the two shots, each under a caption naming it and, when the two sides differ in size, its own size. The entry points at it as `composite`.
+* `--direction horizontal` puts the three panels side by side, `vertical` stacks them, and the default `auto` puts a portrait shot side by side and a landscape one stacked, so that all three stay in one view whatever the subject's shape. The panels are never scaled; `--images` stays the 1:1 view of the marked diff.
+* An entry with an image on one side only gets a sheet too, its absent panel left as background and its diff panel all red: a widget the edit broke, or one whose id the edit changed, is shown rather than left out. An entry whose two PNGs are identical gets none.
+* `--title <text>` draws a line of text above the panels. It is rendered through the engine rather than drawn from a bundled bitmap font, so any script the host has a font for works, and it is laid out in exactly the room each size of sheet leaves between its gutters, at the size of that sheet's captions. A title that did not fit one line is reported on stderr with the width of the sheets it did not fit.
+* `--title` is the only part of `diff` that needs a Flutter SDK, and costs one `flutter test` run per distinct sheet size. Without it, `diff` stays pure Dart.
+* The diff directory is created, and reported as `diff`, for either `--images` or `--composite`.
+
 ## 0.2.1
 
 The layout of a screen while its on-screen keyboard is up.

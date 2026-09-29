@@ -29,7 +29,7 @@ The article [Before-and-After Images for Flutter UI Changes, Without Launching t
 A visual change is closed by an image, not by "it compiles" or "the tests pass". Shutter gives that image without launching the app and without writing a test:
 
 * `shutter shot <preview-file>...` renders the widgets of the named preview files to PNG. A preview file imports any widget of the app and returns it from a function annotated with Flutter's `@Preview`; the widget itself needs no annotation.
-* `shutter diff <run-a> <run-b>` classifies each shot of two runs as `changed`, `added`, `removed`, or `unchanged`, and points at its before and after images (`--images` adds an image marking the differing pixels).
+* `shutter diff <run-a> <run-b>` classifies each shot of two runs as `changed`, `added`, `removed`, or `unchanged`, and points at its before and after images (`--images` adds an image marking the differing pixels, `--composite` one image holding all three panels).
 * `shutter shot --widget '<expression>'` renders one widget expression, with `--import` naming the project files it needs, for a quick look without writing a preview file.
 
 Each command does one thing and prints paths, so it composes with `grep`, `git`, `gh`, and whatever opens images.
@@ -159,7 +159,7 @@ Each is followed by `--settle` milliseconds; shoot again with another `--settle`
 | `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                                                                   |
 | `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                                                              |
 | `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`). |
-| `diff <a> <b>` | Compare two runs (`--images`).                                                                                                                                                                        |
+| `diff <a> <b>` | Compare two runs (`--images`, `--composite`).                                                                                                                                                         |
 
 ## Exit codes
 

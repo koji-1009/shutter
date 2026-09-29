@@ -224,13 +224,21 @@ An entry carries the size of its after shot (the before shot for `removed`); a `
 Byte-identical PNGs are unchanged; otherwise pixels are compared as exact RGBA on the union of both canvases, and `diff_ratio` records the share that differs.
 Each entry points at its `before` / `after` PNGs inside the two run directories; no image is copied and nothing is written.
 With `--images`, each `changed` entry with both images also gets `<id>.png` in `.dart_tool/shutter/diffs/<diff-id>/`: the before image faded, differing pixels in red.
+With `--composite`, each entry that has something to show also gets `<id>-composite.png` there: the before, diff and after panels on the union canvas, each under its caption, as one image to attach on its own. The entry points at it as `composite`; both flags together write both files.
+`--direction horizontal` puts the three panels side by side, `vertical` stacks them, and the default `auto` puts a portrait shot side by side and a landscape one stacked, so that all three panels stay in one view whatever the subject's shape.
+An entry with an image on one side only — a shot the code no longer renders, or one whose id the edit changed — gets a sheet too, with the absent panel left as background and the diff panel all red. An entry whose two PNGs are identical gets none: there is nothing to draw.
+The panels are never scaled, so a large subject makes a large PNG; the marked image of `--images` is the one to open when a change is too thin to survive a viewer scaling the sheet down.
+A caption has its panel and the one gutter beside it: a caption too long for that is drawn a size down, and a diff caption too long even for the smallest font drops the share and keeps the pixel count, rather than running past the sheet's edge or over the next panel's.
+`--title <text>` draws a line of text above the panels of every sheet. It is rendered by Flutter, so any script the host has a font for works; that needs a Flutter SDK, which the rest of `diff` does not.
+Every sheet size is known before the title is drawn, so the text is laid out in exactly the room that size of sheet leaves between its gutters, at the size the caption bands are set in, and is neither scaled nor re-wrapped afterwards. That is one `flutter test` run per distinct sheet size: one for a diff of a single widget, more when the entries differ in size.
+Because the text is laid out at the size it is drawn, the render says how many lines it took: a title that did not fit one line is reported on stderr with the width of the sheets it did not fit.
 When the two runs were shot with different shells (path or sha256), `shell` shows each run's (`default` for the default shell): a shell change alters every image without any widget changing. The entries are compared as always.
 
 ## Output
 
 `shot` and `diff` print YAML starting with the comment `# shutter ai-report v1`, with absolute paths to open.
 `shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `actions`, `capture`, `viewport`, and `keyboard` (when given), `summary`, and `shots`, errors first.
-`diff` gives `diff` (with `--images`), `before`, `after`, `shell`, `actions`, `capture`, `viewport`, and `keyboard` (each when the two runs differ in it), `summary`, and `entries` in the order changed → added → removed → unchanged.
+`diff` gives `diff` (with `--images` or `--composite`), `before`, `after`, `shell`, `actions`, `capture`, `viewport`, and `keyboard` (each when the two runs differ in it), `summary`, and `entries` in the order changed → added → removed → unchanged.
 
 ## Exit codes
 
@@ -251,4 +259,4 @@ Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter 
 | `doctor` | SDK version, font cache, shell (`--shell`)                                                                                                                                                                         |
 | `init`   | write `shell.dart` (`--shell`)                                                                                                                                                                                     |
 | `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`) |
-| `diff`   | compare two runs (`--images`)                                                                                                                                                                                      |
+| `diff`   | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                               |

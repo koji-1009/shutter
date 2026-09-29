@@ -8,7 +8,8 @@ import 'yaml_scalar.dart';
 
 /// Writes the outcome of `shutter diff`: YAML starting with
 /// `# shutter ai-report v1`, in the order to look at the entries, with
-/// absolute paths. [dir] holds the diff images (`--images`), else null.
+/// absolute paths. [dir] holds the images `--images` and `--composite`
+/// wrote, else null.
 void reportDiff(RunDiff diff, String? dir, IOSink sink) {
   final summary = [
     for (final MapEntry(:key, :value) in diff.summary.entries)
@@ -70,6 +71,7 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
       ('before', diff.before, entry.beforePng),
       ('after', diff.after, entry.afterPng),
       ('diff', dir, entry.diffPng),
+      ('composite', dir, entry.compositePng),
     ]) {
       if (base != null && name != null) {
         body.writeln('    $key: ${yamlScalar(p.join(base, name))}');

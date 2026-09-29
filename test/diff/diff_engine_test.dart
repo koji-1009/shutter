@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
+import 'package:shutter/src/diff/composite.dart';
 import 'package:shutter/src/diff/diff_engine.dart';
 import 'package:shutter/src/diff/run_diff.dart';
 import 'package:shutter/src/run/manifest.dart';
@@ -221,7 +222,7 @@ void main() {
     // With images: a diff image for each changed entry that has both
     // sides' pixels.
     final withImages = tempDir();
-    final imaged = diffRuns(a, b, imagesDir: withImages);
+    final imaged = diffRuns(a, b, dir: withImages, images: true);
     expect(
       {
         for (final e in imaged.entries)
@@ -240,6 +241,131 @@ void main() {
     final entry = diffRuns(a, b).entries.single;
     expect(entry.status, DiffStatus.changed);
     expect(entry.diffRatio, isNull);
+  });
+
+  test('a composite for every entry with something to show, one side or '
+      'both', () {
+    final a = run(
+      'a',
+      [ok('changed'), ok('removed'), ok('same')],
+      {
+        'changed.png': png(2, 2),
+        'removed.png': png(2, 2),
+        'same.png': png(2, 2),
+      },
+    );
+    final b = run(
+      'b',
+      [ok('changed'), ok('added'), ok('same')],
+      {
+        'changed.png': png(2, 2, [255, 255, 255, 255]),
+        'added.png': png(2, 2),
+        'same.png': png(2, 2),
+      },
+    );
+    final dir = tempDir();
+    final diff = diffRuns(
+      a,
+      b,
+      dir: dir,
+      composite: CompositeDirection.horizontal,
+    );
+    expect(
+      {
+        for (final e in diff.entries)
+          if (e.compositePng != null) e.shot.id,
+      },
+      {'changed', 'added', 'removed'},
+    );
+    for (final id in ['changed', 'added', 'removed']) {
+      final sheet = img.decodePng(
+        File(p.join(dir, '$id-composite.png')).readAsBytesSync(),
+      )!;
+      // Three 2x2 panels, their gutters, and one caption band.
+      expect(sheet.width, 3 * 2 + 4 * 16);
+      expect(sheet.height, img.arial24.lineHeight + 16 + 2 + 2 * 16);
+    }
+    // Nothing to show, nothing written.
+    expect(File(p.join(dir, 'same-composite.png')).existsSync(), isFalse);
+  });
+
+  test('the sheets a title has to be drawn for; identical runs need '
+      'none', () {
+    final wide = png(40, 10);
+    final tall = png(10, 40);
+    final a = run('a', [ok('w'), ok('t')], {'w.png': wide, 't.png': tall});
+    final b = run(
+      'b',
+      [ok('w'), ok('t')],
+      {
+        'w.png': png(40, 10, [255, 255, 255, 255]),
+        't.png': png(10, 40, [255, 255, 255, 255]),
+      },
+    );
+    // The wide pair stacks (40 + 2 gutters), the tall pair sits side by
+    // side (3 x 10 + 4 gutters); both leave the gutters to the title.
+    final layouts = compositeLayouts(a, b, direction: CompositeDirection.auto);
+    expect(
+      {for (final layout in layouts) layout.title},
+      {(40, img.arial24.base), (62, img.arial24.base)},
+    );
+    expect(compositeLayouts(a, a, direction: CompositeDirection.auto), isEmpty);
+    expect(
+      compositeLayouts(
+        run('e', const [], const {}),
+        run('f', const [], const {}),
+        direction: CompositeDirection.auto,
+      ),
+      isEmpty,
+    );
+  });
+
+  test('a sheet takes the title drawn for its own size, and none when '
+      'there is none for it', () {
+    final a = run('a', [ok('x')], {'x.png': png(2, 2)});
+    final b = run(
+      'b',
+      [ok('x')],
+      {
+        'x.png': png(2, 2, [255, 255, 255, 255]),
+      },
+    );
+    final layout = CompositeLayout((2, 2));
+    int height(Map<(int, int), img.Image> titles) {
+      final dir = tempDir();
+      diffRuns(
+        a,
+        b,
+        dir: dir,
+        composite: CompositeDirection.auto,
+        titles: titles,
+      );
+      return img
+          .decodePng(File(p.join(dir, 'x-composite.png')).readAsBytesSync())!
+          .height;
+    }
+
+    final title = img.Image(width: 38, height: 20, numChannels: 4);
+    expect(layout.title, (38, img.arial24.base));
+    expect(height({layout.title: title}), layout.height + layout.gutter + 20);
+    // A title drawn for sheets of another size is not this sheet's.
+    expect(height({(100, img.arial24.base): title}), layout.height);
+    expect(height(const {}), layout.height);
+  });
+
+  test('bytes that are not a PNG have no header size', () {
+    final a = run(
+      'a',
+      [ok('x')],
+      {
+        'x.png': const [1, 2, 3, 4],
+      },
+    );
+    final b = run('b', [ok('x')], {'x.png': png(2, 2)});
+    expect(
+      () => compositeLayouts(a, b, direction: CompositeDirection.auto),
+      throwsFormatException,
+    );
   });
 
   test('one differing pixel is a change', () {

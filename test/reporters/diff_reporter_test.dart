@@ -41,11 +41,13 @@ RunDiff sample() => const RunDiff(
       beforePng: 'c.0.png',
       afterPng: 'c.0.png',
       diffPng: 'c.0.png',
+      compositePng: 'c.0-composite.png',
     ),
     DiffEntry(
       status: DiffStatus.added,
       shot: Shot(id: 'a.0', status: ShotStatus.ok, name: 'New'),
       afterPng: 'a.0.png',
+      compositePng: 'a.0-composite.png',
     ),
     DiffEntry(
       status: DiffStatus.unchanged,
@@ -87,10 +89,12 @@ entries:
     before: /runs/r1/c.0.png
     after: /runs/r2/c.0.png
     diff: ${p.join(dir, 'c.0.png')}
+    composite: ${p.join(dir, 'c.0-composite.png')}
   - id: a.0
     status: added
     name: New
     after: /runs/r2/a.0.png
+    composite: ${p.join(dir, 'a.0-composite.png')}
   - id: u.0
     status: unchanged
     name: Same

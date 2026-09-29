@@ -2,9 +2,13 @@
 library;
 
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
+import 'package:shutter/src/diff/composite.dart';
+import 'package:shutter/src/diff/pixel_diff.dart';
 import 'package:shutter/src/run/manifest.dart';
 import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
@@ -113,5 +117,43 @@ void main() {
     );
     expect(File(short['diff'] as String).existsSync(), isTrue);
     expect(File(short['before'] as String).existsSync(), isTrue);
+
+    // The composite of the same change, with a title Flutter has to render
+    // with the host's CJK font.
+    final composite = await shutter(root, [
+      'diff',
+      beforeRun,
+      afterRun,
+      '--composite',
+      '--title',
+      '短いラベルのボタン',
+    ]);
+    expect(composite.exitCode, 1, reason: composite.stderr);
+    final sheeted = (loadYaml(composite.stdout) as YamlMap)['entries'];
+    final entry = (sheeted as YamlList).cast<YamlMap>().singleWhere(
+      (e) => e['name'] == 'PrimaryButton / short',
+    );
+    final sheet = img.decodePng(
+      File(entry['composite'] as String).readAsBytesSync(),
+    )!;
+    // The panel is the union of the two shots: this edit made the button
+    // wider and shorter, so each side gives one of the two dimensions.
+    final shot = Rgba.decode(File(entry['after'] as String).readAsBytesSync());
+    final was = Rgba.decode(File(entry['before'] as String).readAsBytesSync());
+    final layout = CompositeLayout((
+      max(shot.width, was.width),
+      max(shot.height, was.height),
+    ));
+    expect(sheet.width, layout.width);
+    // The title band the sheet grew by, and the glyphs drawn in it.
+    final titleHeight = sheet.height - layout.height - layout.gutter;
+    expect(titleHeight, greaterThan(0));
+    var inked = 0;
+    for (var y = layout.gutter; y < layout.gutter + titleHeight; y++) {
+      for (var x = layout.gutter; x < sheet.width - layout.gutter; x++) {
+        if (sheet.getPixel(x, y).r < 0x80) inked++;
+      }
+    }
+    expect(inked, greaterThan(0));
   });
 }

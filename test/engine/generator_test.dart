@@ -186,6 +186,17 @@ void main() {
       imports: ['package:app/b.dart'],
     );
     expect(other.staticId, isNot(sized.staticId));
+    // Infinity has no literal, and the harness reads a non-finite
+    // dimension as unset, so the widget is shot at its own height.
+    const unbounded = WidgetShot(
+      source: 'Text("x")',
+      imports: [],
+      size: (200, double.infinity),
+    );
+    expect(
+      unbounded.helperSource(),
+      contains(r'size: $ui.Size(200.0, double.infinity)'),
+    );
   });
 
   test('writeGeneratedTest adds the --widget helper', () {

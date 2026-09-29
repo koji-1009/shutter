@@ -23,7 +23,8 @@ class const WidgetShot({
   /// unprefixed as the expression expects, and `entries()`.
   String helperSource() {
     final size = switch (this.size) {
-      (final width, final height) => ', size: \$ui.Size($width, $height)',
+      (final width, final height) =>
+        ', size: \$ui.Size(${_dimension(width)}, ${_dimension(height)})',
       null => '',
     };
     return helperLibrary(
@@ -44,3 +45,8 @@ class const WidgetShot({
     );
   }
 }
+
+/// A size dimension as Dart source: `double.infinity` has no literal, and
+/// the harness reads a non-finite dimension as unset.
+String _dimension(double value) =>
+    value.isFinite ? '$value' : 'double.infinity';

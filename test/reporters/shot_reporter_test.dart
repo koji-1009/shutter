@@ -88,6 +88,7 @@ shots:
           screen: true,
           viewport: (390, 844),
           keyboard: 336,
+          keyboardTint: 0xFF9E9E9E,
           networkImages: {
             'https://example.com/a.png': (path: 'test/a.png', sha256: 'cd34'),
             'https://example.com/b?w=2': (path: 'test/b.png', sha256: 'ef56'),
@@ -103,6 +104,7 @@ shots:
         'capture: screen\n'
         'viewport: [390, 844]\n'
         'keyboard: 336\n'
+        'keyboard_tint: "#FF9E9E9E"\n'
         'network_images: {https://example.com/a.png: '
         '{path: test/a.png, sha256: cd34}, "https://example.com/b?w=2": '
         '{path: test/b.png, sha256: ef56}}\n'
@@ -118,6 +120,7 @@ shots:
           screen: true,
           viewport: null,
           keyboard: null,
+          keyboardTint: null,
           networkImages: {},
         ),
       ),

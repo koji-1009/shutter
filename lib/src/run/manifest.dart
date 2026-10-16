@@ -113,15 +113,21 @@ typedef ShellFile = RecordedFile;
 
 /// What a run did to every preview besides rendering it: the actions
 /// performed before the capture, whether the whole viewport was
-/// captured, the `--viewport`, the `--keyboard` height, and the file
-/// served for each `--network-image` URL.
+/// captured, the `--viewport`, the `--keyboard` height and its
+/// `--keyboard-tint` (ARGB), and the file served for each
+/// `--network-image` URL.
 typedef RunSetup = ({
   List<String> actions,
   bool screen,
   (double, double)? viewport,
   double? keyboard,
+  int? keyboardTint,
   Map<String, RecordedFile> networkImages,
 });
+
+/// [argb] as `#AARRGGBB`.
+String colorHex(int argb) =>
+    '#${argb.toRadixString(16).padLeft(8, '0').toUpperCase()}';
 
 /// The setup of a run shot without actions, of the preview alone.
 const RunSetup plainSetup = (
@@ -129,6 +135,7 @@ const RunSetup plainSetup = (
   screen: false,
   viewport: null,
   keyboard: null,
+  keyboardTint: null,
   networkImages: {},
 );
 
@@ -172,6 +179,10 @@ class const RunManifest({
         _ => null,
       },
       keyboard: (json['keyboard'] as num?)?.toDouble(),
+      keyboardTint: switch (json['keyboard_tint']) {
+        final String hex => int.parse(hex.substring(1), radix: 16),
+        _ => null,
+      },
       networkImages: {
         for (final MapEntry(:key, :value)
             in ((json['network_images'] as Map<String, Object?>?) ?? {})
@@ -191,7 +202,14 @@ class const RunManifest({
   int get exitCode => shots.any((s) => s.status == ShotStatus.error) ? 2 : 0;
 
   Map<String, Object?> toJson() {
-    final (:actions, :screen, :viewport, :keyboard, :networkImages) = setup;
+    final (
+      :actions,
+      :screen,
+      :viewport,
+      :keyboard,
+      :keyboardTint,
+      :networkImages,
+    ) = setup;
     return {
       'run': run,
       if (shell case final shell?) 'shell': _recordedFileJson(shell),
@@ -200,6 +218,7 @@ class const RunManifest({
       if (viewport case (final w, final h)?)
         'viewport': [jsonNumber(w), jsonNumber(h)],
       if (keyboard != null) 'keyboard': jsonNumber(keyboard),
+      if (keyboardTint != null) 'keyboard_tint': colorHex(keyboardTint),
       if (networkImages.isNotEmpty)
         'network_images': {
           for (final MapEntry(:key, :value) in networkImages.entries)

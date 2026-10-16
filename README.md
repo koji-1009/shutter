@@ -149,17 +149,18 @@ shutter shot lib/preview/login_preview.dart --enter 'label:Email=example@example
 `--tap` and `--enter` (repeatable, in the order given), then `--press`, `--hover`, or `--focus`, name their widget by `key:`, `text:`, `label:` (a semantics label, such as a text field's label), or `type:`.
 Each is followed by `--settle` milliseconds; shoot again with another `--settle` for another point of an animation.
 `--capture screen` holds the whole viewport, with the menus, dialogs, and tooltips the app draws above the preview.
+`--keyboard <height>` lays a screen out as with its on-screen keyboard up, which `--enter` does not raise; the keyboard itself is not drawn, and `--keyboard-tint 9E9E9E` paints its area gray.
 
 ## Subcommands
 
-| Command        | Purpose                                                                                                                                                                                                                  |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `agent`        | The step-by-step playbook for AI agents.                                                                                                                                                                                 |
-| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                                                                                                                |
-| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                                                                                      |
-| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                                                                                 |
-| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--network-image`). |
-| `diff <a> <b>` | Compare two runs (`--images`, `--composite`).                                                                                                                                                                            |
+| Command        | Purpose                                                                                                                                                                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`        | The step-by-step playbook for AI agents.                                                                                                                                                                                                                 |
+| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                                                                                                                                                |
+| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                                                                                                                      |
+| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                                                                                                                 |
+| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`). |
+| `diff <a> <b>` | Compare two runs (`--images`, `--composite`).                                                                                                                                                                                                            |
 
 ## Exit codes
 
@@ -173,7 +174,7 @@ Each is followed by `--settle` milliseconds; shoot again with another `--settle`
 
 ## Limits
 
-* One capture per preview: state comes from the widget's construction expression and from taps, entered text, a press, a hover, or focus before the capture; scrolling and dragging are not shot, nor is the on-screen keyboard.
+* One capture per preview: state comes from the widget's construction expression and from taps, entered text, a press, a hover, or focus before the capture; scrolling and dragging are not shot, nor is the on-screen keyboard (`--keyboard` leaves room for it).
 * HTTP is blocked while rendering, so network images fail to load unless `shot --network-image <url>=<file>` serves a file fetched beforehand.
 * Text renders with the project's fonts plus Roboto; CJK and emoji fall back to the host's system fonts, and Cupertino text uses SF Pro on macOS (Roboto elsewhere), as a device would. Compare runs made on the same machine.
 
@@ -183,6 +184,7 @@ Behaviour whose specification is not settled; a later version may change what it
 
 * The default shell for shots without a project shell: the SDK's `MaterialApp` with a `Material` surface, `material_ui`'s or `cupertino_ui`'s app widget when the project depends on that package, or a plain `WidgetsApp` when no design library is available. It changes when the SDK's Material and Cupertino, announced for deprecation, go.
 * A preview's `theme`: applied through `PreviewThemeData`, an interface Flutter documents as not stable.
+* `shot --keyboard <height>`: the layout of a screen while its on-screen keyboard is up, without the keyboard drawn; `--keyboard-tint` paints its area.
 * [google_fonts](https://pub.dev/packages/google_fonts): fonts are downloaded once into `.dart_tool/shutter/fonts/google_fonts/` and served to the shot; a font that cannot be downloaded makes the shot an error instead of rendering in another font. Failures are recognised from the package's own messages, which change between its versions.
 
 Details live in [`doc/manual.md`](doc/manual.md) (`shutter manual`).

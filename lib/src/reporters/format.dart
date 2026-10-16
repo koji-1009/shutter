@@ -18,6 +18,12 @@ String formatShell(ShellFile? shell) => switch (shell) {
   null => 'default',
 };
 
+/// `"#FF9E9E9E"`, or `none` for a run shot without `--keyboard-tint`.
+String formatKeyboardTint(int? tint) => switch (tint) {
+  final argb? => yamlScalar(colorHex(argb)),
+  null => 'none',
+};
+
 /// `{<url>: {path: ..., sha256: ...}}`, or `none` for a run shot without
 /// `--network-image`.
 String formatNetworkImages(Map<String, RecordedFile> images) {
@@ -48,8 +54,8 @@ String formatKeyboard(double? keyboard) => switch (keyboard) {
   null => 'none',
 };
 
-/// The `actions`, `capture`, `viewport`, `keyboard`, and `network_images`
-/// lines of a run's [setup], each only when set.
+/// The `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and
+/// `network_images` lines of a run's [setup], each only when set.
 void writeSetup(StringBuffer body, RunSetup setup) {
   if (setup.actions.isNotEmpty) {
     body.writeln('actions: ${formatActions(setup.actions)}');
@@ -60,6 +66,9 @@ void writeSetup(StringBuffer body, RunSetup setup) {
   }
   if (setup.keyboard case final keyboard?) {
     body.writeln('keyboard: ${formatKeyboard(keyboard)}');
+  }
+  if (setup.keyboardTint case final tint?) {
+    body.writeln('keyboard_tint: ${formatKeyboardTint(tint)}');
   }
   if (setup.networkImages.isNotEmpty) {
     body.writeln('network_images: ${formatNetworkImages(setup.networkImages)}');

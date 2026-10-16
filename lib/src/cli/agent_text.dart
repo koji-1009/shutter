@@ -88,7 +88,9 @@ shutter shot lib/preview/login_preview.dart --enter 'label:Email=example@example
 * `--settle` (default 300 ms) is how long after the last action the image is taken. A tapped button's ink is still fading at 300 ms and gone by 700 ms: pass `--settle 700` for the state after a tap without it.
 * A page a tap navigates to is shot through its own preview, not through the tap.
 * An animation is shot point by point: shoot again with another `--settle`. The clock is simulated, so the same `--settle` gives the same image, and `diff` pairs a shot across the runs.
-* `--keyboard <height>` (experimental) lays the screen out as with an on-screen keyboard that many logical pixels high: a `Scaffold`, or any widget reading `MediaQuery.viewInsets`, makes room for it as on a device. The keyboard is not drawn. Use it for a screen with a finite height, with the keyboard height of the device the screen is laid out for.
+* `--keyboard <height>` (experimental) lays the screen out as with an on-screen keyboard that many logical pixels high: a `Scaffold`, or any widget reading `MediaQuery.viewInsets`, makes room for it as on a device. Use it for a screen with a finite height, with the keyboard height of the device the screen is laid out for (`MediaQuery.viewInsetsOf(context).bottom` there, with the keyboard up).
+* `--enter` raises no keyboard: for the state while typing, give both, `--enter 'label:Email=example@example.com' --keyboard 336`.
+* The keyboard is not drawn: the band it covers shows the app's own background, and the image keeps the screen's full height. `--keyboard-tint 9E9E9E` paints the band gray so the reviewer sees where the keyboard is; without it, say so when you post the image, or the reviewer reads the band as empty space.
 * Ink lands on the nearest `Material`, like the background above: an `InkWell` or `ListTile` wrapped in `Material` in the preview shows its press, hover, or focus; buttons carry their own.
 
 ## Exit codes

@@ -150,8 +150,8 @@ entries:
     });
   });
 
-  test('the actions, capture, viewport, keyboard, and network images of both '
-      'runs, each only when they differ', () async {
+  test('the actions, capture, viewport, keyboard and its tint, and network '
+      'images of both runs, each only when they differ', () async {
     Future<YamlMap> report(RunSetup before, RunSetup after) async => loadYaml(
       await collect(
         (sink) => reportDiff(
@@ -172,6 +172,7 @@ entries:
       screen: false,
       viewport: null,
       keyboard: null,
+      keyboardTint: null,
       networkImages: <String, RecordedFile>{},
     );
     const screen = (
@@ -179,6 +180,7 @@ entries:
       screen: true,
       viewport: (390.0, 844.0),
       keyboard: null,
+      keyboardTint: null,
       networkImages: <String, RecordedFile>{},
     );
     final same = await report(pressed, pressed);
@@ -187,6 +189,7 @@ entries:
       'capture',
       'viewport',
       'keyboard',
+      'keyboard_tint',
       'network_images',
     ]) {
       expect(same.containsKey(key), isFalse, reason: key);
@@ -210,16 +213,30 @@ entries:
       screen: false,
       viewport: null,
       keyboard: 336.0,
+      keyboardTint: null,
       networkImages: <String, RecordedFile>{},
     );
     final keyboard = await report(plainSetup, typing);
     expect(keyboard['keyboard'], {'before': 'none', 'after': 336});
+    expect(keyboard.containsKey('keyboard_tint'), isFalse);
     expect(keyboard.containsKey('network_images'), isFalse);
+    const tinted = (
+      actions: <String>[],
+      screen: false,
+      viewport: null,
+      keyboard: 336.0,
+      keyboardTint: 0xFF9E9E9E,
+      networkImages: <String, RecordedFile>{},
+    );
+    final tint = await report(typing, tinted);
+    expect(tint.containsKey('keyboard'), isFalse);
+    expect(tint['keyboard_tint'], {'before': 'none', 'after': '#FF9E9E9E'});
     const served = (
       actions: <String>[],
       screen: false,
       viewport: null,
       keyboard: null,
+      keyboardTint: null,
       networkImages: {
         'https://example.com/a.png': (path: 'test/a.png', sha256: 'cd34'),
       },

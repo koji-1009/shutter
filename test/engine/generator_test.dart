@@ -137,6 +137,7 @@ void main() {
           screen: true,
           viewport: (390, 844.5),
           keyboard: 336,
+          keyboardTint: 0x809E9E9E,
           networkImages: const {r'https://example.com/$a.png': '/p/a.png'},
         ),
         materialFontsDir: '/sdk/fonts',
@@ -157,6 +158,7 @@ void main() {
         '      screen: true,\n'
         '      viewport: (390.0, 844.5),\n'
         '      keyboard: 336.0,\n'
+        '      keyboardTint: 0x809E9E9E,\n'
         '      networkImages: {\n'
         "        'https://example.com/\\\$a.png': '/p/a.png',\n"
         '      },\n',
@@ -166,7 +168,7 @@ void main() {
     expect(plain, isNot(contains('actions:')));
     expect(plain, isNot(contains('screen:')));
     expect(plain, isNot(contains('viewport:')));
-    expect(plain, isNot(contains('keyboard:')));
+    expect(plain, isNot(contains('keyboard')));
     expect(plain, isNot(contains('networkImages:')));
   });
 

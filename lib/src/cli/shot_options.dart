@@ -62,6 +62,22 @@ double parseKeyboard(String raw) {
   );
 }
 
+final _hexColor = RegExp(r'^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$');
+
+/// Parses `--keyboard-tint` as `RRGGBB` or `AARRGGBB`, `#` optional, into
+/// ARGB; six digits are opaque.
+int parseKeyboardTint(String raw) {
+  final match = _hexColor.firstMatch(raw);
+  if (match == null) {
+    throw ShutterException.usage(
+      '--keyboard-tint must be a color as RRGGBB or AARRGGBB, e.g. 9E9E9E '
+      '(got "$raw").',
+    );
+  }
+  final digits = match.group(1)!;
+  return int.parse(digits.length == 6 ? 'FF$digits' : digits, radix: 16);
+}
+
 /// Parses each `--network-image <url>=<file>`: the absolute path of the
 /// file served for each URL, in the order given. The URL ends at the last
 /// `=`, so its query keeps its own; the file is relative to

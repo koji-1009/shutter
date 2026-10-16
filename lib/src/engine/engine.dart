@@ -35,6 +35,10 @@ class const CaptureRequest({
   /// bottom view inset.
   final double? keyboard,
 
+  /// ARGB color the keyboard's area is painted in; none leaves it as the
+  /// app paints it.
+  final int? keyboardTint,
+
   /// Absolute path of the file served for each `--network-image` URL.
   final Map<String, String> networkImages = const {},
 });

@@ -180,9 +180,17 @@ A preview's `theme` is applied through `PreviewThemeData.apply`, which Flutter d
 A widget that reads the inset moves as on a device: a `Scaffold` shrinks its body to end above the keyboard (unless `resizeToAvoidBottomInset: false`), and so does a layout of the app's own that pads itself by `MediaQuery.viewInsetsOf`.
 A widget that does not read it is shot as without `--keyboard`.
 The inset leaves room above it only in a preview with a finite height, such as a screen.
-The keyboard itself is not drawn: with `--capture screen`, the area it would cover shows what the app paints there.
-Keyboards differ in height by device and input method, so there is no default: give the height of the keyboard on the device the screen is laid out for.
-The run records the height as it does its actions; it is not part of shot ids, so a run with `--keyboard` pairs shot for shot with one without.
+The keyboard itself is not drawn: in either capture, the area it would cover shows what the app paints there, such as a `Scaffold`'s background, and the shot keeps the preview's full size.
+`--keyboard-tint <color>` (`RRGGBB` or `AARRGGBB`, `#` optional: `9E9E9E`) paints that area in the color, over what the app paints there, and with `--capture screen` over menus and dialogs too. It only paints: actions reach the app under it as without it.
+Keyboards differ in height by device and input method, so there is no default: give the height of the keyboard on the device the screen is laid out for. On that device, with the keyboard up, the app reads it as `MediaQuery.viewInsetsOf(context).bottom`, in the logical pixels `--keyboard` takes.
+`--enter` puts text into a field without raising any keyboard, so the state while typing is shot with both:
+
+```bash
+shutter shot lib/preview/login_preview.dart --enter 'label:Email=example@example.com' --keyboard 336
+```
+
+When posting a shot without `--keyboard-tint`, say that the band at the bottom stands for the keyboard: nothing in the image shows it.
+The run records the height and the tint as it does its actions; neither is part of shot ids, so a run with `--keyboard` pairs shot for shot with one without.
 
 ### google_fonts
 
@@ -203,7 +211,7 @@ Fonts bundled in the project's assets are used as they are.
 These come from rendering through `flutter test`.
 
 * One capture per preview, after the actions: scrolling and dragging are not shot. A sequence of states, such as the course of an animation, is shot as one run per point in time, each with its own `--settle`.
-* No on-screen keyboard: text entered with `--enter` reaches the field, but the keyboard a device would show is not drawn, even with `--capture screen`, and the layout does not make room for it unless `--keyboard` is given (see Experimental).
+* No on-screen keyboard: text entered with `--enter` reaches the field, but the keyboard a device would show is not drawn, even with `--capture screen`, and the layout does not make room for it unless `--keyboard` is given (see Experimental); `--keyboard-tint` marks its area with a color.
 * HTTP is blocked, so network images fail to load unless `--network-image` serves them.
 * `flutter test` runs the engine with test fonts, which has no system font fallback. Shutter's host fonts are added to the text themes and the default text style, so a text style that sets its own `fontFamilyFallback` does not get them. google_fonts styles do this: glyphs outside the Google font (for example Japanese in a Latin-only font) render as boxes, where a device would fall back to a system font.
 
@@ -217,7 +225,7 @@ When Flutter ships a capture command in the previewer itself, it replaces v1 wit
 
 ## Runs
 
-`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shell` when a shell file was used, `actions`, `capture`, `viewport`, `keyboard`, and `network_images` when given, `shots`).
+`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shell` when a shell file was used, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` when given, `shots`).
 `<run-id>` is the UTC time of the shot (`20260918T101530Z`), suffixed `-2`, `-3`, ... when taken; a hidden `.<run-id>` file claims the name, so runs started in the same second get distinct ids.
 `shot` prints the run directory as `run:`; `diff` accepts a run's directory, its id, `latest` for the newest run, or `latest~N` for the run N before it.
 `latest` counts runs in id order (time, then suffix) and skips a run still being shot, whose `manifest.json` is not written yet.
@@ -261,8 +269,8 @@ When the two runs were shot with different shells (path or sha256), `shell` show
 ## Output
 
 `shot` and `diff` print YAML starting with the comment `# shutter ai-report v1`, with absolute paths to open.
-`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `actions`, `capture`, `viewport`, `keyboard`, and `network_images` (when given), `summary`, and `shots`, errors first.
-`diff` gives `diff` (with `--images` or `--composite`), `before`, `after`, `shell`, `actions`, `capture`, `viewport`, `keyboard`, and `network_images` (each when the two runs differ in it), `summary`, and `entries` in the order changed → added → removed → unchanged.
+`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (when given), `summary`, and `shots`, errors first.
+`diff` gives `diff` (with `--images` or `--composite`), `before`, `after`, `shell`, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (each when the two runs differ in it), `summary`, and `entries` in the order changed → added → removed → unchanged.
 
 ## Exit codes
 
@@ -276,12 +284,12 @@ Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter 
 
 ## Commands
 
-| command  | purpose                                                                                                                                                                                                                               |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent`  | the step-by-step playbook                                                                                                                                                                                                             |
-| `manual` | this document                                                                                                                                                                                                                         |
-| `doctor` | SDK version, font cache, shell (`--shell`)                                                                                                                                                                                            |
-| `init`   | write `shell.dart` (`--shell`)                                                                                                                                                                                                        |
-| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`, `--network-image`) |
-| `diff`   | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                                                  |
+| command  | purpose                                                                                                                                                                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`  | the step-by-step playbook                                                                                                                                                                                                                               |
+| `manual` | this document                                                                                                                                                                                                                                           |
+| `doctor` | SDK version, font cache, shell (`--shell`)                                                                                                                                                                                                              |
+| `init`   | write `shell.dart` (`--shell`)                                                                                                                                                                                                                          |
+| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`) |
+| `diff`   | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                                                                    |
 ''';

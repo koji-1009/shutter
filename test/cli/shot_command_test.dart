@@ -257,6 +257,8 @@ void main() {
       '390x844',
       '--keyboard',
       '336.5',
+      '--keyboard-tint',
+      '#9e9e9e',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
     final request = engine.requests.single;
@@ -275,6 +277,7 @@ void main() {
     );
     expect((request.screen, request.viewport), (true, (390.0, 844.0)));
     expect(request.keyboard, 336.5);
+    expect(request.keyboardTint, 0xFF9E9E9E);
     final report = loadYaml(result.stdout) as YamlMap;
     const labels = [
       'tap text:Open, then close',
@@ -287,11 +290,13 @@ void main() {
     expect(report['capture'], 'screen');
     expect(report['viewport'], [390, 844]);
     expect(report['keyboard'], 336.5);
+    expect(report['keyboard_tint'], '#FF9E9E9E');
     final manifest = RunManifest.read(report['run'] as String);
     final setup = manifest.setup;
     expect(setup.actions, labels);
     expect((setup.screen, setup.viewport), (true, (390.0, 844.0)));
     expect(setup.keyboard, 336.5);
+    expect(setup.keyboardTint, 0xFF9E9E9E);
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),
@@ -309,6 +314,7 @@ void main() {
       expect(request.actions.single.kind, kind);
       expect((request.screen, request.viewport), (false, null));
       expect(request.keyboard, isNull);
+      expect(request.keyboardTint, isNull);
     }
   });
 
@@ -445,6 +451,37 @@ void main() {
         contains('--keyboard must be a height in logical pixels'),
       );
     }
+    for (final tint in ['gray', '9E9E9', '#9E9E9E9E9', '0x9E9E9E', '']) {
+      final bad = await run([
+        '--widget',
+        'x',
+        '--keyboard',
+        '336',
+        '--keyboard-tint',
+        tint,
+      ]);
+      expect(bad.exitCode, 64, reason: tint);
+      expect(bad.stderr, contains('--keyboard-tint must be a color'));
+    }
+    final translucent = FakeEngine(const []);
+    await runCli([
+      'shot',
+      '--widget',
+      'x',
+      '--keyboard',
+      '336',
+      '--keyboard-tint',
+      '809e9e9e',
+    ], fakeContext(createProject(), engine: translucent));
+    expect(translucent.requests.single.keyboardTint, 0x809E9E9E);
+    final noKeyboard = await run([
+      '--widget',
+      'x',
+      '--keyboard-tint',
+      '9E9E9E',
+    ]);
+    expect(noKeyboard.exitCode, 64);
+    expect(noKeyboard.stderr, contains('--keyboard-tint needs --keyboard.'));
     for (final image in [
       'https://example.com/a.png',
       'example.com/a.png=outside.dart',

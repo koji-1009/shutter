@@ -93,7 +93,14 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         'keyboard',
         help:
             'Lay out as with an on-screen keyboard this many logical pixels '
-            'high, e.g. 336 (experimental); the keyboard is not drawn.',
+            'high, e.g. 336 (experimental); the keyboard is not drawn '
+            '(see --keyboard-tint).',
+      )
+      ..addOption(
+        'keyboard-tint',
+        help:
+            'Paint the --keyboard area in this color, as RRGGBB or AARRGGBB, '
+            'e.g. 9E9E9E.',
       )
       ..addMultiOption(
         'network-image',
@@ -137,6 +144,10 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
       final raw? => parseKeyboard(raw),
       null => null,
     };
+    final keyboardTint = switch (args.option('keyboard-tint')) {
+      final raw? => parseKeyboardTint(raw),
+      null => null,
+    };
     final networkImages = parseNetworkImages(
       args.multiOption('network-image'),
       workingDirectory: context.workingDirectory,
@@ -144,6 +155,9 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
     final files = args.rest;
     if (source == null && (imports.isNotEmpty || size != null)) {
       throw ShutterException.usage('--import and --size need --widget.');
+    }
+    if (keyboardTint != null && keyboard == null) {
+      throw ShutterException.usage('--keyboard-tint needs --keyboard.');
     }
     if (viewport != null && !screen) {
       throw ShutterException.usage('--viewport needs --capture screen.');
@@ -212,6 +226,7 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         screen: screen,
         viewport: viewport,
         keyboard: keyboard,
+        keyboardTint: keyboardTint,
         networkImages: networkImages,
       ),
     );
@@ -224,6 +239,7 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         screen: screen,
         viewport: viewport,
         keyboard: keyboard,
+        keyboardTint: keyboardTint,
         networkImages: imageRecords,
       ),
     )..write(runDir);

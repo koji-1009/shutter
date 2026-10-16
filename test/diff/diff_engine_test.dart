@@ -47,6 +47,7 @@ void main() {
           screen: true,
           viewport: (390, 844),
           keyboard: null,
+          keyboardTint: null,
           networkImages: {},
         ),
       )..write(dir),

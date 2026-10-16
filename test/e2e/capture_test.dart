@@ -182,6 +182,31 @@ Widget own() => Builder(
     // No keyboard is drawn: under it, the screen holds what the app paints
     // there, the Scaffold's background.
     expect(color(screen, 'Keyboard / scaffold', 500), (0, 255, 0));
+
+    // --keyboard-tint paints the keyboard's area in either capture, over
+    // the bar of the Scaffold that does not resize; above it, the app.
+    const tint = ['--keyboard', '100', '--keyboard-tint', '0000FF'];
+    final tinted = await shootIn(root, [file, ...tint]);
+    final tintedScreen = await shootIn(root, [
+      file,
+      ...tint,
+      '--capture',
+      'screen',
+      '--viewport',
+      '200x300',
+    ]);
+    expect(RunManifest.read(tinted.$1).setup.keyboardTint, 0xFF0000FF);
+    for (final run in [tinted, tintedScreen]) {
+      for (final name in [
+        'Keyboard / scaffold',
+        'Keyboard / not resized',
+        'Keyboard / own layout',
+      ]) {
+        expect(color(run, name, 580), (0, 0, 255), reason: name);
+        expect(color(run, name, 390), isNot((0, 0, 255)), reason: name);
+      }
+      expect(color(run, 'Keyboard / scaffold', 380), red);
+    }
   });
 
   test('--network-image serves a file to Image.network', () async {

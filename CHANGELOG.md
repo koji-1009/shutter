@@ -2,10 +2,11 @@
 
 ## Unreleased
 
-Network images, from files fetched beforehand.
+Network images, from files fetched beforehand, and the on-screen keyboard's area in a color.
 
 * `shutter shot --network-image <url>=<file>` (repeatable) serves the file to a `NetworkImage` that requests the URL, which `flutter test` otherwise answers with 400. A URL that is not served still fails, so a missed image stays an `error` shot. Only what `NetworkImage` fetches is served; other HTTP clients such as `package:http` are not.
 * `shot` prints each URL with its file and sha256, `manifest.json` records them, and `diff` prints both runs' when they differ. They are not part of shot ids.
+* `shutter shot --keyboard-tint <color>` (experimental, with `--keyboard`) paints the keyboard's area in the color, given as `RRGGBB` or `AARRGGBB`: over what the app paints there in either capture, and over menus and dialogs with `--capture screen`. It only paints; actions reach the app under it. `shot` prints it, `manifest.json` records it, and `diff` prints both runs' when they differ.
 
 ## 0.2.2
 

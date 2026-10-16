@@ -81,6 +81,7 @@ void main() {
         screen: true,
         viewport: (390, 844.5),
         keyboard: 336,
+        keyboardTint: 0x809E9E9E,
         networkImages: {
           'https://example.com/a.png': (path: 'test/a.png', sha256: 'cd34'),
         },
@@ -91,6 +92,7 @@ void main() {
     expect(setup.actions, ['tap text:Open', 'press key:save']);
     expect((setup.screen, setup.viewport), (true, (390.0, 844.5)));
     expect(setup.keyboard, 336.0);
+    expect(setup.keyboardTint, 0x809E9E9E);
     expect(setup.networkImages, {
       'https://example.com/a.png': (path: 'test/a.png', sha256: 'cd34'),
     });
@@ -100,9 +102,11 @@ void main() {
       'capture',
       'viewport',
       'keyboard',
+      'keyboard_tint',
       'network_images',
       'shots',
     ]);
+    expect(back.toJson()['keyboard_tint'], '#809E9E9E');
     expect(jsonEncode(back.toJson()['viewport']), '[390,844.5]');
     expect(jsonEncode(back.toJson()['keyboard']), '336');
     final plain = RunManifest.fromJson(const {'run': 'r', 'shots': []});
@@ -110,6 +114,7 @@ void main() {
     expect(plain.setup.actions, isEmpty);
     expect((plain.setup.screen, plain.setup.viewport), (false, null));
     expect(plain.setup.keyboard, isNull);
+    expect(plain.setup.keyboardTint, isNull);
     expect(plain.setup.networkImages, isEmpty);
   });
 }

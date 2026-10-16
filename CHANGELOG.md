@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
 
 Network images, from files fetched beforehand, and the on-screen keyboard's area in a color.
 

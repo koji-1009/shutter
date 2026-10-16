@@ -94,6 +94,14 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         help:
             'Lay out as with an on-screen keyboard this many logical pixels '
             'high, e.g. 336 (experimental); the keyboard is not drawn.',
+      )
+      ..addMultiOption(
+        'network-image',
+        help:
+            'Serve this file to Image.network for this URL, as <url>=<file>, '
+            'e.g. https://example.com/avatar.png=test/images/avatar.png. '
+            'Repeatable.',
+        splitCommas: false,
       );
   }
 
@@ -129,6 +137,10 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
       final raw? => parseKeyboard(raw),
       null => null,
     };
+    final networkImages = parseNetworkImages(
+      args.multiOption('network-image'),
+      workingDirectory: context.workingDirectory,
+    );
     final files = args.rest;
     if (source == null && (imports.isNotEmpty || size != null)) {
       throw ShutterException.usage('--import and --size need --widget.');
@@ -184,7 +196,8 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
       }
     }
     // Hashed before rendering, so the record is the file that was shot.
-    final shellRecord = shell == null ? null : shellFile(project, shell);
+    final shellRecord = shell == null ? null : recordedFile(project, shell);
+    final imageRecords = networkImageFiles(project, networkImages);
     final runDir = createTimestampDir(project.runsDir, context.clock());
     final engine = context.engineFactory(sdk);
     final shots = await engine.capture(
@@ -199,6 +212,7 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         screen: screen,
         viewport: viewport,
         keyboard: keyboard,
+        networkImages: networkImages,
       ),
     );
     final manifest = RunManifest(
@@ -210,6 +224,7 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         screen: screen,
         viewport: viewport,
         keyboard: keyboard,
+        networkImages: imageRecords,
       ),
     )..write(runDir);
     reportShots(manifest, runDir, ShutterIO.stdoutSink);

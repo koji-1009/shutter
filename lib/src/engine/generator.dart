@@ -174,6 +174,13 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
   if (request.keyboard case final keyboard?) {
     buffer.writeln('      keyboard: $keyboard,');
   }
+  if (request.networkImages.isNotEmpty) {
+    buffer.writeln('      networkImages: {');
+    for (final MapEntry(:key, :value) in request.networkImages.entries) {
+      buffer.writeln('        ${dartString(key)}: ${dartString(value)},');
+    }
+    buffer.writeln('      },');
+  }
   buffer
     ..writeln('    ),')
     ..writeln(r'    defaultShell: $design.defaultShell,')

@@ -13,6 +13,7 @@ const String harnessText = r'''
 // ignore_for_file: type=lint, implementation_imports, deprecated_member_use
 // ignore_for_file: invalid_use_of_visible_for_testing_member
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -51,6 +52,9 @@ class const ShutterConfig({
   /// Logical height of an on-screen keyboard, reported to the app as the
   /// bottom view inset.
   final double? keyboard,
+
+  /// The file served for each `--network-image` URL.
+  final Map<String, String> networkImages = const {},
 });
 
 /// What an action does to its target.
@@ -149,6 +153,12 @@ void run({
   );
   Directory('${config.runDir}/.results').createSync(recursive: true);
   if (config.googleFonts) _prepareGoogleFonts(fonts);
+  if (config.networkImages.isNotEmpty) {
+    HttpOverrides.global = _ServedImages(HttpOverrides.current, {
+      for (final MapEntry(:key, :value) in config.networkImages.entries)
+        Uri.parse(key): File(value),
+    });
+  }
   setUpAll(() => _loadFonts(config.materialFontsDir, fonts));
   for (final entry in entries) {
     final List<Preview> previews;
@@ -770,6 +780,104 @@ Map<String, List<File>> _systemFallbackFonts() {
     if (cjk.isNotEmpty) 'ShutterFallbackCjk': cjk,
     if (emoji.isNotEmpty) 'ShutterFallbackEmoji': emoji,
   };
+}
+
+/// The test binding answers every HTTP request with 400. `NetworkImage`
+/// fetches through a `dart:io` `HttpClient`, which these overrides create:
+/// a GET of a served URL is answered with its file, anything else goes to
+/// the binding's client.
+class _ServedImages(
+  final HttpOverrides? previous,
+  final Map<Uri, File> files,
+) extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) => _ServedClient(
+    () => previous?.createHttpClient(context) ?? super.createHttpClient(context),
+    files,
+  );
+}
+
+/// Implements what `NetworkImage` uses of an `HttpClient`.
+class _ServedClient(
+  final HttpClient Function() create,
+  final Map<Uri, File> files,
+) implements HttpClient {
+  /// Created on the first request it answers, so a run that fetches only
+  /// served URLs never creates the binding's client, which warns.
+  late final HttpClient _binding = create();
+
+  @override
+  bool autoUncompress = true;
+
+  @override
+  Future<HttpClientRequest> getUrl(Uri url) => openUrl('GET', url);
+
+  @override
+  Future<HttpClientRequest> openUrl(String method, Uri url) async {
+    if (files[url] case final file? when method == 'GET') {
+      return _ServedRequest(url, file.readAsBytesSync());
+    }
+    return _binding.openUrl(method, url);
+  }
+
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _ServedRequest(final Uri uri, final List<int> bytes)
+    implements HttpClientRequest {
+  @override
+  String get method => 'GET';
+
+  /// Takes the headers `Image.network` passes, which a file ignores.
+  @override
+  final HttpHeaders headers = _IgnoredHeaders();
+
+  @override
+  Future<HttpClientResponse> close() async => _ServedResponse(bytes);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _IgnoredHeaders implements HttpHeaders {
+  @override
+  void add(String name, Object value, {bool preserveHeaderCase = false}) {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _ServedResponse(final List<int> bytes) extends Stream<List<int>>
+    implements HttpClientResponse {
+  @override
+  int get statusCode => HttpStatus.ok;
+
+  @override
+  int get contentLength => bytes.length;
+
+  @override
+  HttpClientResponseCompressionState get compressionState =>
+      HttpClientResponseCompressionState.notCompressed;
+
+  @override
+  StreamSubscription<List<int>> listen(
+    void Function(List<int>)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) => Stream.value(bytes).listen(
+    onData,
+    onError: onError,
+    onDone: onDone,
+    cancelOnError: cancelOnError,
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 /// google_fonts resolves a font from assets, then a path_provider cache,

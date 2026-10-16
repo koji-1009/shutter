@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+Network images, from files fetched beforehand.
+
+* `shutter shot --network-image <url>=<file>` (repeatable) serves the file to a `NetworkImage` that requests the URL, which `flutter test` otherwise answers with 400. A URL that is not served still fails, so a missed image stays an `error` shot. Only what `NetworkImage` fetches is served; other HTTP clients such as `package:http` are not.
+* `shot` prints each URL with its file and sha256, `manifest.json` records them, and `diff` prints both runs' when they differ. They are not part of shot ids.
+
 ## 0.2.2
 
 One image per change: before, diff and after on a single sheet.

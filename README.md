@@ -152,14 +152,14 @@ Each is followed by `--settle` milliseconds; shoot again with another `--settle`
 
 ## Subcommands
 
-| Command        | Purpose                                                                                                                                                                                               |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent`        | The step-by-step playbook for AI agents.                                                                                                                                                              |
-| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                                                                                             |
-| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                                                                   |
-| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                                                              |
-| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`). |
-| `diff <a> <b>` | Compare two runs (`--images`, `--composite`).                                                                                                                                                         |
+| Command        | Purpose                                                                                                                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `agent`        | The step-by-step playbook for AI agents.                                                                                                                                                                                 |
+| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                                                                                                                |
+| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                                                                                      |
+| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                                                                                 |
+| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--network-image`). |
+| `diff <a> <b>` | Compare two runs (`--images`, `--composite`).                                                                                                                                                                            |
 
 ## Exit codes
 
@@ -174,7 +174,7 @@ Each is followed by `--settle` milliseconds; shoot again with another `--settle`
 ## Limits
 
 * One capture per preview: state comes from the widget's construction expression and from taps, entered text, a press, a hover, or focus before the capture; scrolling and dragging are not shot, nor is the on-screen keyboard.
-* HTTP is blocked while rendering, so network images fail to load.
+* HTTP is blocked while rendering, so network images fail to load unless `shot --network-image <url>=<file>` serves a file fetched beforehand.
 * Text renders with the project's fonts plus Roboto; CJK and emoji fall back to the host's system fonts, and Cupertino text uses SF Pro on macOS (Roboto elsewhere), as a device would. Compare runs made on the same machine.
 
 ## Experimental

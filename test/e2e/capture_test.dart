@@ -3,6 +3,7 @@ library;
 
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:shutter/src/run/manifest.dart';
@@ -181,6 +182,36 @@ Widget own() => Builder(
     // No keyboard is drawn: under it, the screen holds what the app paints
     // there, the Scaffold's background.
     expect(color(screen, 'Keyboard / scaffold', 500), (0, 255, 0));
+  });
+
+  test('--network-image serves a file to Image.network', () async {
+    final root = await exampleCopy();
+    // A 1x1 opaque blue PNG.
+    final blue = img.encodePng(
+      img.Image(width: 1, height: 1)..setPixelRgb(0, 0, 0, 0, 255),
+    );
+    File(p.join(root, 'test', 'images', 'avatar.png'))
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(blue);
+    final (run, shots) = await shootIn(root, [
+      'lib/preview/media_preview.dart',
+      '--network-image',
+      'https://example.com/avatar.png=test/images/avatar.png',
+    ]);
+    final avatar = shots['Avatar / network image']!;
+    expect(avatar.status, ShotStatus.ok, reason: avatar.error);
+    final image = img.decodePng(
+      File(p.join(run, avatar.png!)).readAsBytesSync(),
+    )!;
+    // The image keeps its own 1x1 size, at the centre of the preview.
+    final pixel = image.getPixel(image.width ~/ 2, image.height ~/ 2);
+    expect((pixel.r, pixel.g, pixel.b, pixel.a), (0, 0, 255, 255));
+    expect(RunManifest.read(run).setup.networkImages, {
+      'https://example.com/avatar.png': (
+        path: 'test/images/avatar.png',
+        sha256: sha256.convert(blue).toString(),
+      ),
+    });
   });
 
   test('--capture screen holds a pushed page; --settle lets its transition '

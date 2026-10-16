@@ -312,6 +312,40 @@ void main() {
     }
   });
 
+  test('--network-image: the file for each URL, recorded in the manifest and '
+      'the report with its sha256', () async {
+    final root = createProject(
+      files: {'test/images/a.png': 'a', 'test/images/b.png': 'b'},
+    );
+    final engine = FakeEngine(const []);
+    final result = await runCli([
+      'shot',
+      '--widget',
+      'A()',
+      '--network-image',
+      'https://example.com/a.png=test/images/a.png',
+      '--network-image',
+      'http://example.com/b?w=2=${p.join(root, 'test/images/b.png')}',
+    ], fakeContext(root, engine: engine));
+    expect(result.exitCode, 0, reason: result.stderr);
+    // The URL ends at the last `=`: its query keeps its own.
+    expect(engine.requests.single.networkImages, {
+      'https://example.com/a.png': p.join(root, 'test/images/a.png'),
+      'http://example.com/b?w=2': p.join(root, 'test/images/b.png'),
+    });
+    final a = sha256.convert('a'.codeUnits).toString();
+    final b = sha256.convert('b'.codeUnits).toString();
+    final report = loadYaml(result.stdout) as YamlMap;
+    expect(report['network_images'], {
+      'https://example.com/a.png': {'path': 'test/images/a.png', 'sha256': a},
+      'http://example.com/b?w=2': {'path': 'test/images/b.png', 'sha256': b},
+    });
+    expect(RunManifest.read(report['run'] as String).setup.networkImages, {
+      'https://example.com/a.png': (path: 'test/images/a.png', sha256: a),
+      'http://example.com/b?w=2': (path: 'test/images/b.png', sha256: b),
+    });
+  });
+
   test('a named file without previews is missing input', () async {
     final root = createProject(
       resolvable: true,
@@ -411,6 +445,42 @@ void main() {
         contains('--keyboard must be a height in logical pixels'),
       );
     }
+    for (final image in [
+      'https://example.com/a.png',
+      'example.com/a.png=outside.dart',
+      'file:///a.png=outside.dart',
+      'https:///a.png=outside.dart',
+      'https://example.com/a.png=',
+      'http://[=outside.dart',
+    ]) {
+      final bad = await run(['--widget', 'x', '--network-image', image]);
+      expect(bad.exitCode, 64, reason: image);
+      expect(bad.stderr, contains('--network-image must be <url>=<file>'));
+    }
+    final twice = await run([
+      '--widget',
+      'x',
+      '--network-image',
+      'https://example.com/a.png=outside.dart',
+      '--network-image',
+      'https://example.com/a.png=outside.dart',
+    ]);
+    expect(twice.exitCode, 64);
+    expect(
+      twice.stderr,
+      contains('--network-image gives https://example.com/a.png twice.'),
+    );
+    final noImage = await run([
+      '--widget',
+      'x',
+      '--network-image',
+      'https://example.com/a.png=nope.png',
+    ]);
+    expect(noImage.exitCode, 66);
+    expect(
+      noImage.stderr,
+      contains('--network-image file nope.png does not exist.'),
+    );
     final outside = await run(['--widget', 'x', '--import', 'outside.dart']);
     expect(outside.exitCode, 64);
     expect(outside.stderr, contains('--import must be under lib/'));

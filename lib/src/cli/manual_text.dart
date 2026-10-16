@@ -121,12 +121,33 @@ Host fonts come from the machine that shoots, so compare runs made on the same m
 
 Settling: `Image` widgets are precached, then one `pump(settle)` (`--settle`, default 300 ms); after each action, `--settle` ms more in 16 ms frames. `pumpAndSettle` is never used, because a loading indicator never settles.
 
-HTTP is blocked by the test binding. A `NetworkImage` fails and the shot is `error`.
+HTTP is blocked by the test binding. A `NetworkImage` fails and the shot is `error`, unless `--network-image` serves its URL (see Network images).
 
 Errors (exceptions, overflows, failed image loads) do not stop the run.
 The first one becomes the shot's `error`, and the first `lib/` location in its report becomes `at` (never generated code under `.dart_tool/shutter/`). For an image that fails to load, `at` is where the failing `Image` widget is created; when the report names no `lib/` location, `at` is the preview.
 The PNG is still written when the frame was painted: overflow stripes are evidence.
 A shot is also `error` when nothing was painted (a shell or wrapper that does not build its child), and when it never finished (a timeout, or the test process exiting); `at` then points at the preview.
+
+## Network images
+
+The test binding answers every HTTP request with status 400, so an `Image.network` never gets its image.
+`shot --network-image <url>=<file>` serves a file you fetched beforehand for that URL: a `NetworkImage` that requests the URL gets the file's bytes, as if the server had sent them, and is drawn as on a device.
+
+```bash
+curl --create-dirs -o .dart_tool/shutter/images/avatar.png https://example.com/avatar.png
+shutter shot lib/preview/profile_preview.dart --network-image https://example.com/avatar.png=.dart_tool/shutter/images/avatar.png
+```
+
+* The URL ends at the last `=`, so a query keeps its own: `'https://example.com/a.png?w=96=test/images/a.png'`. It is matched against the URL the `NetworkImage` requests, as `Uri` compares them.
+* The file is relative to the working directory (or absolute), anywhere on disk. A file kept for one task goes under `.dart_tool/shutter/`; images every change is shot with can be committed, under `test/` for example.
+* Repeatable, one per URL. A URL that is not served still fails, so a missed image is an `error` shot naming its URL, never a silent blank.
+* The image is in the shot when an `Image` widget shows it (`Image.network`, or `Image(image: NetworkImage(...))`): `Image` widgets are precached before the capture.
+* Only what `NetworkImage` fetches is served. Another HTTP client asking for a served URL, such as `package:http`, fails.
+
+The run records each URL with its file and the file's sha256 in `manifest.json`; `shot` prints them, and `diff` prints both runs' when they differ, since another file changes the image without any widget changing.
+They are not part of shot ids, so a run with `--network-image` pairs shot for shot with one without.
+
+A preview can also pass the widget an image without HTTP, when the widget takes an `ImageProvider` rather than a URL: an `AssetImage`, or a `MemoryImage` of bytes the preview file holds.
 
 ## Experimental
 
@@ -183,7 +204,7 @@ These come from rendering through `flutter test`.
 
 * One capture per preview, after the actions: scrolling and dragging are not shot. A sequence of states, such as the course of an animation, is shot as one run per point in time, each with its own `--settle`.
 * No on-screen keyboard: text entered with `--enter` reaches the field, but the keyboard a device would show is not drawn, even with `--capture screen`, and the layout does not make room for it unless `--keyboard` is given (see Experimental).
-* HTTP is blocked, so network images fail to load.
+* HTTP is blocked, so network images fail to load unless `--network-image` serves them.
 * `flutter test` runs the engine with test fonts, which has no system font fallback. Shutter's host fonts are added to the text themes and the default text style, so a text style that sets its own `fontFamilyFallback` does not get them. google_fonts styles do this: glyphs outside the Google font (for example Japanese in a Latin-only font) render as boxes, where a device would fall back to a system font.
 
 ## Engine
@@ -196,7 +217,7 @@ When Flutter ships a capture command in the previewer itself, it replaces v1 wit
 
 ## Runs
 
-`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shell` when a shell file was used, `actions`, `capture`, `viewport`, and `keyboard` when given, `shots`).
+`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `shell` when a shell file was used, `actions`, `capture`, `viewport`, `keyboard`, and `network_images` when given, `shots`).
 `<run-id>` is the UTC time of the shot (`20260918T101530Z`), suffixed `-2`, `-3`, ... when taken; a hidden `.<run-id>` file claims the name, so runs started in the same second get distinct ids.
 `shot` prints the run directory as `run:`; `diff` accepts a run's directory, its id, `latest` for the newest run, or `latest~N` for the run N before it.
 `latest` counts runs in id order (time, then suffix) and skips a run still being shot, whose `manifest.json` is not written yet.
@@ -240,8 +261,8 @@ When the two runs were shot with different shells (path or sha256), `shell` show
 ## Output
 
 `shot` and `diff` print YAML starting with the comment `# shutter ai-report v1`, with absolute paths to open.
-`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `actions`, `capture`, `viewport`, and `keyboard` (when given), `summary`, and `shots`, errors first.
-`diff` gives `diff` (with `--images` or `--composite`), `before`, `after`, `shell`, `actions`, `capture`, `viewport`, and `keyboard` (each when the two runs differ in it), `summary`, and `entries` in the order changed → added → removed → unchanged.
+`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `actions`, `capture`, `viewport`, `keyboard`, and `network_images` (when given), `summary`, and `shots`, errors first.
+`diff` gives `diff` (with `--images` or `--composite`), `before`, `after`, `shell`, `actions`, `capture`, `viewport`, `keyboard`, and `network_images` (each when the two runs differ in it), `summary`, and `entries` in the order changed → added → removed → unchanged.
 
 ## Exit codes
 
@@ -255,12 +276,12 @@ Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter 
 
 ## Commands
 
-| command  | purpose                                                                                                                                                                                                            |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `agent`  | the step-by-step playbook                                                                                                                                                                                          |
-| `manual` | this document                                                                                                                                                                                                      |
-| `doctor` | SDK version, font cache, shell (`--shell`)                                                                                                                                                                         |
-| `init`   | write `shell.dart` (`--shell`)                                                                                                                                                                                     |
-| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`) |
-| `diff`   | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                               |
+| command  | purpose                                                                                                                                                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`  | the step-by-step playbook                                                                                                                                                                                                             |
+| `manual` | this document                                                                                                                                                                                                                         |
+| `doctor` | SDK version, font cache, shell (`--shell`)                                                                                                                                                                                            |
+| `init`   | write `shell.dart` (`--shell`)                                                                                                                                                                                                        |
+| `shot`   | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`, `--network-image`) |
+| `diff`   | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                                                  |
 ''';

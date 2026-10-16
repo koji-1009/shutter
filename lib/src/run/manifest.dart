@@ -104,18 +104,23 @@ class const Shot({
   };
 }
 
-/// The shell file a run was shot with: its path (project-relative, or
-/// absolute outside the project) and the sha256 of its bytes.
-typedef ShellFile = ({String path, String sha256});
+/// A file a run read: its path (project-relative, or absolute outside the
+/// project) and the sha256 of its bytes.
+typedef RecordedFile = ({String path, String sha256});
+
+/// The shell file a run was shot with.
+typedef ShellFile = RecordedFile;
 
 /// What a run did to every preview besides rendering it: the actions
 /// performed before the capture, whether the whole viewport was
-/// captured, the `--viewport`, and the `--keyboard` height.
+/// captured, the `--viewport`, the `--keyboard` height, and the file
+/// served for each `--network-image` URL.
 typedef RunSetup = ({
   List<String> actions,
   bool screen,
   (double, double)? viewport,
   double? keyboard,
+  Map<String, RecordedFile> networkImages,
 });
 
 /// The setup of a run shot without actions, of the preview alone.
@@ -124,7 +129,21 @@ const RunSetup plainSetup = (
   screen: false,
   viewport: null,
   keyboard: null,
+  networkImages: {},
 );
+
+RecordedFile? _recordedFile(Object? json) => switch (json) {
+  {'path': final String path, 'sha256': final String sha256} => (
+    path: path,
+    sha256: sha256,
+  ),
+  _ => null,
+};
+
+Map<String, Object?> _recordedFileJson(RecordedFile file) => {
+  'path': file.path,
+  'sha256': file.sha256,
+};
 
 /// `manifest.json` of one run directory.
 class const RunManifest({
@@ -144,13 +163,7 @@ class const RunManifest({
       for (final shot in json['shots'] as List<Object?>)
         Shot.fromJson(shot as Map<String, Object?>),
     ],
-    shell: switch (json['shell']) {
-      {'path': final String path, 'sha256': final String sha256} => (
-        path: path,
-        sha256: sha256,
-      ),
-      _ => null,
-    },
+    shell: _recordedFile(json['shell']),
     setup: (
       actions: [...?(json['actions'] as List<Object?>?)?.cast<String>()],
       screen: json['capture'] == 'screen',
@@ -159,6 +172,12 @@ class const RunManifest({
         _ => null,
       },
       keyboard: (json['keyboard'] as num?)?.toDouble(),
+      networkImages: {
+        for (final MapEntry(:key, :value)
+            in ((json['network_images'] as Map<String, Object?>?) ?? {})
+                .entries)
+          key: ?_recordedFile(value),
+      },
     ),
   );
 
@@ -172,16 +191,20 @@ class const RunManifest({
   int get exitCode => shots.any((s) => s.status == ShotStatus.error) ? 2 : 0;
 
   Map<String, Object?> toJson() {
-    final (:actions, :screen, :viewport, :keyboard) = setup;
+    final (:actions, :screen, :viewport, :keyboard, :networkImages) = setup;
     return {
       'run': run,
-      if (shell case (:final path, :final sha256)?)
-        'shell': {'path': path, 'sha256': sha256},
+      if (shell case final shell?) 'shell': _recordedFileJson(shell),
       if (actions.isNotEmpty) 'actions': actions,
       if (screen) 'capture': 'screen',
       if (viewport case (final w, final h)?)
         'viewport': [jsonNumber(w), jsonNumber(h)],
       if (keyboard != null) 'keyboard': jsonNumber(keyboard),
+      if (networkImages.isNotEmpty)
+        'network_images': {
+          for (final MapEntry(:key, :value) in networkImages.entries)
+            key: _recordedFileJson(value),
+        },
       'shots': [for (final shot in shots) shot.toJson()],
     };
   }

@@ -34,6 +34,13 @@ class const CaptureRequest({
   /// Logical height of an on-screen keyboard, reported to the app as the
   /// bottom view inset.
   final double? keyboard,
+
+  /// ARGB color the keyboard's area is painted in; none leaves it as the
+  /// app paints it.
+  final int? keyboardTint,
+
+  /// Absolute path of the file served for each `--network-image` URL.
+  final Map<String, String> networkImages = const {},
 });
 
 /// The only swappable layer: turns scanned previews and a `--widget` into

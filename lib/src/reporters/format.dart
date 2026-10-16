@@ -8,12 +8,32 @@ String formatNumber(double value) => jsonNumber(value).toString();
 String formatSize((double, double) size) =>
     '[${formatNumber(size.$1)}, ${formatNumber(size.$2)}]';
 
+/// `{path: ..., sha256: ...}`.
+String formatFile(RecordedFile file) =>
+    '{path: ${yamlScalar(file.path)}, sha256: ${file.sha256}}';
+
 /// `{path: ..., sha256: ...}`, or `default` for the default shell.
 String formatShell(ShellFile? shell) => switch (shell) {
-  (:final path, :final sha256) =>
-    '{path: ${yamlScalar(path)}, sha256: $sha256}',
+  final shell? => formatFile(shell),
   null => 'default',
 };
+
+/// `"#FF9E9E9E"`, or `none` for a run shot without `--keyboard-tint`.
+String formatKeyboardTint(int? tint) => switch (tint) {
+  final argb? => yamlScalar(colorHex(argb)),
+  null => 'none',
+};
+
+/// `{<url>: {path: ..., sha256: ...}}`, or `none` for a run shot without
+/// `--network-image`.
+String formatNetworkImages(Map<String, RecordedFile> images) {
+  if (images.isEmpty) return 'none';
+  final entries = [
+    for (final MapEntry(:key, :value) in images.entries)
+      '${yamlScalar(key)}: ${formatFile(value)}',
+  ];
+  return '{${entries.join(', ')}}';
+}
 
 /// `["tap text:Save", "press key:ok"]`.
 String formatActions(List<String> actions) =>
@@ -34,8 +54,8 @@ String formatKeyboard(double? keyboard) => switch (keyboard) {
   null => 'none',
 };
 
-/// The `actions`, `capture`, `viewport`, and `keyboard` lines of a run's
-/// [setup], each only when set.
+/// The `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and
+/// `network_images` lines of a run's [setup], each only when set.
 void writeSetup(StringBuffer body, RunSetup setup) {
   if (setup.actions.isNotEmpty) {
     body.writeln('actions: ${formatActions(setup.actions)}');
@@ -46,6 +66,12 @@ void writeSetup(StringBuffer body, RunSetup setup) {
   }
   if (setup.keyboard case final keyboard?) {
     body.writeln('keyboard: ${formatKeyboard(keyboard)}');
+  }
+  if (setup.keyboardTint case final tint?) {
+    body.writeln('keyboard_tint: ${formatKeyboardTint(tint)}');
+  }
+  if (setup.networkImages.isNotEmpty) {
+    body.writeln('network_images: ${formatNetworkImages(setup.networkImages)}');
   }
 }
 

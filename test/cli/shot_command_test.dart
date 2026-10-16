@@ -257,6 +257,8 @@ void main() {
       '390x844',
       '--keyboard',
       '336.5',
+      '--keyboard-tint',
+      '#9e9e9e',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
     final request = engine.requests.single;
@@ -275,6 +277,7 @@ void main() {
     );
     expect((request.screen, request.viewport), (true, (390.0, 844.0)));
     expect(request.keyboard, 336.5);
+    expect(request.keyboardTint, 0xFF9E9E9E);
     final report = loadYaml(result.stdout) as YamlMap;
     const labels = [
       'tap text:Open, then close',
@@ -287,11 +290,13 @@ void main() {
     expect(report['capture'], 'screen');
     expect(report['viewport'], [390, 844]);
     expect(report['keyboard'], 336.5);
+    expect(report['keyboard_tint'], '#FF9E9E9E');
     final manifest = RunManifest.read(report['run'] as String);
     final setup = manifest.setup;
     expect(setup.actions, labels);
     expect((setup.screen, setup.viewport), (true, (390.0, 844.0)));
     expect(setup.keyboard, 336.5);
+    expect(setup.keyboardTint, 0xFF9E9E9E);
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),
@@ -309,7 +314,42 @@ void main() {
       expect(request.actions.single.kind, kind);
       expect((request.screen, request.viewport), (false, null));
       expect(request.keyboard, isNull);
+      expect(request.keyboardTint, isNull);
     }
+  });
+
+  test('--network-image: the file for each URL, recorded in the manifest and '
+      'the report with its sha256', () async {
+    final root = createProject(
+      files: {'test/images/a.png': 'a', 'test/images/b.png': 'b'},
+    );
+    final engine = FakeEngine(const []);
+    final result = await runCli([
+      'shot',
+      '--widget',
+      'A()',
+      '--network-image',
+      'https://example.com/a.png=test/images/a.png',
+      '--network-image',
+      'http://example.com/b?w=2=${p.join(root, 'test/images/b.png')}',
+    ], fakeContext(root, engine: engine));
+    expect(result.exitCode, 0, reason: result.stderr);
+    // The URL ends at the last `=`: its query keeps its own.
+    expect(engine.requests.single.networkImages, {
+      'https://example.com/a.png': p.join(root, 'test/images/a.png'),
+      'http://example.com/b?w=2': p.join(root, 'test/images/b.png'),
+    });
+    final a = sha256.convert('a'.codeUnits).toString();
+    final b = sha256.convert('b'.codeUnits).toString();
+    final report = loadYaml(result.stdout) as YamlMap;
+    expect(report['network_images'], {
+      'https://example.com/a.png': {'path': 'test/images/a.png', 'sha256': a},
+      'http://example.com/b?w=2': {'path': 'test/images/b.png', 'sha256': b},
+    });
+    expect(RunManifest.read(report['run'] as String).setup.networkImages, {
+      'https://example.com/a.png': (path: 'test/images/a.png', sha256: a),
+      'http://example.com/b?w=2': (path: 'test/images/b.png', sha256: b),
+    });
   });
 
   test('a named file without previews is missing input', () async {
@@ -411,6 +451,73 @@ void main() {
         contains('--keyboard must be a height in logical pixels'),
       );
     }
+    for (final tint in ['gray', '9E9E9', '#9E9E9E9E9', '0x9E9E9E', '']) {
+      final bad = await run([
+        '--widget',
+        'x',
+        '--keyboard',
+        '336',
+        '--keyboard-tint',
+        tint,
+      ]);
+      expect(bad.exitCode, 64, reason: tint);
+      expect(bad.stderr, contains('--keyboard-tint must be a color'));
+    }
+    final translucent = FakeEngine(const []);
+    await runCli([
+      'shot',
+      '--widget',
+      'x',
+      '--keyboard',
+      '336',
+      '--keyboard-tint',
+      '809e9e9e',
+    ], fakeContext(createProject(), engine: translucent));
+    expect(translucent.requests.single.keyboardTint, 0x809E9E9E);
+    final noKeyboard = await run([
+      '--widget',
+      'x',
+      '--keyboard-tint',
+      '9E9E9E',
+    ]);
+    expect(noKeyboard.exitCode, 64);
+    expect(noKeyboard.stderr, contains('--keyboard-tint needs --keyboard.'));
+    for (final image in [
+      'https://example.com/a.png',
+      'example.com/a.png=outside.dart',
+      'file:///a.png=outside.dart',
+      'https:///a.png=outside.dart',
+      'https://example.com/a.png=',
+      'http://[=outside.dart',
+    ]) {
+      final bad = await run(['--widget', 'x', '--network-image', image]);
+      expect(bad.exitCode, 64, reason: image);
+      expect(bad.stderr, contains('--network-image must be <url>=<file>'));
+    }
+    final twice = await run([
+      '--widget',
+      'x',
+      '--network-image',
+      'https://example.com/a.png=outside.dart',
+      '--network-image',
+      'https://example.com/a.png=outside.dart',
+    ]);
+    expect(twice.exitCode, 64);
+    expect(
+      twice.stderr,
+      contains('--network-image gives https://example.com/a.png twice.'),
+    );
+    final noImage = await run([
+      '--widget',
+      'x',
+      '--network-image',
+      'https://example.com/a.png=nope.png',
+    ]);
+    expect(noImage.exitCode, 66);
+    expect(
+      noImage.stderr,
+      contains('--network-image file nope.png does not exist.'),
+    );
     final outside = await run(['--widget', 'x', '--import', 'outside.dart']);
     expect(outside.exitCode, 64);
     expect(outside.stderr, contains('--import must be under lib/'));

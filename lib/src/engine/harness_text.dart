@@ -13,6 +13,7 @@ const String harnessText = r'''
 // ignore_for_file: type=lint, implementation_imports, deprecated_member_use
 // ignore_for_file: invalid_use_of_visible_for_testing_member
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -51,6 +52,12 @@ class const ShutterConfig({
   /// Logical height of an on-screen keyboard, reported to the app as the
   /// bottom view inset.
   final double? keyboard,
+
+  /// ARGB color the keyboard's area is painted in.
+  final int? keyboardTint,
+
+  /// The file served for each `--network-image` URL.
+  final Map<String, String> networkImages = const {},
 });
 
 /// What an action does to its target.
@@ -149,6 +156,12 @@ void run({
   );
   Directory('${config.runDir}/.results').createSync(recursive: true);
   if (config.googleFonts) _prepareGoogleFonts(fonts);
+  if (config.networkImages.isNotEmpty) {
+    HttpOverrides.global = _ServedImages(HttpOverrides.current, {
+      for (final MapEntry(:key, :value) in config.networkImages.entries)
+        Uri.parse(key): File(value),
+    });
+  }
   setUpAll(() => _loadFonts(config.materialFontsDir, fonts));
   for (final entry in entries) {
     final List<Preview> previews;
@@ -285,8 +298,10 @@ Future<void> _capture(
     tester.view.devicePixelRatio = _pixelRatio;
     tester.view.physicalSize = viewport * _pixelRatio;
     // The inset a device reports while its keyboard is up; the keyboard
-    // itself is not drawn.
-    if (config.keyboard case final keyboard?) {
+    // itself is drawn only as its tint.
+    final keyboard = config.keyboard;
+    final tint = config.keyboardTint;
+    if (keyboard != null) {
       tester.view.viewInsets = FakeViewPadding(bottom: keyboard * _pixelRatio);
     }
     if (preview.brightness != null) {
@@ -307,10 +322,19 @@ Future<void> _capture(
       child = Builder(builder: (context) => theme().apply(context, inner));
     }
     final key = GlobalKey();
-    child = RepaintBoundary(
-      key: key,
-      child: SizedBox(width: width, height: height, child: child),
-    );
+    child = SizedBox(width: width, height: height, child: child);
+    // The keyboard's area, painted over what the app draws there: inside
+    // the captured region here, over the whole view with --capture screen
+    // (below), above menus and dialogs.
+    if (keyboard != null && tint != null && !config.screen) {
+      child = _KeyboardTint(
+        color: Color(tint),
+        top: viewport.height - keyboard,
+        bottom: viewport.height,
+        child: child,
+      );
+    }
+    child = RepaintBoundary(key: key, child: child);
     // Without a finite height the preview gets unbounded height, as in a
     // scrolling list, and is shot at its own height; the width stays
     // bounded by the viewport, as on a screen.
@@ -340,6 +364,23 @@ Future<void> _capture(
       );
     }
     child = ((wrapper == null ? shell : null) ?? _defaultShell)(child);
+    if (keyboard != null && tint != null && config.screen) {
+      child = Stack(
+        alignment: Alignment.topLeft,
+        fit: StackFit.passthrough,
+        children: [
+          child,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: keyboard,
+            // Paint only: actions reach the app as without the tint.
+            child: IgnorePointer(child: ColoredBox(color: Color(tint))),
+          ),
+        ],
+      );
+    }
 
     await tester.pumpWidget(child);
     await _precacheImages(tester);
@@ -426,6 +467,49 @@ Future<void> _capture(
     result['status'] = 'ok';
   }
   _writeResult(config, result);
+}
+
+/// Paints [color] over the part of its child that lies between [top] and
+/// [bottom], logical offsets from the top of the view.
+class _KeyboardTint extends SingleChildRenderObjectWidget {
+  const _KeyboardTint({
+    required this.color,
+    required this.top,
+    required this.bottom,
+    super.child,
+  });
+
+  final Color color;
+  final double top;
+  final double bottom;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderKeyboardTint(color, top, bottom);
+}
+
+class _RenderKeyboardTint(
+  final Color color,
+  final double top,
+  final double bottom,
+) extends RenderProxyBox {
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    super.paint(context, offset);
+    final y = localToGlobal(Offset.zero).dy;
+    final from = (top - y).clamp(0.0, size.height);
+    final to = (bottom - y).clamp(0.0, size.height);
+    if (to <= from) return;
+    context.canvas.drawRect(
+      Rect.fromLTRB(
+        offset.dx,
+        offset.dy + from,
+        offset.dx + size.width,
+        offset.dy + to,
+      ),
+      Paint()..color = color,
+    );
+  }
 }
 
 /// Two decimals: enough to read, stable against float noise.
@@ -770,6 +854,104 @@ Map<String, List<File>> _systemFallbackFonts() {
     if (cjk.isNotEmpty) 'ShutterFallbackCjk': cjk,
     if (emoji.isNotEmpty) 'ShutterFallbackEmoji': emoji,
   };
+}
+
+/// The test binding answers every HTTP request with 400. `NetworkImage`
+/// fetches through a `dart:io` `HttpClient`, which these overrides create:
+/// a GET of a served URL is answered with its file, anything else goes to
+/// the binding's client.
+class _ServedImages(
+  final HttpOverrides? previous,
+  final Map<Uri, File> files,
+) extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) => _ServedClient(
+    () => previous?.createHttpClient(context) ?? super.createHttpClient(context),
+    files,
+  );
+}
+
+/// Implements what `NetworkImage` uses of an `HttpClient`.
+class _ServedClient(
+  final HttpClient Function() create,
+  final Map<Uri, File> files,
+) implements HttpClient {
+  /// Created on the first request it answers, so a run that fetches only
+  /// served URLs never creates the binding's client, which warns.
+  late final HttpClient _binding = create();
+
+  @override
+  bool autoUncompress = true;
+
+  @override
+  Future<HttpClientRequest> getUrl(Uri url) => openUrl('GET', url);
+
+  @override
+  Future<HttpClientRequest> openUrl(String method, Uri url) async {
+    if (files[url] case final file? when method == 'GET') {
+      return _ServedRequest(url, file.readAsBytesSync());
+    }
+    return _binding.openUrl(method, url);
+  }
+
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _ServedRequest(final Uri uri, final List<int> bytes)
+    implements HttpClientRequest {
+  @override
+  String get method => 'GET';
+
+  /// Takes the headers `Image.network` passes, which a file ignores.
+  @override
+  final HttpHeaders headers = _IgnoredHeaders();
+
+  @override
+  Future<HttpClientResponse> close() async => _ServedResponse(bytes);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _IgnoredHeaders implements HttpHeaders {
+  @override
+  void add(String name, Object value, {bool preserveHeaderCase = false}) {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _ServedResponse(final List<int> bytes) extends Stream<List<int>>
+    implements HttpClientResponse {
+  @override
+  int get statusCode => HttpStatus.ok;
+
+  @override
+  int get contentLength => bytes.length;
+
+  @override
+  HttpClientResponseCompressionState get compressionState =>
+      HttpClientResponseCompressionState.notCompressed;
+
+  @override
+  StreamSubscription<List<int>> listen(
+    void Function(List<int>)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) => Stream.value(bytes).listen(
+    onData,
+    onError: onError,
+    onDone: onDone,
+    cancelOnError: cancelOnError,
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 /// google_fonts resolves a font from assets, then a path_provider cache,

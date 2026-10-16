@@ -62,6 +62,68 @@ double parseKeyboard(String raw) {
   );
 }
 
+final _hexColor = RegExp(r'^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$');
+
+/// Parses `--keyboard-tint` as `RRGGBB` or `AARRGGBB`, `#` optional, into
+/// ARGB; six digits are opaque.
+int parseKeyboardTint(String raw) {
+  final match = _hexColor.firstMatch(raw);
+  if (match == null) {
+    throw ShutterException.usage(
+      '--keyboard-tint must be a color as RRGGBB or AARRGGBB, e.g. 9E9E9E '
+      '(got "$raw").',
+    );
+  }
+  final digits = match.group(1)!;
+  return int.parse(digits.length == 6 ? 'FF$digits' : digits, radix: 16);
+}
+
+/// Parses each `--network-image <url>=<file>`: the absolute path of the
+/// file served for each URL, in the order given. The URL ends at the last
+/// `=`, so its query keeps its own; the file is relative to
+/// [workingDirectory] and must exist.
+Map<String, String> parseNetworkImages(
+  List<String> raws, {
+  required String workingDirectory,
+}) {
+  final images = <String, String>{};
+  for (final raw in raws) {
+    final equals = raw.lastIndexOf('=');
+    final url = equals < 0 ? null : Uri.tryParse(raw.substring(0, equals));
+    final file = raw.substring(equals + 1);
+    if (url == null ||
+        !(url.isScheme('http') || url.isScheme('https')) ||
+        url.host.isEmpty ||
+        file.isEmpty) {
+      throw ShutterException.usage(
+        '--network-image must be <url>=<file>, e.g. '
+        'https://example.com/avatar.png=test/images/avatar.png (got "$raw").',
+      );
+    }
+    final key = raw.substring(0, equals);
+    if (images.containsKey(key)) {
+      throw ShutterException.usage('--network-image gives $key twice.');
+    }
+    final path = p.normalize(p.join(workingDirectory, file));
+    if (!File(path).existsSync()) {
+      throw ShutterException.noInput(
+        '--network-image file $file does not exist.',
+      );
+    }
+    images[key] = path;
+  }
+  return images;
+}
+
+/// The manifest record of each `--network-image` file in [images].
+Map<String, RecordedFile> networkImageFiles(
+  Project project,
+  Map<String, String> images,
+) => {
+  for (final MapEntry(:key, :value) in images.entries)
+    key: recordedFile(project, value),
+};
+
 /// The actions of `shot`: every `--tap` and `--enter` in the order given,
 /// then the one `--press`, `--hover`, or `--focus`, whose state lasts
 /// through the capture.
@@ -164,8 +226,8 @@ String? resolveShell(
   return path;
 }
 
-/// The manifest record of the shell file at [path].
-ShellFile shellFile(Project project, String path) => (
+/// The manifest record of the file at [path], such as the shell file.
+RecordedFile recordedFile(Project project, String path) => (
   path: project.shown(path),
   sha256: sha256.convert(File(path).readAsBytesSync()).toString(),
 );

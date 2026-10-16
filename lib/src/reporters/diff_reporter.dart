@@ -44,6 +44,16 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
       formatKeyboard(before.keyboard),
       formatKeyboard(after.keyboard),
     ),
+    (
+      'keyboard_tint',
+      formatKeyboardTint(before.keyboardTint),
+      formatKeyboardTint(after.keyboardTint),
+    ),
+    (
+      'network_images',
+      formatNetworkImages(before.networkImages),
+      formatNetworkImages(after.networkImages),
+    ),
   ]) {
     if (a != b) {
       body

@@ -13,8 +13,10 @@ import 'io_sinks.dart';
 import 'shot_options.dart';
 
 /// `shutter shot` — renders the previews of the named files, or one
-/// `--widget`, into a new run.
-class ShotCommand(final ShutterContext context) extends Command<int> {
+/// `--widget`, into a new run. With [semantics], `shutter semantics`:
+/// the same shots, drawn as their semantics tree.
+class ShotCommand(final ShutterContext context, {final bool semantics = false})
+    extends Command<int> {
   this {
     argParser
       ..addOption(
@@ -93,36 +95,41 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         'keyboard',
         help:
             'Lay out as with an on-screen keyboard this many logical pixels '
-            'high, e.g. 336 (experimental); the keyboard is not drawn '
-            '(see --keyboard-tint).',
-      )
-      ..addOption(
+            'high, e.g. 336 (experimental); the keyboard is not drawn'
+            '${semantics ? '' : ' (see --keyboard-tint)'}.',
+      );
+    // Paint only: the semantics tree has no keyboard.
+    if (!semantics) {
+      argParser.addOption(
         'keyboard-tint',
         help:
             'Paint the --keyboard area in this color, as RRGGBB or AARRGGBB, '
             'e.g. 9E9E9E.',
-      )
-      ..addMultiOption(
-        'network-image',
-        help:
-            'Serve this file to Image.network for this URL, as <url>=<file>, '
-            'e.g. https://example.com/avatar.png=test/images/avatar.png. '
-            'Repeatable.',
-        splitCommas: false,
       );
+    }
+    argParser.addMultiOption(
+      'network-image',
+      help:
+          'Serve this file to Image.network for this URL, as <url>=<file>, '
+          'e.g. https://example.com/avatar.png=test/images/avatar.png. '
+          'Repeatable.',
+      splitCommas: false,
+    );
   }
 
   @override
-  String get name => 'shot';
+  String get name => semantics ? 'semantics' : 'shot';
 
   @override
-  String get description =>
-      'Render the previews in the named files, or one --widget, to PNG as a '
-      'new run.';
+  String get description => semantics
+      ? 'Draw the semantics tree of the previews in the named files, or of '
+            'one --widget, to PNG as a new run.'
+      : 'Render the previews in the named files, or one --widget, to PNG as '
+            'a new run.';
 
   @override
   String get invocation =>
-      'shutter shot <preview-file>... | shutter shot --widget <expression>';
+      'shutter $name <preview-file>... | shutter $name --widget <expression>';
 
   @override
   Future<int> run() async {
@@ -144,7 +151,9 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
       final raw? => parseKeyboard(raw),
       null => null,
     };
-    final keyboardTint = switch (args.option('keyboard-tint')) {
+    final keyboardTint = switch (semantics
+        ? null
+        : args.option('keyboard-tint')) {
       final raw? => parseKeyboardTint(raw),
       null => null,
     };
@@ -228,6 +237,7 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         keyboard: keyboard,
         keyboardTint: keyboardTint,
         networkImages: networkImages,
+        semantics: semantics,
       ),
     );
     final manifest = RunManifest(
@@ -241,6 +251,7 @@ class ShotCommand(final ShutterContext context) extends Command<int> {
         keyboard: keyboard,
         keyboardTint: keyboardTint,
         networkImages: imageRecords,
+        semantics: semantics,
       ),
     )..write(runDir);
     reportShots(manifest, runDir, ShutterIO.stdoutSink);

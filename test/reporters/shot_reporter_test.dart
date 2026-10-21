@@ -93,6 +93,7 @@ shots:
             'https://example.com/a.png': (path: 'test/a.png', sha256: 'cd34'),
             'https://example.com/b?w=2': (path: 'test/b.png', sha256: 'ef56'),
           },
+          semantics: true,
         ),
       ),
     );
@@ -100,6 +101,7 @@ shots:
       text,
       contains(
         'shell: default\n'
+        'image: semantics\n'
         'actions: ["tap text:Open", "press key:save"]\n'
         'capture: screen\n'
         'viewport: [390, 844]\n'
@@ -122,6 +124,7 @@ shots:
           keyboard: null,
           keyboardTint: null,
           networkImages: {},
+          semantics: false,
         ),
       ),
     );

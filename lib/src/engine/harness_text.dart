@@ -16,6 +16,7 @@ const String harnessText = r'''
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -58,6 +59,10 @@ class const ShutterConfig({
 
   /// The file served for each `--network-image` URL.
   final Map<String, String> networkImages = const {},
+
+  /// Draw the semantics tree of what is captured instead of what the app
+  /// paints.
+  final bool semantics = false,
 });
 
 /// What an action does to its target.
@@ -413,7 +418,13 @@ Future<void> _capture(
       final size = screen?.size ?? boundary!.size;
       // The root layer already scales to the device pixel ratio, so it is
       // drawn at 1 over its bounds in physical pixels.
-      final image = screen == null
+      final image = config.semantics
+          ? _semanticsImage(
+              tester,
+              screen == null ? boundary!.localToGlobal(Offset.zero) : .zero,
+              size,
+            )
+          : screen == null
           ? boundary!.toImageSync(pixelRatio: _pixelRatio)
           : (screen.debugLayer! as OffsetLayer).toImageSync(
               screen.paintBounds,
@@ -510,6 +521,174 @@ class _RenderKeyboardTint(
       Paint()..color = color,
     );
   }
+}
+
+/// The view's semantics tree over [size] at [origin], logical in the view,
+/// drawn as Flutter's `SemanticsDebugger` draws it: a white box per node,
+/// framed thicker the higher it is in the tree, in a color of its place
+/// there, with its label and what it does. The whole tree is drawn and
+/// cut to that region, so the preview's nodes are those the app has,
+/// merged as it merges them. The debugger's painter is private, so this
+/// is its drawing.
+ui.Image _semanticsImage(WidgetTester tester, Offset origin, Size size) {
+  final root = tester.binding.renderViews.first.owner!.semanticsOwner!
+      .rootSemanticsNode!;
+  final physical = size * _pixelRatio;
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawRect(
+    Offset.zero & physical,
+    Paint()..color = const Color(0xFFFFFFFF),
+  );
+  // Node rects are in physical pixels from the root node down, each in
+  // its parent's space through its transform.
+  final shift = origin * _pixelRatio;
+  canvas.translate(-shift.dx, -shift.dy);
+  _paintSemantics(canvas, root, _semanticsDepth(root), 0, 0);
+  final picture = recorder.endRecording();
+  // Rounded up, as a layer's image is, so it is the size of the shot.
+  final image = picture.toImageSync(
+    physical.width.ceil(),
+    physical.height.ceil(),
+  );
+  picture.dispose();
+  return image;
+}
+
+int _semanticsDepth(SemanticsNode node) {
+  if (!node.hasChildren || node.mergeAllDescendantsIntoThisNode) return 1;
+  var depth = 0;
+  node.visitChildren((child) {
+    depth = math.max(depth, _semanticsDepth(child));
+    return true;
+  });
+  return depth + 1;
+}
+
+void _paintSemantics(
+  Canvas canvas,
+  SemanticsNode node,
+  int rank,
+  int indexInParent,
+  int level,
+) {
+  if (node.traversalChildIdentifier != null) return;
+  canvas.save();
+  if (node.transform case final transform?) canvas.transform(transform.storage);
+  final rect = node.rect;
+  if (!rect.isEmpty) {
+    final color = HSLColor.fromAHSL(
+      1,
+      // The debugger's seed, with its arguments as it passes them.
+      360 * math.Random(indexInParent * 10000 + level).nextDouble(),
+      1,
+      0.7,
+    ).toColor();
+    final inner = rect.deflate(rank * 1.0);
+    if (inner.isEmpty) {
+      canvas.drawRect(rect, Paint()..color = color);
+    } else {
+      canvas.drawRect(rect, Paint()..color = const Color(0xFFFFFFFF));
+      canvas.drawRect(
+        inner,
+        Paint()
+          ..strokeWidth = rank * 2.0
+          ..color = color
+          ..style = PaintingStyle.stroke,
+      );
+    }
+    final message = _semanticsMessage(node);
+    if (message.isNotEmpty) {
+      canvas.save();
+      canvas.clipRect(rect);
+      final text = TextPainter(
+        text: TextSpan(
+          text: message,
+          style: TextStyle(
+            color: const Color(0xFF000000),
+            // Logical pixels: below the root node, which scales to the
+            // device pixel ratio, the canvas is in the view's units.
+            fontSize: 10,
+            height: 0.8,
+            fontFamily: 'Roboto',
+            fontFamilyFallback: _fallbackFamilies,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+      )..layout(maxWidth: rect.width);
+      text.paint(canvas, Alignment.center.inscribe(text.size, rect).topLeft);
+      text.dispose();
+      canvas.restore();
+    }
+  }
+  if (!node.mergeAllDescendantsIntoThisNode) {
+    var index = 0;
+    node.visitChildren((child) {
+      _paintSemantics(canvas, child, rank - 1, index++, level + 1);
+      return true;
+    });
+  }
+  canvas.restore();
+}
+
+/// The debugger's text of [node]: its tooltip and label, then what it is
+/// and does (checked, textfield, button, disabled, long-pressable,
+/// scrollable, adjustable).
+String _semanticsMessage(SemanticsNode node) {
+  final data = node.getSemanticsData();
+  final annotations = <String>[];
+  var wantsTap = false;
+  if (data.flagsCollection.isChecked != ui.CheckedState.none) {
+    annotations.add(
+      data.flagsCollection.isChecked == ui.CheckedState.isTrue
+          ? 'checked'
+          : 'unchecked',
+    );
+    wantsTap = true;
+  }
+  if (data.flagsCollection.isTextField) {
+    annotations.add('textfield');
+    wantsTap = true;
+  }
+  if (data.hasAction(SemanticsAction.tap)) {
+    if (!wantsTap) annotations.add('button');
+  } else if (wantsTap) {
+    annotations.add('disabled');
+  }
+  if (data.hasAction(SemanticsAction.longPress)) {
+    annotations.add('long-pressable');
+  }
+  if (data.hasAction(SemanticsAction.scrollLeft) ||
+      data.hasAction(SemanticsAction.scrollRight) ||
+      data.hasAction(SemanticsAction.scrollUp) ||
+      data.hasAction(SemanticsAction.scrollDown)) {
+    annotations.add('scrollable');
+  }
+  if (data.hasAction(SemanticsAction.increase) ||
+      data.hasAction(SemanticsAction.decrease)) {
+    annotations.add('adjustable');
+  }
+  // Android does not read a tooltip twice when the label repeats it.
+  final label = data.attributedLabel.string;
+  final tooltipAndLabel = [
+    if (data.tooltip.isNotEmpty) data.tooltip,
+    if (label.isNotEmpty &&
+        !(defaultTargetPlatform == TargetPlatform.android &&
+            label == data.tooltip))
+      label,
+  ].join('\n');
+  if (tooltipAndLabel.isEmpty) return annotations.join('; ').trim();
+  // A node with a label or tooltip always has a text direction: the
+  // framework asserts it, and tests run with asserts.
+  final effective = switch (data.textDirection!) {
+    TextDirection.rtl => '${Unicode.RLI}$tooltipAndLabel${Unicode.PDI}',
+    TextDirection.ltr => tooltipAndLabel,
+  };
+  return (annotations.isEmpty
+          ? effective
+          : '$effective (${annotations.join('; ')})')
+      .trim();
 }
 
 /// Two decimals: enough to read, stable against float noise.

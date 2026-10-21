@@ -169,6 +169,13 @@ void main() {
       runner.commands['shot']!.usage,
       contains('shutter shot <preview-file>...'),
     );
+    expect(
+      runner.commands['semantics']!.usage,
+      contains(
+        'shutter semantics <preview-file>... | '
+        'shutter semantics --widget <expression>',
+      ),
+    );
   });
 
   test('default context reads the real process state', () async {

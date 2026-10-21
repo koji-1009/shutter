@@ -41,6 +41,7 @@ CommandRunner<int> buildCommandRunner([ShutterContext? context]) {
     ..addCommand(DoctorCommand(ctx))
     ..addCommand(InitCommand(ctx))
     ..addCommand(ShotCommand(ctx))
+    ..addCommand(ShotCommand(ctx, semantics: true))
     ..addCommand(DiffCommand(ctx));
 }
 

@@ -150,8 +150,8 @@ entries:
     });
   });
 
-  test('the actions, capture, viewport, keyboard and its tint, and network '
-      'images of both runs, each only when they differ', () async {
+  test('the image, actions, capture, viewport, keyboard and its tint, and '
+      'network images of both runs, each only when they differ', () async {
     Future<YamlMap> report(RunSetup before, RunSetup after) async => loadYaml(
       await collect(
         (sink) => reportDiff(
@@ -174,6 +174,7 @@ entries:
       keyboard: null,
       keyboardTint: null,
       networkImages: <String, RecordedFile>{},
+      semantics: false,
     );
     const screen = (
       actions: ['press text:OK'],
@@ -182,9 +183,11 @@ entries:
       keyboard: null,
       keyboardTint: null,
       networkImages: <String, RecordedFile>{},
+      semantics: false,
     );
     final same = await report(pressed, pressed);
     for (final key in [
+      'image',
       'actions',
       'capture',
       'viewport',
@@ -215,6 +218,7 @@ entries:
       keyboard: 336.0,
       keyboardTint: null,
       networkImages: <String, RecordedFile>{},
+      semantics: false,
     );
     final keyboard = await report(plainSetup, typing);
     expect(keyboard['keyboard'], {'before': 'none', 'after': 336});
@@ -227,6 +231,7 @@ entries:
       keyboard: 336.0,
       keyboardTint: 0xFF9E9E9E,
       networkImages: <String, RecordedFile>{},
+      semantics: false,
     );
     final tint = await report(typing, tinted);
     expect(tint.containsKey('keyboard'), isFalse);
@@ -240,6 +245,7 @@ entries:
       networkImages: {
         'https://example.com/a.png': (path: 'test/a.png', sha256: 'cd34'),
       },
+      semantics: false,
     );
     final images = await report(plainSetup, served);
     expect(images['network_images'], {
@@ -248,6 +254,17 @@ entries:
         'https://example.com/a.png': {'path': 'test/a.png', 'sha256': 'cd34'},
       },
     });
+    const tree = (
+      actions: <String>[],
+      screen: false,
+      viewport: null,
+      keyboard: null,
+      keyboardTint: null,
+      networkImages: <String, RecordedFile>{},
+      semantics: true,
+    );
+    final image = await report(plainSetup, tree);
+    expect(image['image'], {'before': 'paint', 'after': 'semantics'});
   });
 
   test('a change of one pixel in many keeps a nonzero ratio', () async {

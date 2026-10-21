@@ -21,6 +21,7 @@ The article [Before-and-After Images for Flutter UI Changes, Without Launching t
 * A refactor that should change nothing on screen: `diff` calls every shot `unchanged`, or names the ones that changed.
 * A widget that might break on screen: an overflow, a `build` that throws, or an image that fails to load comes back as an `error` shot, with `at` naming the `lib/` line behind it, and the PNG still shows the overflow stripes.
 * A dependency you just added or upgraded: shoot the screens that use it before and after, and the diff names the ones its defaults changed.
+* A change to what TalkBack and VoiceOver read: `shutter semantics` draws the semantics tree, so a button removed from it or a new label shows in the diff when the pixels do not change.
 
 > **AI agents — start here:** run `shutter agent` before driving the tool. It is the step-by-step playbook: choosing the previews to shoot, shooting before and after, and reading the diff. `shutter manual` is the reference. Both ship in the binary, so `dart install shutter` is enough.
 
@@ -31,6 +32,7 @@ A visual change is closed by an image, not by "it compiles" or "the tests pass".
 * `shutter shot <preview-file>...` renders the widgets of the named preview files to PNG. A preview file imports any widget of the app and returns it from a function annotated with Flutter's `@Preview`; the widget itself needs no annotation.
 * `shutter diff <run-a> <run-b>` classifies each shot of two runs as `changed`, `added`, `removed`, or `unchanged`, and points at its before and after images (`--images` adds an image marking the differing pixels, `--composite` one image holding all three panels).
 * `shutter shot --widget '<expression>'` renders one widget expression, with `--import` naming the project files it needs, for a quick look without writing a preview file.
+* `shutter semantics` takes the same files and options as `shot`, but `--keyboard-tint`, and draws each widget's semantics tree instead, as Flutter's `SemanticsDebugger` does, for a change a screenshot does not show.
 
 Each command does one thing and prints paths, so it composes with `grep`, `git`, `gh`, and whatever opens images.
 Shutter makes no judgement: it does not decide what to shoot, whether a change is good, or where to post.
@@ -160,15 +162,17 @@ Each is followed by `--settle` milliseconds; shoot again with another `--settle`
 | `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                                                                                                                      |
 | `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                                                                                                                 |
 | `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`). |
+| `semantics`    | Draw the semantics tree of the same subjects into a new run, with the options of `shot` except `--keyboard-tint`.                                                                                                                                        |
 | `diff <a> <b>` | Compare two runs (`--images`, `--composite`).                                                                                                                                                                                                            |
 
 ## Exit codes
 
-| Command  | 0               | 1              | 2                |
-| -------- | --------------- | -------------- | ---------------- |
-| `shot`   | every shot ok   | —              | any shot `error` |
-| `diff`   | no difference   | differences    | —                |
-| `doctor` | no failed check | a failed check | —                |
+| Command     | 0               | 1              | 2                |
+| ----------- | --------------- | -------------- | ---------------- |
+| `shot`      | every shot ok   | —              | any shot `error` |
+| `semantics` | every shot ok   | —              | any shot `error` |
+| `diff`      | no difference   | differences    | —                |
+| `doctor`    | no failed check | a failed check | —                |
 
 `diff` exiting 1 means "changed", not "failed". Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter SDK, 70 internal error, 78 project not usable.
 

@@ -185,6 +185,7 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
     }
     buffer.writeln('      },');
   }
+  if (request.semantics) buffer.writeln('      semantics: true,');
   buffer
     ..writeln('    ),')
     ..writeln(r'    defaultShell: $design.defaultShell,')

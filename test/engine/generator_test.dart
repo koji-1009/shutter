@@ -139,6 +139,7 @@ void main() {
           keyboard: 336,
           keyboardTint: 0x809E9E9E,
           networkImages: const {r'https://example.com/$a.png': '/p/a.png'},
+          semantics: true,
         ),
         materialFontsDir: '/sdk/fonts',
         design: const DesignSupport(available: [], shell: null),
@@ -161,7 +162,8 @@ void main() {
         '      keyboardTint: 0x809E9E9E,\n'
         '      networkImages: {\n'
         "        'https://example.com/\\\$a.png': '/p/a.png',\n"
-        '      },\n',
+        '      },\n'
+        '      semantics: true,\n',
       ),
     );
     final plain = mainSource(const [], config(project));
@@ -170,6 +172,7 @@ void main() {
     expect(plain, isNot(contains('viewport:')));
     expect(plain, isNot(contains('keyboard')));
     expect(plain, isNot(contains('networkImages:')));
+    expect(plain, isNot(contains('semantics:')));
   });
 
   test('a --widget helper imports unprefixed, escapes the expression in the '

@@ -93,8 +93,24 @@ shutter shot lib/preview/login_preview.dart --enter 'label:Email=example@example
 * The keyboard is not drawn: the band it covers shows the app's own background, and the image keeps the screen's full height. `--keyboard-tint 9E9E9E` paints the band gray so the reviewer sees where the keyboard is; without it, say so when you post the image, or the reviewer reads the band as empty space.
 * Ink lands on the nearest `Material`, like the background above: an `InkWell` or `ListTile` wrapped in `Material` in the preview shows its press, hover, or focus; buttons carry their own.
 
+## What assistive technology reads
+
+When a change touches what TalkBack or VoiceOver read (a `Semantics`, `ExcludeSemantics`, or `MergeSemantics` widget, a label, tooltip, or `semanticLabel`, a widget swapped for another kind), shoot it before and after with `shutter semantics` too, naming the same preview files with the same options as `shot` but `--keyboard-tint`:
+
+```bash
+shutter semantics lib/preview/login_preview.dart   # before
+# edit
+shutter semantics lib/preview/login_preview.dart   # after
+shutter diff latest~1 latest
+```
+
+* The image is the semantics tree, drawn as Flutter's `SemanticsDebugger` draws it: a box per node with its label and what it is or does (`button`, `textfield`, `checked`, ...). A screenshot does not show it, so a change can be `unchanged` in `shot` and `changed` here.
+* Diff a `semantics` run against a `semantics` run: `diff` prints `image:` when the two runs differ in it. `latest~N` counts the `shot` runs too, so when you shoot both, diff with the `run:` directories the two `semantics` runs printed.
+* A node's value, its hint, and flags such as a header are not drawn: a change to only those is `unchanged`.
+* When you post the image, say that it is the semantics tree, not the screen.
+
 ## Exit codes
 
-* `shot`: 0 all ok, 2 any error.
+* `shot` and `semantics`: 0 all ok, 2 any error.
 * `diff`: 0 no difference, 1 differences. 1 means "changed", not "failed".
 ''';

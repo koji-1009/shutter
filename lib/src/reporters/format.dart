@@ -54,9 +54,14 @@ String formatKeyboard(double? keyboard) => switch (keyboard) {
   null => 'none',
 };
 
-/// The `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and
-/// `network_images` lines of a run's [setup], each only when set.
+/// `semantics` for a run of `shutter semantics`, else `paint`.
+String formatImage(bool semantics) => semantics ? 'semantics' : 'paint';
+
+/// The `image`, `actions`, `capture`, `viewport`, `keyboard`,
+/// `keyboard_tint`, and `network_images` lines of a run's [setup], each
+/// only when set.
 void writeSetup(StringBuffer body, RunSetup setup) {
+  if (setup.semantics) body.writeln('image: ${formatImage(true)}');
   if (setup.actions.isNotEmpty) {
     body.writeln('actions: ${formatActions(setup.actions)}');
   }

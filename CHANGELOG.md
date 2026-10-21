@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+The semantics tree as an image.
+
+* `shutter semantics` takes the same preview files, `--widget`, and options as `shot` (except `--keyboard-tint`) and draws each shot's semantics tree instead of what the app paints, as Flutter's `SemanticsDebugger` draws it: a box per node with its label and what it is or does. The PNG has the size of the `shot` PNG, and `diff` compares two such runs as any others, so a change to what TalkBack and VoiceOver read shows when the pixels do not change.
+* A `semantics` run records `image: semantics` in `manifest.json`; `semantics` prints it, and `diff` prints both runs' `image` when they differ. It is not part of shot ids.
+* The `shutter-visual-check` skill also covers changes to what assistive technology reads.
+
 ## 1.0.0
 
 Network images, from files fetched beforehand, and the on-screen keyboard's area in a color.

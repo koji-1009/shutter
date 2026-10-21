@@ -114,8 +114,9 @@ typedef ShellFile = RecordedFile;
 /// What a run did to every preview besides rendering it: the actions
 /// performed before the capture, whether the whole viewport was
 /// captured, the `--viewport`, the `--keyboard` height and its
-/// `--keyboard-tint` (ARGB), and the file served for each
-/// `--network-image` URL.
+/// `--keyboard-tint` (ARGB), the file served for each `--network-image`
+/// URL, and whether the images are of the semantics tree
+/// (`shutter semantics`) rather than of what the app paints.
 typedef RunSetup = ({
   List<String> actions,
   bool screen,
@@ -123,6 +124,7 @@ typedef RunSetup = ({
   double? keyboard,
   int? keyboardTint,
   Map<String, RecordedFile> networkImages,
+  bool semantics,
 });
 
 /// [argb] as `#AARRGGBB`.
@@ -137,6 +139,7 @@ const RunSetup plainSetup = (
   keyboard: null,
   keyboardTint: null,
   networkImages: {},
+  semantics: false,
 );
 
 RecordedFile? _recordedFile(Object? json) => switch (json) {
@@ -189,6 +192,7 @@ class const RunManifest({
                 .entries)
           key: ?_recordedFile(value),
       },
+      semantics: json['image'] == 'semantics',
     ),
   );
 
@@ -209,9 +213,11 @@ class const RunManifest({
       :keyboard,
       :keyboardTint,
       :networkImages,
+      :semantics,
     ) = setup;
     return {
       'run': run,
+      if (semantics) 'image': 'semantics',
       if (shell case final shell?) 'shell': _recordedFileJson(shell),
       if (actions.isNotEmpty) 'actions': actions,
       if (screen) 'capture': 'screen',

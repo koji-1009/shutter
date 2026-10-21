@@ -49,6 +49,7 @@ void main() {
           keyboard: null,
           keyboardTint: null,
           networkImages: {},
+          semantics: false,
         ),
       )..write(dir),
     );

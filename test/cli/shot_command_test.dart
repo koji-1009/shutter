@@ -352,6 +352,54 @@ void main() {
     });
   });
 
+  test('semantics: the shot options, the semantics tree asked of the engine, '
+      'and recorded in the manifest and the report', () async {
+    final root = createProject();
+    final engine = FakeEngine(const []);
+    final result = await runCli([
+      'semantics',
+      '--widget',
+      'A()',
+      '--tap',
+      'text:Open',
+      '--capture',
+      'screen',
+      '--keyboard',
+      '336',
+    ], fakeContext(root, engine: engine));
+    expect(result.exitCode, 0, reason: result.stderr);
+    final request = engine.requests.single;
+    expect(request.semantics, isTrue);
+    expect(request.actions.single.label, 'tap text:Open');
+    expect((request.screen, request.keyboard), (true, 336.0));
+    final report = loadYaml(result.stdout) as YamlMap;
+    expect(report['image'], 'semantics');
+    expect(RunManifest.read(report['run'] as String).setup.semantics, isTrue);
+
+    final shot = FakeEngine(const []);
+    final painted = await runCli([
+      'shot',
+      '--widget',
+      'A()',
+    ], fakeContext(root, engine: shot));
+    expect(shot.requests.single.semantics, isFalse);
+    expect((loadYaml(painted.stdout) as YamlMap).containsKey('image'), isFalse);
+
+    // The keyboard is not in the semantics tree, so neither is its tint.
+    final tint = await runCli([
+      'semantics',
+      '--widget',
+      'A()',
+      '--keyboard',
+      '336',
+      '--keyboard-tint',
+      '9E9E9E',
+    ], fakeContext(root));
+    expect(tint.exitCode, 64);
+    expect(tint.stderr, contains('Could not find an option named'));
+    expect(tint.stderr, contains('Usage: shutter semantics'));
+  });
+
   test('a named file without previews is missing input', () async {
     final root = createProject(
       resolvable: true,

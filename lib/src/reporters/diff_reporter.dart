@@ -32,6 +32,7 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
   // capturing the screen, changes the image without the widget changing.
   final (before, after) = (diff.beforeSetup, diff.afterSetup);
   for (final (key, a, b) in [
+    ('image', formatImage(before.semantics), formatImage(after.semantics)),
     ('actions', formatActions(before.actions), formatActions(after.actions)),
     ('capture', formatCapture(before.screen), formatCapture(after.screen)),
     (

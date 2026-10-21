@@ -41,6 +41,10 @@ class const CaptureRequest({
 
   /// Absolute path of the file served for each `--network-image` URL.
   final Map<String, String> networkImages = const {},
+
+  /// Draw the semantics tree of what is captured instead of what the app
+  /// paints.
+  final bool semantics = false,
 });
 
 /// The only swappable layer: turns scanned previews and a `--widget` into

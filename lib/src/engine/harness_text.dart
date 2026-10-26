@@ -1104,10 +1104,25 @@ TextStyle _fallingBack(TextStyle style) {
   );
 }
 
-/// Host fonts covering CJK and emoji, by fallback family.
+/// Host fonts by fallback family, in fallback order: CJK, with Japanese
+/// forms for the Han characters they share, and emoji, then the scripts
+/// those lack. Each script is a family of its own, with one typeface per
+/// weight: the engine picks one typeface of a family by weight, not by
+/// glyph.
 Map<String, List<File>> _systemFallbackFonts() {
-  final cjk = <File>[];
-  final emoji = <File>[];
+  final families = <String, List<File>>{
+    for (final script in const [
+      'Cjk',
+      'Emoji',
+      'Hans',
+      'Hangul',
+      'Thai',
+      'Arabic',
+      'Hebrew',
+      'Devanagari',
+    ])
+      'ShutterFallback$script': <File>[],
+  };
   List<File> files(String dir) {
     final directory = Directory(dir);
     if (!directory.existsSync()) return const [];
@@ -1123,19 +1138,38 @@ Map<String, List<File>> _systemFallbackFonts() {
 
   // Exact paths rather than directory listings: macOS returns
   // decomposed (NFD) Japanese file names, which never equal a literal.
-  List<File> existing(List<String> paths) => [
-    for (final path in paths)
-      if (File(path).existsSync()) File(path),
-  ];
+  void existing(String dir, Map<String, List<String>> names) {
+    for (final MapEntry(key: script, value: files) in names.entries) {
+      for (final name in files) {
+        final file = File('$dir${Platform.pathSeparator}$name');
+        if (file.existsSync()) families['ShutterFallback$script']!.add(file);
+      }
+    }
+  }
+
   if (Platform.isMacOS) {
-    cjk.addAll(
-      existing([
-        '/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc',
-        '/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc',
-      ]),
-    );
-    emoji.addAll(existing(['/System/Library/Fonts/Apple Color Emoji.ttc']));
+    existing('/System/Library/Fonts', const {
+      'Cjk': ['ヒラギノ角ゴシック W3.ttc', 'ヒラギノ角ゴシック W6.ttc'],
+      'Emoji': ['Apple Color Emoji.ttc'],
+      'Hans': ['Hiragino Sans GB.ttc'],
+      'Hangul': ['AppleSDGothicNeo.ttc'],
+      'Thai': ['ThonburiUI.ttc'],
+      'Arabic': ['SFArabic.ttf'],
+      'Hebrew': ['SFHebrew.ttf'],
+      'Devanagari': ['Kohinoor.ttc'],
+    });
   } else if (Platform.isLinux) {
+    // Noto Sans CJK holds every CJK script in each of its faces.
+    const noto = {
+      'NotoSansThai-Regular.ttf': 'Thai',
+      'NotoSansThai-Bold.ttf': 'Thai',
+      'NotoSansArabic-Regular.ttf': 'Arabic',
+      'NotoSansArabic-Bold.ttf': 'Arabic',
+      'NotoSansHebrew-Regular.ttf': 'Hebrew',
+      'NotoSansHebrew-Bold.ttf': 'Hebrew',
+      'NotoSansDevanagari-Regular.ttf': 'Devanagari',
+      'NotoSansDevanagari-Bold.ttf': 'Devanagari',
+    };
     final home = Platform.environment['HOME'];
     for (final dir in [
       '/usr/share/fonts',
@@ -1145,22 +1179,31 @@ Map<String, List<File>> _systemFallbackFonts() {
     ]) {
       for (final file in files(dir)) {
         final n = file.path.split(Platform.pathSeparator).last;
-        if ((n.startsWith('NotoSansCJK') || n.startsWith('NotoSansJP')) &&
-            (n.contains('Regular') || n.contains('Bold'))) {
-          cjk.add(file);
-        } else if (n == 'NotoColorEmoji.ttf') {
-          emoji.add(file);
-        }
+        final script = switch (n) {
+          _ when (n.startsWith('NotoSansCJK') || n.startsWith('NotoSansJP')) &&
+              (n.contains('Regular') || n.contains('Bold')) =>
+            'Cjk',
+          'NotoColorEmoji.ttf' => 'Emoji',
+          _ => noto[n],
+        };
+        if (script != null) families['ShutterFallback$script']!.add(file);
       }
     }
   } else if (Platform.isWindows) {
-    final fonts = '${Platform.environment['WINDIR'] ?? r'C:\Windows'}\\Fonts';
-    cjk.addAll(existing(['$fonts\\YuGothR.ttc', '$fonts\\YuGothB.ttc']));
-    emoji.addAll(existing(['$fonts\\seguiemj.ttf']));
+    // Segoe UI holds Hebrew as well as Arabic.
+    existing('${Platform.environment['WINDIR'] ?? r'C:\Windows'}\\Fonts', const {
+      'Cjk': ['YuGothR.ttc', 'YuGothB.ttc'],
+      'Emoji': ['seguiemj.ttf'],
+      'Hans': ['Msyh.ttc', 'Msyhbd.ttc'],
+      'Hangul': ['Malgun.ttf', 'Malgunbd.ttf'],
+      'Thai': ['Leelawui.ttf', 'Leelauib.ttf'],
+      'Arabic': ['Segoeui.ttf', 'Segoeuib.ttf'],
+      'Devanagari': ['Nirmala.ttf', 'Nirmalab.ttf'],
+    });
   }
   return {
-    if (cjk.isNotEmpty) 'ShutterFallbackCjk': cjk,
-    if (emoji.isNotEmpty) 'ShutterFallbackEmoji': emoji,
+    for (final MapEntry(key: family, value: files) in families.entries)
+      if (files.isNotEmpty) family: files,
   };
 }
 

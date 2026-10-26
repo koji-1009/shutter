@@ -63,6 +63,9 @@ class const ShutterConfig({
   /// Draw the semantics tree of what is captured instead of what the app
   /// paints.
   final bool semantics = false,
+
+  /// Host font files by family, in fallback order, chosen by the CLI.
+  final Map<String, List<String>> fallbackFonts = const {},
 });
 
 /// What an action does to its target.
@@ -167,7 +170,12 @@ void run({
         Uri.parse(key): File(value),
     });
   }
-  setUpAll(() => _loadFonts(config.materialFontsDir, fonts));
+  setUpAll(() async {
+    await _loadFonts(config.materialFontsDir, fonts, config.fallbackFonts);
+    File(
+      '${config.runDir}/.results/fonts.loaded',
+    ).writeAsStringSync(jsonEncode(_fontFiles));
+  });
   for (final entry in entries) {
     final List<Preview> previews;
     try {
@@ -415,6 +423,8 @@ Future<void> _capture(
       };
     }
     if (screen != null || boundary != null) {
+      final text = _laidOutText(tester.binding);
+      if (text.isNotEmpty) result['text'] = text;
       final size = screen?.size ?? boundary!.size;
       // The root layer already scales to the device pixel ratio, so it is
       // drawn at 1 over its bounds in physical pixels.
@@ -946,17 +956,81 @@ late Widget Function(Widget) _defaultShell;
 /// whose theme the shell provides. Written by the CLI with [_defaultShell].
 late Widget Function(BuildContext, Widget, List<String>) _themeFallback;
 
-/// Families registered from system fonts in [_loadFonts]; appended as
-/// `fontFamilyFallback` to the default text style and the text themes.
+/// Families registered in [_loadFonts] from the host fonts the CLI chose;
+/// appended as `fontFamilyFallback` to the default text style, the text
+/// themes, and every text laid out.
 final _fallbackFamilies = <String>[];
+
+/// Family → the font files [_loadFonts] loaded for it. The CLI reads what
+/// they draw, to tell which characters of [_laidOutText] no font draws.
+final _fontFiles = <String, List<String>>{};
+
+/// The text laid out in [binding]'s views, by the style's own font
+/// families (`fontFamily`, then `fontFamilyFallback`, without the fallback
+/// families): its characters beyond ASCII. The CLI chooses a host font
+/// for those neither these families nor the fallback fonts draw, and
+/// shoots again.
+List<Map<String, Object?>> _laidOutText(RendererBinding binding) {
+  final texts = <String, (List<String>, Set<int>)>{};
+  void collect(InlineSpan span, String? family, List<String>? fallback) {
+    // Placeholders (`WidgetSpan`) are laid out as render objects of their
+    // own.
+    if (span is! TextSpan) return;
+    if (span.style case final style?) {
+      family = style.inherit ? style.fontFamily ?? family : style.fontFamily;
+      fallback = style.inherit
+          ? style.fontFamilyFallback ?? fallback
+          : style.fontFamilyFallback;
+    }
+    final characters = {
+      for (final c in span.text?.runes ?? const <int>[])
+        if (c >= 0x80) c,
+    };
+    if (characters.isNotEmpty) {
+      final families = [
+        ?family,
+        for (final f in fallback ?? const <String>[])
+          if (!_fallbackFamilies.contains(f)) f,
+      ];
+      texts
+          .putIfAbsent(families.join('\n'), () => (families, <int>{}))
+          .$2
+          .addAll(characters);
+    }
+    for (final child in span.children ?? const <InlineSpan>[]) {
+      collect(child, family, fallback);
+    }
+  }
+
+  void visit(RenderObject node) {
+    switch (node) {
+      case RenderParagraph(:final text):
+        collect(text, null, null);
+      case RenderEditable(:final text?):
+        collect(text, null, null);
+    }
+    node.visitChildren(visit);
+  }
+
+  for (final view in binding.renderViews) {
+    view.visitChildren(visit);
+  }
+  return [
+    for (final (families, characters) in texts.values)
+      {
+        'families': families,
+        'code_points': characters.toList()..sort(),
+      },
+  ];
+}
 
 /// The flutter_test engine does no system font fallback: a glyph missing
 /// from the style's families renders as a box. Real devices fall back to
-/// system CJK and emoji fonts, so the same fonts are loaded from the host
-/// and added to the fallback list of the ambient default text style, and
-/// of the design libraries' text themes the shell provides. A shell
-/// without a design library gets none from this; text whose style keeps
-/// them out gets them from [_FallbackPipelineOwner].
+/// system fonts, so host fonts are loaded and added to the fallback list
+/// of the ambient default text style, and of the design libraries' text
+/// themes the shell provides. A shell without a design library gets none
+/// from this; text whose style keeps them out gets them from
+/// [_FallbackPipelineOwner].
 Widget _withFallbackFonts(Widget child) {
   if (_fallbackFamilies.isEmpty) return child;
   return Builder(
@@ -1015,20 +1089,19 @@ final class _FallbackPipelineOwner extends PipelineOwner {
   bool _fallBackInText() {
     if (_fallbackFamilies.isEmpty) return false;
     var changed = false;
+    InlineSpan fallingBack(InlineSpan text) {
+      final patched = _withFallback(text, root: true);
+      if (patched == text) return text;
+      changed = true;
+      return patched;
+    }
+
     void visit(RenderObject node) {
       switch (node) {
         case RenderParagraph(:final text):
-          final fallingBack = _withFallback(text, root: true);
-          if (fallingBack != text) {
-            node.text = fallingBack;
-            changed = true;
-          }
+          node.text = fallingBack(text);
         case RenderEditable(:final text?):
-          final fallingBack = _withFallback(text, root: true);
-          if (fallingBack != text) {
-            node.text = fallingBack;
-            changed = true;
-          }
+          node.text = fallingBack(text);
       }
       node.visitChildren(visit);
     }
@@ -1102,109 +1175,6 @@ TextStyle _fallingBack(TextStyle style) {
     ],
     overflow: style.overflow,
   );
-}
-
-/// Host fonts by fallback family, in fallback order: CJK, with Japanese
-/// forms for the Han characters they share, and emoji, then the scripts
-/// those lack. Each script is a family of its own, with one typeface per
-/// weight: the engine picks one typeface of a family by weight, not by
-/// glyph.
-Map<String, List<File>> _systemFallbackFonts() {
-  final families = <String, List<File>>{
-    for (final script in const [
-      'Cjk',
-      'Emoji',
-      'Hans',
-      'Hangul',
-      'Thai',
-      'Arabic',
-      'Hebrew',
-      'Devanagari',
-    ])
-      'ShutterFallback$script': <File>[],
-  };
-  List<File> files(String dir) {
-    final directory = Directory(dir);
-    if (!directory.existsSync()) return const [];
-    try {
-      return directory
-          .listSync(recursive: true, followLinks: false)
-          .whereType<File>()
-          .toList();
-    } on FileSystemException {
-      return const [];
-    }
-  }
-
-  // Exact paths rather than directory listings: macOS returns
-  // decomposed (NFD) Japanese file names, which never equal a literal.
-  void existing(String dir, Map<String, List<String>> names) {
-    for (final MapEntry(key: script, value: files) in names.entries) {
-      for (final name in files) {
-        final file = File('$dir${Platform.pathSeparator}$name');
-        if (file.existsSync()) families['ShutterFallback$script']!.add(file);
-      }
-    }
-  }
-
-  if (Platform.isMacOS) {
-    existing('/System/Library/Fonts', const {
-      'Cjk': ['ヒラギノ角ゴシック W3.ttc', 'ヒラギノ角ゴシック W6.ttc'],
-      'Emoji': ['Apple Color Emoji.ttc'],
-      'Hans': ['Hiragino Sans GB.ttc'],
-      'Hangul': ['AppleSDGothicNeo.ttc'],
-      'Thai': ['ThonburiUI.ttc'],
-      'Arabic': ['SFArabic.ttf'],
-      'Hebrew': ['SFHebrew.ttf'],
-      'Devanagari': ['Kohinoor.ttc'],
-    });
-  } else if (Platform.isLinux) {
-    // Noto Sans CJK holds every CJK script in each of its faces.
-    const noto = {
-      'NotoSansThai-Regular.ttf': 'Thai',
-      'NotoSansThai-Bold.ttf': 'Thai',
-      'NotoSansArabic-Regular.ttf': 'Arabic',
-      'NotoSansArabic-Bold.ttf': 'Arabic',
-      'NotoSansHebrew-Regular.ttf': 'Hebrew',
-      'NotoSansHebrew-Bold.ttf': 'Hebrew',
-      'NotoSansDevanagari-Regular.ttf': 'Devanagari',
-      'NotoSansDevanagari-Bold.ttf': 'Devanagari',
-    };
-    final home = Platform.environment['HOME'];
-    for (final dir in [
-      '/usr/share/fonts',
-      '/usr/local/share/fonts',
-      if (home != null) '$home/.local/share/fonts',
-      if (home != null) '$home/.fonts',
-    ]) {
-      for (final file in files(dir)) {
-        final n = file.path.split(Platform.pathSeparator).last;
-        final script = switch (n) {
-          _ when (n.startsWith('NotoSansCJK') || n.startsWith('NotoSansJP')) &&
-              (n.contains('Regular') || n.contains('Bold')) =>
-            'Cjk',
-          'NotoColorEmoji.ttf' => 'Emoji',
-          _ => noto[n],
-        };
-        if (script != null) families['ShutterFallback$script']!.add(file);
-      }
-    }
-  } else if (Platform.isWindows) {
-    // Segoe UI holds Hebrew as well as Arabic.
-    existing('${Platform.environment['WINDIR'] ?? r'C:\Windows'}\\Fonts', const {
-      'Cjk': ['YuGothR.ttc', 'YuGothB.ttc'],
-      'Emoji': ['seguiemj.ttf'],
-      'Hans': ['Msyh.ttc', 'Msyhbd.ttc'],
-      'Hangul': ['Malgun.ttf', 'Malgunbd.ttf'],
-      'Thai': ['Leelawui.ttf', 'Leelauib.ttf'],
-      'Arabic': ['Segoeui.ttf', 'Segoeuib.ttf'],
-      'Devanagari': ['Nirmala.ttf', 'Nirmalab.ttf'],
-    });
-  }
-  return {
-    for (final MapEntry(key: family, value: files) in families.entries)
-      if (files.isNotEmpty) family: files,
-  };
 }
 
 /// The test binding answers every HTTP request with 400. `NetworkImage`
@@ -1359,18 +1329,33 @@ void _prepareGoogleFonts(List<ShutterFont> fonts) {
 Future<void> _loadFonts(
   String materialFontsDir,
   List<ShutterFont> fonts,
+  Map<String, List<String>> fallbackFonts,
 ) async {
   Future<ByteData> readFile(File file) async =>
       ByteData.sublistView(await file.readAsBytes());
   final manifest = jsonDecode(await rootBundle.loadString('FontManifest.json'))
       as List<Object?>;
   final families = <String, List<Future<ByteData>>>{};
+  // Where flutter test serves the assets from, as files.
+  final assetDir = Platform.environment['UNIT_TEST_ASSETS'];
+  final appName = Platform.environment['APP_NAME'];
+  String? assetFile(String asset) {
+    if (assetDir == null) return null;
+    for (final key in [asset, asset.replaceFirst('packages/$appName/', '')]) {
+      if (File('$assetDir/$key').existsSync()) return '$assetDir/$key';
+    }
+    return null;
+  }
+
   for (final family in manifest.cast<Map<String, Object?>>()) {
-    final fonts = family['fonts']! as List<Object?>;
-    families[family['family']! as String] = [
-      for (final font in fonts.cast<Map<String, Object?>>())
-        rootBundle.load(font['asset']! as String),
+    final name = family['family']! as String;
+    final assets = [
+      for (final font in (family['fonts']! as List<Object?>)
+          .cast<Map<String, Object?>>())
+        font['asset']! as String,
     ];
+    families[name] = [for (final asset in assets) rootBundle.load(asset)];
+    _fontFiles[name] = [for (final asset in assets) ?assetFile(asset)];
   }
   final dir = Directory(materialFontsDir);
   if (dir.existsSync()) {
@@ -1382,6 +1367,7 @@ Future<void> _loadFonts(
           file,
     ];
     families['Roboto'] = [for (final file in roboto) readFile(file)];
+    _fontFiles['Roboto'] = [for (final file in roboto) file.path];
     // Cupertino text names the platform's system font through these
     // families, and the test engine resolves no system font. As a macOS
     // app does, they get SF Pro from the host, which is what iOS draws;
@@ -1397,25 +1383,27 @@ Future<void> _loadFonts(
       'CupertinoSystemText',
       'CupertinoSystemDisplay',
     ]) {
-      families.putIfAbsent(
-        family,
-        () => [for (final file in system) readFile(file)],
-      );
+      if (families.containsKey(family)) continue;
+      families[family] = [for (final file in system) readFile(file)];
+      _fontFiles[family] = [for (final file in system) file.path];
     }
-    families.putIfAbsent('MaterialIcons', () => [
-      for (final file in files)
-        if (file.uri.pathSegments.last.startsWith('MaterialIcons'))
-          readFile(file),
-    ]);
+    if (!families.containsKey('MaterialIcons')) {
+      final icons = [
+        for (final file in files)
+          if (file.uri.pathSegments.last.startsWith('MaterialIcons')) file,
+      ];
+      families['MaterialIcons'] = [for (final file in icons) readFile(file)];
+      _fontFiles['MaterialIcons'] = [for (final file in icons) file.path];
+    }
   }
   // Registered up front: a google_fonts style created during a frame
   // registers its font after that frame's layout, too late for capture.
   for (final font in fonts) {
     families[font.family] = [readFile(File(font.path))];
+    _fontFiles[font.family] = [font.path];
   }
-  for (final MapEntry(key: family, value: files)
-      in _systemFallbackFonts().entries) {
-    families[family] = [for (final file in files) readFile(file)];
+  for (final MapEntry(key: family, value: paths) in fallbackFonts.entries) {
+    families[family] = [for (final path in paths) readFile(File(path))];
     _fallbackFamilies.add(family);
   }
   await Future.wait([

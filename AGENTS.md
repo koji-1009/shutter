@@ -11,7 +11,7 @@ Conventions for AI coding agents (Claude Code, Cursor, Codex, etc.) and human co
 * `lib/src/project/` — project root and pubspec fields, preview-dir convention, Flutter SDK lookup, and the `Process.run` seam the engine uses.
 * `lib/src/scan/` — the previews of the preview files `shot` is given, with the analyzer's resolution: which annotations are previews, and each name they use rewritten through an import prefix. Tests resolve against a stub `package:flutter` (`test/helpers.dart`) and the Dart SDK running them.
 * `lib/src/engine/` — the only swappable layer. `Engine` is the interface; `FlutterTestEngine` generates `.dart_tool/shutter/test/<run-id>/` (`generator.dart`, `design.dart`, `widget_shot.dart`) and runs `flutter test`. `harness_text.dart` is the Flutter-side runtime, shipped as a const string so target projects gain no dependency.
-* `lib/src/fonts/` — the google_fonts file list the project resolves, and the download cache under `.dart_tool/shutter/fonts/google_fonts/`.
+* `lib/src/fonts/` — the google_fonts file list the project resolves, and the download cache under `.dart_tool/shutter/fonts/google_fonts/`; the host fonts every run falls back to (`host_font_list.dart`), the host's fonts and what each draws (`cmap.dart`, indexed under `.dart_tool/shutter/fonts/host/`), and the fonts picked for a run's text (`host_fonts.dart`).
 * `lib/src/run/` — run ids, `manifest.json` model, run lookup.
 * `lib/src/diff/` — pixel comparison and classification. Pure Dart (`package:image`).
 * `lib/src/reporters/` — the YAML output of `shot` and `diff`.

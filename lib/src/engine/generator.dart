@@ -36,6 +36,9 @@ class const GeneratorConfig({
 
   /// Cached google_fonts files to register and serve as assets.
   required final List<CachedFont> fonts,
+
+  /// Host font files by family, in fallback order.
+  final Map<String, List<String>> fallbackFonts = const {},
 });
 
 /// Name of the helper library shooting [CaptureRequest.widget].
@@ -186,6 +189,15 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
     buffer.writeln('      },');
   }
   if (request.semantics) buffer.writeln('      semantics: true,');
+  if (config.fallbackFonts.isNotEmpty) {
+    buffer.writeln('      fallbackFonts: {');
+    for (final MapEntry(:key, :value) in config.fallbackFonts.entries) {
+      buffer.writeln(
+        '        ${dartString(key)}: [${value.map(dartString).join(', ')}],',
+      );
+    }
+    buffer.writeln('      },');
+  }
   buffer
     ..writeln('    ),')
     ..writeln(r'    defaultShell: $design.defaultShell,')

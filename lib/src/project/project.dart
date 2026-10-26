@@ -126,6 +126,10 @@ class Project({
   /// google_fonts files downloaded for rendering (see `doc/manual.md`).
   String get googleFontsDir => p.join(shutterDir, 'fonts', 'google_fonts');
 
+  /// The host font index and the host fonts earlier runs fell back to
+  /// (see `doc/manual.md`).
+  String get hostFontsDir => p.join(shutterDir, 'fonts', 'host');
+
   /// The conventional preview directory: `lib/src/preview/` for packages
   /// (keeps previews off the public API surface), `lib/preview/` for apps.
   /// An existing `lib/src/preview/` wins regardless of the pubspec.

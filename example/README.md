@@ -7,7 +7,7 @@ A small Flutter app with previews under `lib/preview/`, used by shutter's end-to
 * `inbox_preview.dart` — a `MultiPreview` rendering each state (empty, loading, error, loaded) in light and dark.
 * `misc_preview.dart` — static-method previews with a `wrapper`, a `theme`, a `WidgetBuilder` with `textScaleFactor`, and one preview that overflows on purpose.
 * `media_preview.dart` — a memory image, a network image (an `error` shot: HTTP is blocked while rendering), and `localizations`.
-* `google_fonts_preview.dart` — text in google_fonts families, fetched once into `.shutter/fonts/`.
+* `google_fonts_preview.dart` — text in google_fonts families, fetched once into `.dart_tool/shutter/fonts/google_fonts/`.
 * `shell.dart` — the app theme around every preview without its own `wrapper`.
 
 ```bash

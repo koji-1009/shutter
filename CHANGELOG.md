@@ -7,7 +7,7 @@ Host fallback fonts in text whose style keeps them out.
 * CJK and emoji in a `CupertinoAlertDialog` rendered as boxes in a shot reported `ok`: their text styles inherit nothing and name the Cupertino system font, so the host fonts added to the default text style and the themes never reached them. The host fonts are now appended to the text of every paragraph and text field before each layout.
 * Text in a style with its own `fontFamilyFallback`, such as google_fonts', now falls back to the host fonts too; Japanese in a Latin-only Google font rendered as boxes.
 * Text in a package font's style falls back as well.
-* Simplified Chinese, Hangul, Thai, Arabic, Hebrew, and Devanagari fall back to host fonts too; on macOS they rendered as boxes, and only Hiragino and Apple Color Emoji were loaded. Text that rendered before renders unchanged.
+* A character the host's CJK and emoji fonts do not draw falls back to a host font that draws it, picked by what each font in the host's font directories draws: Hangul, Thai, Arabic, Devanagari, Tamil, Khmer, or any other script the host has a font for. Before, only Hiragino and Apple Color Emoji were loaded on macOS, and the rest rendered as boxes. A run that meets such a character shoots again with the font, and the project keeps it in `.dart_tool/shutter/fonts/host/` for later runs. Text that rendered before renders unchanged.
 * The manual and the agent playbook say where the host fonts do not reach: text a widget paints itself, such as a `Slider`'s value indicator, under a `Theme` built in a `wrapper` or the preview function. A theme given through the preview's `theme` reaches it.
 
 ## 1.1.0

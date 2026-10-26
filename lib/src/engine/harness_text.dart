@@ -63,6 +63,9 @@ class const ShutterConfig({
   /// Draw the semantics tree of what is captured instead of what the app
   /// paints.
   final bool semantics = false,
+
+  /// Host font files by family, in fallback order, chosen by the CLI.
+  final Map<String, List<String>> fallbackFonts = const {},
 });
 
 /// What an action does to its target.
@@ -167,7 +170,9 @@ void run({
         Uri.parse(key): File(value),
     });
   }
-  setUpAll(() => _loadFonts(config.materialFontsDir, fonts));
+  setUpAll(
+    () => _loadFonts(config.materialFontsDir, fonts, config.fallbackFonts),
+  );
   for (final entry in entries) {
     final List<Preview> previews;
     try {
@@ -240,6 +245,7 @@ Future<void> _capture(
 ) async {
   addTearDown(tester.view.reset);
   addTearDown(tester.platformDispatcher.clearAllTestValues);
+  _codePoints.clear();
   // Described while the tree is still mounted: the "relevant
   // error-causing widget" location is looked up through live elements.
   Map<String, Object?>? firstError;
@@ -464,6 +470,9 @@ Future<void> _capture(
   resolver?.dispose();
   while (tester.takeException() != null) {}
   if (missingFonts.isNotEmpty) result['missing_fonts'] = [...missingFonts];
+  if (_codePoints.isNotEmpty) {
+    result['code_points'] = _codePoints.toList()..sort();
+  }
   if (firstError == null && result['png'] == null) {
     firstError = {
       'error': 'nothing was painted: the preview is not in the painted '
@@ -946,17 +955,23 @@ late Widget Function(Widget) _defaultShell;
 /// whose theme the shell provides. Written by the CLI with [_defaultShell].
 late Widget Function(BuildContext, Widget, List<String>) _themeFallback;
 
-/// Families registered from system fonts in [_loadFonts]; appended as
-/// `fontFamilyFallback` to the default text style and the text themes.
+/// Families registered in [_loadFonts] from the host fonts the CLI chose;
+/// appended as `fontFamilyFallback` to the default text style, the text
+/// themes, and every text laid out.
 final _fallbackFamilies = <String>[];
+
+/// The characters beyond ASCII of the text laid out in the current shot.
+/// The CLI chooses a host font for those no fallback font draws, and
+/// shoots again.
+final _codePoints = <int>{};
 
 /// The flutter_test engine does no system font fallback: a glyph missing
 /// from the style's families renders as a box. Real devices fall back to
-/// system CJK and emoji fonts, so the same fonts are loaded from the host
-/// and added to the fallback list of the ambient default text style, and
-/// of the design libraries' text themes the shell provides. A shell
-/// without a design library gets none from this; text whose style keeps
-/// them out gets them from [_FallbackPipelineOwner].
+/// system fonts, so host fonts are loaded and added to the fallback list
+/// of the ambient default text style, and of the design libraries' text
+/// themes the shell provides. A shell without a design library gets none
+/// from this; text whose style keeps them out gets them from
+/// [_FallbackPipelineOwner].
 Widget _withFallbackFonts(Widget child) {
   if (_fallbackFamilies.isEmpty) return child;
   return Builder(
@@ -1011,24 +1026,27 @@ final class _FallbackPipelineOwner extends PipelineOwner {
     }
   }
 
-  /// Whether any text was given the families.
+  /// Whether any text was given the families. Notes the characters of the
+  /// text in [_codePoints].
   bool _fallBackInText() {
-    if (_fallbackFamilies.isEmpty) return false;
     var changed = false;
+    InlineSpan fallingBack(InlineSpan text) {
+      for (final c in text.toPlainText(includeSemanticsLabels: false).runes) {
+        if (c >= 0x80) _codePoints.add(c);
+      }
+      if (_fallbackFamilies.isEmpty) return text;
+      final patched = _withFallback(text, root: true);
+      if (patched == text) return text;
+      changed = true;
+      return patched;
+    }
+
     void visit(RenderObject node) {
       switch (node) {
         case RenderParagraph(:final text):
-          final fallingBack = _withFallback(text, root: true);
-          if (fallingBack != text) {
-            node.text = fallingBack;
-            changed = true;
-          }
+          node.text = fallingBack(text);
         case RenderEditable(:final text?):
-          final fallingBack = _withFallback(text, root: true);
-          if (fallingBack != text) {
-            node.text = fallingBack;
-            changed = true;
-          }
+          node.text = fallingBack(text);
       }
       node.visitChildren(visit);
     }
@@ -1102,109 +1120,6 @@ TextStyle _fallingBack(TextStyle style) {
     ],
     overflow: style.overflow,
   );
-}
-
-/// Host fonts by fallback family, in fallback order: CJK, with Japanese
-/// forms for the Han characters they share, and emoji, then the scripts
-/// those lack. Each script is a family of its own, with one typeface per
-/// weight: the engine picks one typeface of a family by weight, not by
-/// glyph.
-Map<String, List<File>> _systemFallbackFonts() {
-  final families = <String, List<File>>{
-    for (final script in const [
-      'Cjk',
-      'Emoji',
-      'Hans',
-      'Hangul',
-      'Thai',
-      'Arabic',
-      'Hebrew',
-      'Devanagari',
-    ])
-      'ShutterFallback$script': <File>[],
-  };
-  List<File> files(String dir) {
-    final directory = Directory(dir);
-    if (!directory.existsSync()) return const [];
-    try {
-      return directory
-          .listSync(recursive: true, followLinks: false)
-          .whereType<File>()
-          .toList();
-    } on FileSystemException {
-      return const [];
-    }
-  }
-
-  // Exact paths rather than directory listings: macOS returns
-  // decomposed (NFD) Japanese file names, which never equal a literal.
-  void existing(String dir, Map<String, List<String>> names) {
-    for (final MapEntry(key: script, value: files) in names.entries) {
-      for (final name in files) {
-        final file = File('$dir${Platform.pathSeparator}$name');
-        if (file.existsSync()) families['ShutterFallback$script']!.add(file);
-      }
-    }
-  }
-
-  if (Platform.isMacOS) {
-    existing('/System/Library/Fonts', const {
-      'Cjk': ['ヒラギノ角ゴシック W3.ttc', 'ヒラギノ角ゴシック W6.ttc'],
-      'Emoji': ['Apple Color Emoji.ttc'],
-      'Hans': ['Hiragino Sans GB.ttc'],
-      'Hangul': ['AppleSDGothicNeo.ttc'],
-      'Thai': ['ThonburiUI.ttc'],
-      'Arabic': ['SFArabic.ttf'],
-      'Hebrew': ['SFHebrew.ttf'],
-      'Devanagari': ['Kohinoor.ttc'],
-    });
-  } else if (Platform.isLinux) {
-    // Noto Sans CJK holds every CJK script in each of its faces.
-    const noto = {
-      'NotoSansThai-Regular.ttf': 'Thai',
-      'NotoSansThai-Bold.ttf': 'Thai',
-      'NotoSansArabic-Regular.ttf': 'Arabic',
-      'NotoSansArabic-Bold.ttf': 'Arabic',
-      'NotoSansHebrew-Regular.ttf': 'Hebrew',
-      'NotoSansHebrew-Bold.ttf': 'Hebrew',
-      'NotoSansDevanagari-Regular.ttf': 'Devanagari',
-      'NotoSansDevanagari-Bold.ttf': 'Devanagari',
-    };
-    final home = Platform.environment['HOME'];
-    for (final dir in [
-      '/usr/share/fonts',
-      '/usr/local/share/fonts',
-      if (home != null) '$home/.local/share/fonts',
-      if (home != null) '$home/.fonts',
-    ]) {
-      for (final file in files(dir)) {
-        final n = file.path.split(Platform.pathSeparator).last;
-        final script = switch (n) {
-          _ when (n.startsWith('NotoSansCJK') || n.startsWith('NotoSansJP')) &&
-              (n.contains('Regular') || n.contains('Bold')) =>
-            'Cjk',
-          'NotoColorEmoji.ttf' => 'Emoji',
-          _ => noto[n],
-        };
-        if (script != null) families['ShutterFallback$script']!.add(file);
-      }
-    }
-  } else if (Platform.isWindows) {
-    // Segoe UI holds Hebrew as well as Arabic.
-    existing('${Platform.environment['WINDIR'] ?? r'C:\Windows'}\\Fonts', const {
-      'Cjk': ['YuGothR.ttc', 'YuGothB.ttc'],
-      'Emoji': ['seguiemj.ttf'],
-      'Hans': ['Msyh.ttc', 'Msyhbd.ttc'],
-      'Hangul': ['Malgun.ttf', 'Malgunbd.ttf'],
-      'Thai': ['Leelawui.ttf', 'Leelauib.ttf'],
-      'Arabic': ['Segoeui.ttf', 'Segoeuib.ttf'],
-      'Devanagari': ['Nirmala.ttf', 'Nirmalab.ttf'],
-    });
-  }
-  return {
-    for (final MapEntry(key: family, value: files) in families.entries)
-      if (files.isNotEmpty) family: files,
-  };
 }
 
 /// The test binding answers every HTTP request with 400. `NetworkImage`
@@ -1359,6 +1274,7 @@ void _prepareGoogleFonts(List<ShutterFont> fonts) {
 Future<void> _loadFonts(
   String materialFontsDir,
   List<ShutterFont> fonts,
+  Map<String, List<String>> fallbackFonts,
 ) async {
   Future<ByteData> readFile(File file) async =>
       ByteData.sublistView(await file.readAsBytes());
@@ -1413,9 +1329,8 @@ Future<void> _loadFonts(
   for (final font in fonts) {
     families[font.family] = [readFile(File(font.path))];
   }
-  for (final MapEntry(key: family, value: files)
-      in _systemFallbackFonts().entries) {
-    families[family] = [for (final file in files) readFile(file)];
+  for (final MapEntry(key: family, value: paths) in fallbackFonts.entries) {
+    families[family] = [for (final path in paths) readFile(File(path))];
     _fallbackFamilies.add(family);
   }
   await Future.wait([

@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:shutter/src/engine/engine.dart';
 import 'package:shutter/src/engine/flutter_test_engine.dart';
 import 'package:shutter/src/engine/widget_shot.dart';
+import 'package:shutter/src/fonts/host_fonts.dart';
 import 'package:shutter/src/project/flutter_sdk.dart';
 import 'package:shutter/src/project/project.dart';
 import 'package:shutter/src/run/manifest.dart';
@@ -154,6 +155,49 @@ void main() {
       isFalse,
       reason: 'the generated test is deleted after the run',
     );
+  });
+
+  test('characters no fallback font draws add a host font, then capture '
+      'again', () async {
+    final fonts = tempDir();
+    writeFont(p.join(fonts, 'Thai.ttf'), [(0xe01, 0xe5b)]);
+    final fallback = HostFallback(
+      os: 'fuchsia',
+      index: HostFontIndex([
+        (fonts, false),
+      ], p.join(project.hostFontsDir, 'index.json')),
+      learnedPath: p.join(project.hostFontsDir, 'fallback.json'),
+    );
+    final fake = FakeFlutter((call, args, cwd) {
+      writeResult(runDir, {
+        'id': 'a.0',
+        'name': 'a',
+        'status': 'ok',
+        'code_points': [0xe01],
+      });
+      return result(0);
+    });
+    final shots =
+        await FlutterTestEngine(
+          sdk: FlutterSdk('/sdk'),
+          processRunner: fake.call,
+          hostFallback: (_) => fallback,
+        ).capture(
+          request([
+            library('lib/a.dart', [candidate('lib/a.dart', 'a')]),
+          ]),
+        );
+    expect(fake.calls, hasLength(2));
+    expect(fake.generated.first, isNot(contains('fallbackFonts')));
+    expect(
+      fake.generated.last,
+      contains(
+        '      fallbackFonts: {\n'
+        "        'ShutterFallback1': ['${p.join(fonts, 'Thai.ttf')}'],\n"
+        '      },\n',
+      ),
+    );
+    expect(shots.single.status, ShotStatus.ok);
   });
 
   test('no tests registered (exit 79) means no shots', () async {

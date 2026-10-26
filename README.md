@@ -180,7 +180,7 @@ Each is followed by `--settle` milliseconds; shoot again with another `--settle`
 
 * One capture per preview: state comes from the widget's construction expression and from taps, entered text, a press, a hover, or focus before the capture; scrolling and dragging are not shot, nor is the on-screen keyboard (`--keyboard` leaves room for it).
 * HTTP is blocked while rendering, so network images fail to load unless `shot --network-image <url>=<file>` serves a file fetched beforehand.
-* Text renders with the project's fonts plus Roboto; CJK and emoji fall back to the host's system fonts, and Cupertino text uses SF Pro on macOS (Roboto elsewhere), as a device would. Compare runs made on the same machine.
+* Text renders with the project's fonts plus Roboto; characters those lack, such as CJK, emoji, or any script the host has a font for, fall back to the host's system fonts, and Cupertino text uses SF Pro on macOS (Roboto elsewhere), as a device would. Compare runs made on the same machine.
 
 ## Experimental
 

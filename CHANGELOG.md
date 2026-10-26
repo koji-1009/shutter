@@ -4,12 +4,9 @@
 
 Host fallback fonts for any script the host has a font for, and in text whose style keeps them out.
 
-* CJK and emoji in a `CupertinoAlertDialog` rendered as boxes in a shot reported `ok`: their text styles inherit nothing and name the Cupertino system font, so the host fonts added to the default text style and the themes never reached them. The host fonts are now appended to the text of every paragraph and text field before each layout.
-* Text in a style with its own `fontFamilyFallback`, such as google_fonts', now falls back to the host fonts too; Japanese in a Latin-only Google font rendered as boxes.
-* Text in a package font's style falls back as well.
-* Besides CJK and emoji, every run loads the host's UI font and its fonts for Simplified Chinese, Hangul, Thai, Arabic, Hebrew, and Devanagari. Before, only Hiragino and Apple Color Emoji were loaded on macOS, and the rest rendered as boxes. Text that rendered before renders unchanged.
-* A character of a paragraph or text field that neither those nor the text's own fonts draw, such as Tamil, Khmer, or any other script the host has a font for, falls back to a host font picked by what each font in the host's font directories draws; the run shoots again with it.
-* The manual and the agent playbook say where the host fonts do not reach: text a widget paints itself, such as a `Slider`'s value indicator, under a `Theme` built in a `wrapper` or the preview function. A theme given through the preview's `theme` reaches it.
+* CJK and emoji in a `CupertinoAlertDialog`, and in a style with its own `fontFamilyFallback` such as google_fonts', rendered as boxes in a shot reported `ok`; they now fall back to the host fonts.
+* Scripts beyond CJK and emoji rendered as boxes too. Every run now loads the host's UI font and its fonts for Simplified Chinese, Hangul, Thai, Arabic, Hebrew, and Devanagari, and a character none of those draw falls back to a host font that draws it.
+* The manual and the agent playbook say where the host fonts do not reach: text a widget paints itself, such as a `Slider`'s value indicator, under a `Theme` built in a `wrapper` or the preview function.
 
 ## 1.1.0
 

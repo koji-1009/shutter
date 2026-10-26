@@ -4,6 +4,7 @@ library;
 import 'dart:io';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:shutter/src/run/manifest.dart';
@@ -257,6 +258,47 @@ Widget shown() => Builder(
       expect(screenShots['Shown']!.status, ShotStatus.ok);
       expect(colored(screenRun, screenShots['Shown']!), greaterThan(0));
     },
+  );
+
+  test(
+    'scripts beyond CJK fall back to host fonts',
+    () async {
+      final root = await exampleCopy();
+      // The same letters in two orders: boxes draw them alike, glyphs
+      // differently. Han characters only Simplified Chinese has.
+      const scripts = {
+        'Hans': ('这们说', '说这们'),
+        'Hangul': ('한국어', '어한국'),
+        'Thai': ('กขค', 'คกข'),
+        'Arabic': ('عرب', 'برع'),
+        'Hebrew': ('אבג', 'גאב'),
+        'Devanagari': ('कखग', 'गकख'),
+      };
+      writeFiles(root, {
+        'lib/preview/scripts_preview.dart': [
+          "import 'package:flutter/widget_previews.dart';",
+          "import 'package:flutter/widgets.dart';",
+          for (final MapEntry(key: script, value: (a, b)) in scripts.entries)
+            for (final (i, text) in [(1, a), (2, b)]) ...[
+              "@Preview(name: '$script $i', size: Size(200, 40))",
+              "Widget ${script.toLowerCase()}$i() => const Text('$text');",
+            ],
+        ].join('\n'),
+      });
+      final (run, shots) = await shootIn(root, [
+        'lib/preview/scripts_preview.dart',
+      ]);
+      Digest png(String name) => sha256.convert(
+        File(p.join(run, shots[name]!.png!)).readAsBytesSync(),
+      );
+      final boxes = [
+        for (final script in scripts.keys)
+          if (png('$script 1') == png('$script 2')) script,
+      ];
+      expect(boxes, isEmpty, reason: 'rendered as boxes');
+    },
+    // The CI host has emoji fonts only.
+    skip: Platform.isMacOS ? false : 'needs the macOS host fonts',
   );
 
   test('a project on material_ui gets a material_ui default shell', () async {

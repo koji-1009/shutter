@@ -7,6 +7,7 @@ Host fallback fonts in text whose style keeps them out.
 * CJK and emoji in a `CupertinoAlertDialog` rendered as boxes in a shot reported `ok`: their text styles inherit nothing and name the Cupertino system font, so the host fonts added to the default text style and the themes never reached them. The host fonts are now appended to the text of every paragraph and text field before each layout.
 * Text in a style with its own `fontFamilyFallback`, such as google_fonts', now falls back to the host fonts too; Japanese in a Latin-only Google font rendered as boxes.
 * Text in a package font's style falls back as well.
+* Simplified Chinese, Hangul, Thai, Arabic, Hebrew, and Devanagari fall back to host fonts too; on macOS they rendered as boxes, and only Hiragino and Apple Color Emoji were loaded. Text that rendered before renders unchanged.
 
 ## 1.1.0
 

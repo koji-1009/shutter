@@ -160,20 +160,34 @@ void main() {
   test('characters no fallback font draws add a host font, then capture '
       'again', () async {
     final fonts = tempDir();
-    writeFont(p.join(fonts, 'Thai.ttf'), [(0xe01, 0xe5b)]);
+    writeFont(p.join(fonts, 'Thai.ttf'), [(0xe01, 0xe01)]);
+    writeFont(p.join(fonts, 'Other.ttf'), [(0xe5b, 0xe5b)]);
+    // The text's own font draws U+0E5B: no host font is added for it.
+    final own = p.join(tempDir(), 'Own.ttf');
+    writeFont(own, [(0xe5b, 0xe5b)]);
     final fallback = HostFallback(
-      os: 'fuchsia',
-      index: HostFontIndex([
+      'fuchsia',
+      HostFontIndex([
         (fonts, false),
       ], p.join(project.hostFontsDir, 'index.json')),
-      learnedPath: p.join(project.hostFontsDir, 'fallback.json'),
+      const {},
     );
     final fake = FakeFlutter((call, args, cwd) {
       writeResult(runDir, {
         'id': 'a.0',
         'name': 'a',
         'status': 'ok',
-        'code_points': [0xe01],
+        'text': [
+          {
+            'families': ['Own'],
+            'code_points': [0xe01, 0xe5b],
+          },
+        ],
+      });
+      writeFiles(runDir, {
+        '.results/fonts.loaded': jsonEncode({
+          'Own': [own],
+        }),
       });
       return result(0);
     });

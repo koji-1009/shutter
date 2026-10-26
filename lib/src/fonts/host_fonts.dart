@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import '../project/project.dart';
 import 'cmap.dart';
+import 'host_font_list.dart';
 
 /// Where a host keeps its fonts, most preferred first: of the fonts that
 /// draw a character, one from an earlier directory is chosen. Each
@@ -34,6 +35,11 @@ List<(String, bool)> hostFontDirs(String os, Map<String, String> environment) {
   };
 }
 
+/// Text of one style laid out in a shot: the style's own font families
+/// (`fontFamily`, then `fontFamilyFallback`) and its characters beyond
+/// ASCII.
+typedef LaidOutText = ({List<String> families, Set<int> codePoints});
+
 /// A host font file: its directory's place in the preference order, what
 /// it draws, and its weight class.
 class const HostFont(
@@ -45,16 +51,46 @@ class const HostFont(
 
 const _fontExtensions = {'.ttf', '.otf', '.ttc'};
 
-/// The host's font files under [dirs], what each draws, and its weight.
-/// Both are read from the file once and kept in [cachePath], by path,
-/// size, and modification time.
+/// Raised when what the index records of a font changes, so an index an
+/// earlier version wrote is read anew.
+const _indexVersion = 1;
+
+/// The host's font files under [dirs], and what each font file draws and
+/// its weight. Those are read from the file once and kept in [cachePath],
+/// by path, size, and modification time.
 class HostFontIndex(final List<(String, bool)> dirs, final String cachePath) {
   late final Map<String, Object?> _cache = _readCache();
+  final _entries = <String, (Coverage?, int)>{};
   var _changed = false;
 
   /// Every font file under [dirs], in preference order: by directory,
   /// then by path. A file is listed under the first directory holding it.
-  List<(String, int)> files() {
+  late final List<(String, int)> files = _list();
+
+  /// Every font file under [dirs] that shutter can read, in the order of
+  /// [files].
+  late final List<HostFont> fonts = [
+    for (final (path, rank) in files)
+      if (_entry(path) case (final coverage?, final weight))
+        HostFont(path, rank, coverage, weight),
+  ];
+
+  /// What the font at [path] draws; null when it is not a font shutter
+  /// can read. Any font file, under [dirs] or not.
+  Coverage? coverage(String path) => _entry(path).$1;
+
+  /// Writes what was read since it was last saved to [cachePath].
+  void save() {
+    if (!_changed) return;
+    File(cachePath)
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync(
+        jsonEncode({'version': _indexVersion, 'fonts': _cache}),
+      );
+    _changed = false;
+  }
+
+  List<(String, int)> _list() {
     final seen = <String>{};
     final files = <(String, int)>[];
     for (final (rank, (dir, recursive)) in dirs.indexed) {
@@ -83,23 +119,9 @@ class HostFontIndex(final List<(String, bool)> dirs, final String cachePath) {
     return files;
   }
 
-  /// Every font file under [dirs] that shutter can read, in the order of
-  /// [files].
-  List<HostFont> fonts() {
-    final fonts = [
-      for (final (path, rank) in files())
-        if (_entry(path) case (final coverage?, final weight))
-          HostFont(path, rank, coverage, weight),
-    ];
-    _save();
-    return fonts;
-  }
+  (Coverage?, int) _entry(String path) => _entries[path] ??= _load(path);
 
-  /// What the font at [path] draws; null when it is not a font shutter
-  /// can read.
-  Coverage? coverage(String path) => _entry(path).$1;
-
-  (Coverage?, int) _entry(String path) {
+  (Coverage?, int) _load(String path) {
     final file = File(path);
     final stat = file.statSync();
     if (stat.type == FileSystemEntityType.notFound) return (null, 400);
@@ -144,111 +166,99 @@ class HostFontIndex(final List<(String, bool)> dirs, final String cachePath) {
 
   Map<String, Object?> _readCache() {
     try {
-      final json = jsonDecode(File(cachePath).readAsStringSync());
-      if (json is Map<String, Object?>) return json;
+      final Object? json = jsonDecode(File(cachePath).readAsStringSync());
+      if (json case {
+        'version': _indexVersion,
+        'fonts': final Map<String, Object?> fonts,
+      }) {
+        return fonts;
+      }
     } on FileSystemException {
       // No cache yet.
     } on FormatException {
-      // A cache this version cannot read is rebuilt.
+      // Unreadable: rebuilt.
     }
     return {};
   }
-
-  void _save() {
-    if (!_changed) return;
-    File(cachePath)
-      ..parent.createSync(recursive: true)
-      ..writeAsStringSync(jsonEncode(_cache));
-    _changed = false;
-  }
 }
 
-/// The host fonts a run falls back to, by family, in fallback order. First
-/// the host's CJK fonts, with Japanese forms for the Han characters CJK
-/// scripts share, and its emoji font; then a font for each character
-/// those do not draw, chosen by [cover] and kept in [learnedPath] for
-/// every later run of the project.
-class HostFallback {
-  HostFallback({
-    required this.os,
-    required this.index,
-    required this.learnedPath,
-  });
-
-  /// The fallback of this machine for [project].
-  factory HostFallback.forHost(Project project) {
-    final dir = project.hostFontsDir;
-    return HostFallback(
-      os: Platform.operatingSystem,
-      index: HostFontIndex(
-        hostFontDirs(Platform.operatingSystem, Platform.environment),
-        p.join(dir, 'index.json'),
-      ),
-      learnedPath: p.join(dir, 'fallback.json'),
-    );
-  }
-
+/// The host fonts one run falls back to, by family, in fallback order:
+/// [listed], then a font for each character neither those nor the text's
+/// own fonts draw, chosen by [cover]. What is chosen lasts for the run
+/// only, so the same text falls back to the same fonts in every run.
+class HostFallback(
   /// `Platform.operatingSystem` of the host.
-  final String os;
-  final HostFontIndex index;
-  final String learnedPath;
+  final String os,
 
-  /// Family name → font files, in fallback order.
-  Map<String, List<String>> families() {
-    final learned = [
-      for (final path in _learned)
-        if (File(path).existsSync()) path,
-    ];
-    return {
-      for (final MapEntry(:key, :value) in _base().entries)
-        if (value.isNotEmpty) key: value,
-      for (final (i, path) in learned.indexed)
-        'ShutterFallback${i + 1}': [path],
-    };
-  }
+  /// The host's font files.
+  final HostFontIndex index,
 
-  /// Adds a font for each character of [codePoints] the fallback fonts do
-  /// not draw. Of the host fonts that draw it, the first of the host's
-  /// system fonts for common scripts is chosen. Else the one nearest the
-  /// regular weight: it is the only weight loaded, and a collection whose
-  /// first font is black draws all its text black. Of those, the one in
-  /// the most preferred directory, and of those the one drawing the fewest
+  /// Family → file names, as [hostFallbackFonts] lists them for the host.
+  final Map<String, List<String>> listed,
+) {
+  /// The fallback of this machine, with its index in [project].
+  factory HostFallback.forHost(Project project) => HostFallback(
+    Platform.operatingSystem,
+    HostFontIndex(
+      hostFontDirs(Platform.operatingSystem, Platform.environment),
+      p.join(project.hostFontsDir, 'index.json'),
+    ),
+    hostFallbackFonts[Platform.operatingSystem] ?? const {},
+  );
+
+  late final Map<String, List<String>> _listed = {
+    for (final MapEntry(key: family, value: names) in listed.entries)
+      if ([for (final name in names) ..._files(name)] case final paths
+          when paths.isNotEmpty)
+        family: paths,
+  };
+
+  final _chosen = <String>[];
+
+  /// Family → font files, in fallback order.
+  Map<String, List<String>> families() => {
+    ..._listed,
+    for (final (i, path) in _chosen.indexed) 'ShutterFallback${i + 1}': [path],
+  };
+
+  /// Adds a font for each character of [texts] that neither the fallback
+  /// fonts nor the text's own fonts ([fontFiles] by family) draw. Of the
+  /// host fonts that draw it, the one nearest the regular weight is
+  /// chosen: it is the only weight loaded, and a collection whose first
+  /// font is black draws all its text black. Of those, the one in the most
+  /// preferred directory, and of those the one drawing the fewest
   /// characters: a font for the character's script rather than one for
   /// many. Returns whether a font was added.
-  bool cover(Iterable<int> codePoints) {
-    final wanted = {
-      for (final c in codePoints)
-        if (!_invisible(c)) c,
-    };
-    if (wanted.isEmpty) return false;
+  bool cover(Iterable<LaidOutText> texts, Map<String, List<String>> fontFiles) {
     final chain = [for (final paths in families().values) ...paths];
-    final drawn = [for (final path in chain) ?index.coverage(path)];
-    final missing = [
-      for (final c in wanted)
-        if (!drawn.any((coverage) => coverage.contains(c))) c,
-    ]..sort();
-    if (missing.isEmpty) return false;
-    final fonts = [
-      for (final font in index.fonts())
-        if (!chain.contains(font.path) &&
-            !_placeholders.contains(p.basename(font.path)))
-          font,
-    ];
-    final preferred = [
-      for (final path in _preferred())
-        ?fonts.where((font) => font.path == path).firstOrNull,
-    ];
+    final missing = <int>{};
+    for (final text in texts) {
+      final fonts = [
+        for (final family in text.families) ...?fontFiles[family],
+        ...chain,
+      ];
+      for (final c in text.codePoints) {
+        if (_invisible(c) || missing.contains(c)) continue;
+        if (!fonts.any((path) => index.coverage(path)?.contains(c) ?? false)) {
+          missing.add(c);
+        }
+      }
+    }
     final added = <HostFont>[];
-    for (final c in missing) {
-      if (added.any((font) => font.coverage.contains(c))) continue;
-      var best = preferred
-          .where((font) => font.coverage.contains(c))
-          .firstOrNull;
-      // [fonts] are in directory order: of those as near the regular
-      // weight, the first that draws it is in the most preferred
-      // directory.
-      if (best == null) {
-        for (final font in fonts) {
+    if (missing.isNotEmpty) {
+      final candidates = [
+        for (final font in index.fonts)
+          if (!chain.contains(font.path) &&
+              !_placeholders.contains(p.basename(font.path)))
+            font,
+      ];
+      for (final c in missing.toList()..sort()) {
+        if (added.any((font) => font.coverage.contains(c))) continue;
+        // [candidates] are in directory order: of those as near the
+        // regular weight, the first that draws it is in the most
+        // preferred directory.
+        HostFont? best;
+        for (final font in candidates) {
           if (!font.coverage.contains(c)) continue;
           final distance = (font.weight - 400).abs();
           final bestDistance = best == null ? 0 : (best.weight - 400).abs();
@@ -260,110 +270,34 @@ class HostFallback {
             best = font;
           }
         }
+        if (best != null) added.add(best);
       }
-      if (best != null) added.add(best);
     }
-    if (added.isEmpty) return false;
-    _learned = [..._learned, for (final font in added) font.path];
-    File(learnedPath)
-      ..parent.createSync(recursive: true)
-      ..writeAsStringSync(jsonEncode({'fonts': _learned}));
-    return true;
+    index.save();
+    _chosen.addAll([for (final font in added) font.path]);
+    return added.isNotEmpty;
   }
 
-  late List<String> _learned = _readLearned();
-
-  List<String> _readLearned() {
-    try {
-      final Object? json = jsonDecode(File(learnedPath).readAsStringSync());
-      if (json case {'fonts': final List<Object?> fonts}) {
-        return fonts.whereType<String>().toList();
-      }
-    } on FileSystemException {
-      // Nothing learned yet.
-    } on FormatException {
-      // Unreadable: learned again.
+  /// The host font files [name] names, in directory order. Matched
+  /// without case where the host's file system ignores it.
+  List<String> _files(String name) {
+    final pattern = RegExp(
+      '^${name.split('*').map(RegExp.escape).join('.*')}\$',
+      caseSensitive: os == 'linux',
+    );
+    final files = [
+      for (final (path, _) in index.files)
+        if (pattern.hasMatch(p.basename(path))) path,
+    ];
+    if (files.isNotEmpty || name.contains('*')) return files;
+    // A name the listing spells otherwise: macOS lists Japanese file names
+    // decomposed (NFD), which never equal a literal. The file system finds
+    // it, and resolves it to the path it lists.
+    for (final (dir, _) in index.dirs) {
+      final file = File(p.join(dir, name));
+      if (file.existsSync()) return [file.resolveSymbolicLinksSync()];
     }
     return const [];
-  }
-
-  /// The files of [names] in the host's first font directory that exist.
-  /// Exact paths: macOS lists Japanese file names decomposed (NFD), which
-  /// never equal a literal.
-  List<String> _existing(List<String> names) => [
-    for (final name in names)
-      if (index.dirs.isNotEmpty &&
-          File(p.join(index.dirs.first.$1, name)).existsSync())
-        p.join(index.dirs.first.$1, name),
-  ];
-
-  /// The host's system fonts for what several host fonts draw: its UI font
-  /// (for Latin, Greek, and Cyrillic beyond what the CJK font has), then
-  /// Simplified Chinese, Hangul, Thai, Arabic, Hebrew, and Devanagari.
-  List<String> _preferred() => switch (os) {
-    'macos' => _existing([
-      'SFNS.ttf',
-      'Hiragino Sans GB.ttc',
-      'AppleSDGothicNeo.ttc',
-      'ThonburiUI.ttc',
-      'SFArabic.ttf',
-      'SFHebrew.ttf',
-      'Kohinoor.ttc',
-    ]),
-    'windows' => _existing([
-      'Segoeui.ttf',
-      'Msyh.ttc',
-      'Malgun.ttf',
-      'Leelawui.ttf',
-      'Nirmala.ttf',
-    ]),
-    'linux' => [
-      for (final name in const [
-        'NotoSans-Regular.ttf',
-        'DejaVuSans.ttf',
-        'NotoSansThai-Regular.ttf',
-        'NotoSansArabic-Regular.ttf',
-        'NotoSansHebrew-Regular.ttf',
-        'NotoSansDevanagari-Regular.ttf',
-      ])
-        for (final (path, _) in index.files())
-          if (p.basename(path) == name) path,
-    ],
-    _ => const [],
-  };
-
-  /// The host's CJK and emoji fonts.
-  Map<String, List<String>> _base() {
-    switch (os) {
-      case 'macos':
-        return {
-          'ShutterFallbackCjk': _existing([
-            'ヒラギノ角ゴシック W3.ttc',
-            'ヒラギノ角ゴシック W6.ttc',
-          ]),
-          'ShutterFallbackEmoji': _existing(['Apple Color Emoji.ttc']),
-        };
-      case 'windows':
-        return {
-          'ShutterFallbackCjk': _existing(['YuGothR.ttc', 'YuGothB.ttc']),
-          'ShutterFallbackEmoji': _existing(['seguiemj.ttf']),
-        };
-      case 'linux':
-        final cjk = <String>[];
-        final emoji = <String>[];
-        for (final (path, _) in index.files()) {
-          final name = p.basename(path);
-          if ((name.startsWith('NotoSansCJK') ||
-                  name.startsWith('NotoSansJP')) &&
-              (name.contains('Regular') || name.contains('Bold'))) {
-            cjk.add(path);
-          } else if (name == 'NotoColorEmoji.ttf') {
-            emoji.add(path);
-          }
-        }
-        return {'ShutterFallbackCjk': cjk, 'ShutterFallbackEmoji': emoji};
-    }
-    return const {};
   }
 }
 

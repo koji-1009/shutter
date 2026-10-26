@@ -25,11 +25,13 @@ const _maxFontRounds = 3;
 const _noTestsRan = 79;
 
 /// One capture: the shots; per shot id, the google_fonts files that
-/// failed to load; and the characters beyond ASCII of the text laid out.
+/// failed to load; the text laid out; and the font files loaded, by
+/// family.
 typedef _Pass = ({
   List<Shot> shots,
   Map<String, Set<String>> missingFonts,
-  Set<int> codePoints,
+  List<LaidOutText> texts,
+  Map<String, List<String>> fontFiles,
 });
 
 /// Engine v1: generates a `flutter_test` suite in a per-run directory,
@@ -76,7 +78,7 @@ class FlutterTestEngine implements Engine {
     // Keys are file hashes, or `<Family>-<Variant>` asset names when the
     // project disallows runtime fetching.
     for (var round = 0; round < _maxFontRounds; round++) {
-      var added = fallback.cover(pass.codePoints);
+      var added = fallback.cover(pass.texts, pass.fontFiles);
       final pending = {for (final hashes in pass.missingFonts.values) ...hashes}
           .difference(failures.keys.toSet());
       if (googleFonts != null && pending.isNotEmpty) {
@@ -144,9 +146,9 @@ class FlutterTestEngine implements Engine {
   }
 
   /// One capture. Returns the shots; per shot id, the google_fonts files
-  /// (hashes) that failed to load; and the characters beyond ASCII of the
-  /// text laid out. When the generated test does not compile, every shot
-  /// is an error carrying the first compiler error.
+  /// (hashes) that failed to load; the text laid out; and the font files
+  /// loaded. When the generated test does not compile, every shot is an
+  /// error carrying the first compiler error.
   Future<_Pass> _capture(
     CaptureRequest request,
     DesignSupport design,
@@ -179,15 +181,22 @@ class FlutterTestEngine implements Engine {
     ], workingDirectory: project.root);
     Directory(p.dirname(testPath)).deleteSync(recursive: true);
     final missingFonts = <String, Set<String>>{};
-    final codePoints = <int>{};
-    final captured = _readResults(request.runDir, missingFonts, codePoints);
+    final texts = <LaidOutText>[];
+    final fontFiles = <String, List<String>>{};
+    final captured = _readResults(
+      request.runDir,
+      missingFonts,
+      texts,
+      fontFiles,
+    );
     if (captured.isNotEmpty ||
         result.exitCode == 0 ||
         result.exitCode == _noTestsRan) {
       return (
         shots: [...shots, ...captured],
         missingFonts: missingFonts,
-        codePoints: codePoints,
+        texts: texts,
+        fontFiles: fontFiles,
       );
     }
     final output = testOutput('${result.stdout}', '${result.stderr}');
@@ -213,7 +222,8 @@ class FlutterTestEngine implements Engine {
           ),
       ],
       missingFonts: missingFonts,
-      codePoints: codePoints,
+      texts: texts,
+      fontFiles: fontFiles,
     );
   }
 
@@ -228,27 +238,36 @@ class FlutterTestEngine implements Engine {
   );
 
   /// Reads and removes `<runDir>/.results/`, collecting each shot's
-  /// `missing_fonts` into [missingFonts] and its `code_points` into
-  /// [codePoints]. A shot the harness planned (`<id>.planned`) but never
-  /// finished (`<id>.json`) is reported with the planned error.
+  /// `missing_fonts` into [missingFonts] and its `text` into [texts], and
+  /// the font files the harness loaded (`fonts.loaded`) into [fontFiles].
+  /// A shot the harness planned (`<id>.planned`) but never finished
+  /// (`<id>.json`) is reported with the planned error.
   List<Shot> _readResults(
     String runDir,
     Map<String, Set<String>> missingFonts,
-    Set<int> codePoints,
+    List<LaidOutText> texts,
+    Map<String, List<String>> fontFiles,
   ) {
     final dir = Directory(p.join(runDir, '.results'));
     if (!dir.existsSync()) return const [];
     final results = <String, Map<String, Object?>>{};
     final planned = <String, Map<String, Object?>>{};
     for (final file in dir.listSync().whereType<File>()) {
-      final target = switch (p.extension(file.path)) {
-        '.json' => results,
-        '.planned' => planned,
-        _ => null,
-      };
-      if (target == null) continue;
+      final extension = p.extension(file.path);
+      if (!const {'.json', '.planned', '.loaded'}.contains(extension)) {
+        continue;
+      }
       final json = jsonDecode(file.readAsStringSync()) as Map<String, Object?>;
-      target[json['id']! as String] = json;
+      switch (extension) {
+        case '.json':
+          results[json['id']! as String] = json;
+        case '.planned':
+          planned[json['id']! as String] = json;
+        default:
+          for (final MapEntry(:key, :value) in json.entries) {
+            fontFiles[key] = (value! as List<Object?>).cast<String>();
+          }
+      }
     }
     dir.deleteSync(recursive: true);
     final shots = <Shot>[];
@@ -258,8 +277,15 @@ class FlutterTestEngine implements Engine {
       if (json['missing_fonts'] case final List<Object?> hashes) {
         missingFonts[shot.id] = hashes.cast<String>().toSet();
       }
-      if (json['code_points'] case final List<Object?> characters) {
-        codePoints.addAll(characters.cast<int>());
+      if (json['text'] case final List<Object?> text) {
+        for (final style in text.cast<Map<String, Object?>>()) {
+          texts.add((
+            families: (style['families']! as List<Object?>).cast<String>(),
+            codePoints: (style['code_points']! as List<Object?>)
+                .cast<int>()
+                .toSet(),
+          ));
+        }
       }
     }
     return shots;

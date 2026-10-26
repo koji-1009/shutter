@@ -170,9 +170,12 @@ void run({
         Uri.parse(key): File(value),
     });
   }
-  setUpAll(
-    () => _loadFonts(config.materialFontsDir, fonts, config.fallbackFonts),
-  );
+  setUpAll(() async {
+    await _loadFonts(config.materialFontsDir, fonts, config.fallbackFonts);
+    File(
+      '${config.runDir}/.results/fonts.loaded',
+    ).writeAsStringSync(jsonEncode(_fontFiles));
+  });
   for (final entry in entries) {
     final List<Preview> previews;
     try {
@@ -245,7 +248,6 @@ Future<void> _capture(
 ) async {
   addTearDown(tester.view.reset);
   addTearDown(tester.platformDispatcher.clearAllTestValues);
-  _codePoints.clear();
   // Described while the tree is still mounted: the "relevant
   // error-causing widget" location is looked up through live elements.
   Map<String, Object?>? firstError;
@@ -421,6 +423,8 @@ Future<void> _capture(
       };
     }
     if (screen != null || boundary != null) {
+      final text = _laidOutText(tester.binding);
+      if (text.isNotEmpty) result['text'] = text;
       final size = screen?.size ?? boundary!.size;
       // The root layer already scales to the device pixel ratio, so it is
       // drawn at 1 over its bounds in physical pixels.
@@ -470,9 +474,6 @@ Future<void> _capture(
   resolver?.dispose();
   while (tester.takeException() != null) {}
   if (missingFonts.isNotEmpty) result['missing_fonts'] = [...missingFonts];
-  if (_codePoints.isNotEmpty) {
-    result['code_points'] = _codePoints.toList()..sort();
-  }
   if (firstError == null && result['png'] == null) {
     firstError = {
       'error': 'nothing was painted: the preview is not in the painted '
@@ -960,10 +961,68 @@ late Widget Function(BuildContext, Widget, List<String>) _themeFallback;
 /// themes, and every text laid out.
 final _fallbackFamilies = <String>[];
 
-/// The characters beyond ASCII of the text laid out in the current shot.
-/// The CLI chooses a host font for those no fallback font draws, and
+/// Family → the font files [_loadFonts] loaded for it. The CLI reads what
+/// they draw, to tell which characters of [_laidOutText] no font draws.
+final _fontFiles = <String, List<String>>{};
+
+/// The text laid out in [binding]'s views, by the style's own font
+/// families (`fontFamily`, then `fontFamilyFallback`, without the fallback
+/// families): its characters beyond ASCII. The CLI chooses a host font
+/// for those neither these families nor the fallback fonts draw, and
 /// shoots again.
-final _codePoints = <int>{};
+List<Map<String, Object?>> _laidOutText(RendererBinding binding) {
+  final texts = <String, (List<String>, Set<int>)>{};
+  void collect(InlineSpan span, String? family, List<String>? fallback) {
+    // Placeholders (`WidgetSpan`) are laid out as render objects of their
+    // own.
+    if (span is! TextSpan) return;
+    if (span.style case final style?) {
+      family = style.inherit ? style.fontFamily ?? family : style.fontFamily;
+      fallback = style.inherit
+          ? style.fontFamilyFallback ?? fallback
+          : style.fontFamilyFallback;
+    }
+    final characters = {
+      for (final c in span.text?.runes ?? const <int>[])
+        if (c >= 0x80) c,
+    };
+    if (characters.isNotEmpty) {
+      final families = [
+        ?family,
+        for (final f in fallback ?? const <String>[])
+          if (!_fallbackFamilies.contains(f)) f,
+      ];
+      texts
+          .putIfAbsent(families.join('\n'), () => (families, <int>{}))
+          .$2
+          .addAll(characters);
+    }
+    for (final child in span.children ?? const <InlineSpan>[]) {
+      collect(child, family, fallback);
+    }
+  }
+
+  void visit(RenderObject node) {
+    switch (node) {
+      case RenderParagraph(:final text):
+        collect(text, null, null);
+      case RenderEditable(:final text?):
+        collect(text, null, null);
+    }
+    node.visitChildren(visit);
+  }
+
+  for (final view in binding.renderViews) {
+    view.visitChildren(visit);
+  }
+  return [
+    for (final (families, characters) in texts.values)
+      {
+        'families': families,
+        'code_points': characters.toList()..sort(),
+      },
+  ];
+}
 
 /// The flutter_test engine does no system font fallback: a glyph missing
 /// from the style's families renders as a box. Real devices fall back to
@@ -1026,15 +1085,11 @@ final class _FallbackPipelineOwner extends PipelineOwner {
     }
   }
 
-  /// Whether any text was given the families. Notes the characters of the
-  /// text in [_codePoints].
+  /// Whether any text was given the families.
   bool _fallBackInText() {
+    if (_fallbackFamilies.isEmpty) return false;
     var changed = false;
     InlineSpan fallingBack(InlineSpan text) {
-      for (final c in text.toPlainText(includeSemanticsLabels: false).runes) {
-        if (c >= 0x80) _codePoints.add(c);
-      }
-      if (_fallbackFamilies.isEmpty) return text;
       final patched = _withFallback(text, root: true);
       if (patched == text) return text;
       changed = true;
@@ -1281,12 +1336,26 @@ Future<void> _loadFonts(
   final manifest = jsonDecode(await rootBundle.loadString('FontManifest.json'))
       as List<Object?>;
   final families = <String, List<Future<ByteData>>>{};
+  // Where flutter test serves the assets from, as files.
+  final assetDir = Platform.environment['UNIT_TEST_ASSETS'];
+  final appName = Platform.environment['APP_NAME'];
+  String? assetFile(String asset) {
+    if (assetDir == null) return null;
+    for (final key in [asset, asset.replaceFirst('packages/$appName/', '')]) {
+      if (File('$assetDir/$key').existsSync()) return '$assetDir/$key';
+    }
+    return null;
+  }
+
   for (final family in manifest.cast<Map<String, Object?>>()) {
-    final fonts = family['fonts']! as List<Object?>;
-    families[family['family']! as String] = [
-      for (final font in fonts.cast<Map<String, Object?>>())
-        rootBundle.load(font['asset']! as String),
+    final name = family['family']! as String;
+    final assets = [
+      for (final font in (family['fonts']! as List<Object?>)
+          .cast<Map<String, Object?>>())
+        font['asset']! as String,
     ];
+    families[name] = [for (final asset in assets) rootBundle.load(asset)];
+    _fontFiles[name] = [for (final asset in assets) ?assetFile(asset)];
   }
   final dir = Directory(materialFontsDir);
   if (dir.existsSync()) {
@@ -1298,6 +1367,7 @@ Future<void> _loadFonts(
           file,
     ];
     families['Roboto'] = [for (final file in roboto) readFile(file)];
+    _fontFiles['Roboto'] = [for (final file in roboto) file.path];
     // Cupertino text names the platform's system font through these
     // families, and the test engine resolves no system font. As a macOS
     // app does, they get SF Pro from the host, which is what iOS draws;
@@ -1313,21 +1383,24 @@ Future<void> _loadFonts(
       'CupertinoSystemText',
       'CupertinoSystemDisplay',
     ]) {
-      families.putIfAbsent(
-        family,
-        () => [for (final file in system) readFile(file)],
-      );
+      if (families.containsKey(family)) continue;
+      families[family] = [for (final file in system) readFile(file)];
+      _fontFiles[family] = [for (final file in system) file.path];
     }
-    families.putIfAbsent('MaterialIcons', () => [
-      for (final file in files)
-        if (file.uri.pathSegments.last.startsWith('MaterialIcons'))
-          readFile(file),
-    ]);
+    if (!families.containsKey('MaterialIcons')) {
+      final icons = [
+        for (final file in files)
+          if (file.uri.pathSegments.last.startsWith('MaterialIcons')) file,
+      ];
+      families['MaterialIcons'] = [for (final file in icons) readFile(file)];
+      _fontFiles['MaterialIcons'] = [for (final file in icons) file.path];
+    }
   }
   // Registered up front: a google_fonts style created during a frame
   // registers its font after that frame's layout, too late for capture.
   for (final font in fonts) {
     families[font.family] = [readFile(File(font.path))];
+    _fontFiles[font.family] = [font.path];
   }
   for (final MapEntry(key: family, value: paths) in fallbackFonts.entries) {
     families[family] = [for (final path in paths) readFile(File(path))];

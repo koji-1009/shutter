@@ -2,6 +2,7 @@
 library;
 
 import 'dart:io';
+import 'dart:math';
 
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
@@ -152,6 +153,109 @@ Widget tile() => const ListTile(title: Text('x'));
       final manifest = RunManifest.read(lastRun(root));
       expect(manifest.shots.single.error, contains('No Material widget'));
       expect(manifest.shell?.path, '.dart_tool/shutter/shell.dart');
+    },
+  );
+
+  test(
+    'a style that inherits nothing still falls back to host fonts',
+    () async {
+      final root = await exampleCopy();
+      // CupertinoAlertDialog's title style is `inherit: false` and names the
+      // Cupertino system font, so neither the default text style nor a theme
+      // reaches it. Emoji, rather than CJK, because the CI host has emoji
+      // fonts only.
+      writeFiles(root, {
+        'lib/preview/dialog_preview.dart': '''
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/widget_previews.dart';
+
+Widget emojiDialog() => const CupertinoAlertDialog(title: Text('🍎🍊🍋'));
+
+@Preview(name: 'Dialog', size: Size(320, 160))
+Widget dialog() => emojiDialog();
+
+/// A package's font: the style prefixes its fallback families with the
+/// package.
+@Preview(name: 'Package font', size: Size(320, 40))
+Widget packageFont() => const Text(
+  '🍎🍊🍋',
+  style: TextStyle(fontFamily: 'Brand', package: 'brand_fonts'),
+);
+
+/// Text built while the view is laid out, in the frame before the
+/// capture: there is no room for it until then.
+@Preview(name: 'Built in layout', size: Size(320, 40))
+Widget builtInLayout() => TweenAnimationBuilder<double>(
+  tween: Tween(begin: 0, end: 40),
+  duration: const Duration(milliseconds: 300),
+  builder: (_, height, _) => Align(
+    alignment: Alignment.topLeft,
+    child: SizedBox(
+      height: height,
+      child: LayoutBuilder(
+        builder: (_, constraints) => constraints.maxHeight < 40
+            ? const SizedBox.shrink()
+            : const Text(
+                '🍎🍊🍋',
+                style: TextStyle(
+                  inherit: false,
+                  fontSize: 14,
+                  color: Color(0xFF000000),
+                ),
+              ),
+      ),
+    ),
+  ),
+);
+''',
+        'lib/preview/show_preview.dart': '''
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/widget_previews.dart';
+
+import 'dialog_preview.dart';
+
+@Preview(name: 'Shown', size: Size(320, 240))
+Widget shown() => Builder(
+  builder: (context) => GestureDetector(
+    onTap: () => showCupertinoDialog<void>(
+      context: context,
+      builder: (_) => emojiDialog(),
+    ),
+    child: const Text('open'),
+  ),
+);
+''',
+      });
+      // Colored pixels: the emoji font drew the glyphs; the test font's
+      // boxes are in the black title color.
+      int colored(String run, Shot shot) {
+        final image = img.decodePng(
+          File(p.join(run, shot.png!)).readAsBytesSync(),
+        )!;
+        var count = 0;
+        for (final pixel in image) {
+          final channels = [pixel.r, pixel.g, pixel.b];
+          if (channels.reduce(max) - channels.reduce(min) > 64) count++;
+        }
+        return count;
+      }
+
+      final (run, shots) = await shootIn(root, [
+        'lib/preview/dialog_preview.dart',
+      ]);
+      for (final name in ['Dialog', 'Package font', 'Built in layout']) {
+        expect(shots[name]!.status, ShotStatus.ok, reason: name);
+        expect(colored(run, shots[name]!), greaterThan(0), reason: name);
+      }
+      final (screenRun, screenShots) = await shootIn(root, [
+        'lib/preview/show_preview.dart',
+        '--tap',
+        'text:open',
+        '--capture',
+        'screen',
+      ]);
+      expect(screenShots['Shown']!.status, ShotStatus.ok);
+      expect(colored(screenRun, screenShots['Shown']!), greaterThan(0));
     },
   );
 

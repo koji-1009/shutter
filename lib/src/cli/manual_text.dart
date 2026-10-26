@@ -136,6 +136,7 @@ Elevation paints its shadow as on a device; `flutter_test` would draw a solid ou
 
 Fonts: every family in the project's `FontManifest.json` (pubspec `fonts:`, package fonts, MaterialIcons) plus Roboto from the Flutter SDK cache.
 The test engine has no system font fallback, so a glyph missing from the style's fonts would render as a box. As on a device, shutter falls back to the host's CJK and emoji fonts: Hiragino Sans W3/W6 and Apple Color Emoji on macOS, Noto Sans CJK and Noto Color Emoji on Linux, Yu Gothic and Segoe UI Emoji on Windows. They are appended as `fontFamilyFallback` to the ambient default text style, and to the text theme of every design library whose theme the shell provides (SDK or package); text whose glyphs exist in its own font renders unchanged.
+Each frame, before layout, they are also appended to the text of every paragraph and text field, so text whose style keeps them out falls back too: a style that inherits nothing, such as a `CupertinoAlertDialog`'s, or one with its own `fontFamilyFallback`, such as google_fonts'.
 Cupertino text names the system font through the families `CupertinoSystemText` and `CupertinoSystemDisplay`, which the test engine does not resolve. On a macOS host they get SF Pro from `/System/Library/Fonts/`, as a macOS app does and as iOS draws; on other hosts, Roboto, the Android system font.
 Host fonts come from the machine that shoots, so compare runs made on the same machine.
 
@@ -233,7 +234,7 @@ These come from rendering through `flutter test`.
 * One capture per preview, after the actions: scrolling and dragging are not shot. A sequence of states, such as the course of an animation, is shot as one run per point in time, each with its own `--settle`.
 * No on-screen keyboard: text entered with `--enter` reaches the field, but the keyboard a device would show is not drawn, even with `--capture screen`, and the layout does not make room for it unless `--keyboard` is given (see Experimental); `--keyboard-tint` marks its area with a color.
 * HTTP is blocked, so network images fail to load unless `--network-image` serves them.
-* `flutter test` runs the engine with test fonts, which has no system font fallback. Shutter's host fonts are added to the text themes and the default text style, so a text style that sets its own `fontFamilyFallback` does not get them. google_fonts styles do this: glyphs outside the Google font (for example Japanese in a Latin-only font) render as boxes, where a device would fall back to a system font.
+* `flutter test` runs the engine with test fonts, which has no system font fallback. Shutter's host fonts reach paragraphs, text fields, the text themes, and the default text style, so text a widget paints with its own `TextPainter` gets them only when its style comes from the default text style or a theme: other glyphs outside its fonts render as boxes, where a device would fall back to a system font.
 
 ## Engine
 

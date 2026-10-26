@@ -151,7 +151,7 @@ void run({
   Widget Function(Widget)? shell,
   List<ShutterFont> fonts = const [],
 }) {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  _ShutterBinding();
   _defaultShell = defaultShell;
   _themeFallback = themeFallback;
   _location = RegExp(
@@ -955,7 +955,8 @@ final _fallbackFamilies = <String>[];
 /// system CJK and emoji fonts, so the same fonts are loaded from the host
 /// and added to the fallback list of the ambient default text style, and
 /// of the design libraries' text themes the shell provides. A shell
-/// without a design library gets none from this.
+/// without a design library gets none from this; text whose style keeps
+/// them out gets them from [_FallbackPipelineOwner].
 Widget _withFallbackFonts(Widget child) {
   if (_fallbackFamilies.isEmpty) return child;
   return Builder(
@@ -972,6 +973,134 @@ Widget _withFallbackFonts(Widget child) {
       ),
       _fallbackFamilies,
     ),
+  );
+}
+
+/// The test binding, whose frames lay text out with the fallback families.
+class _ShutterBinding extends AutomatedTestWidgetsFlutterBinding {
+  @override
+  PipelineOwner createRootPipelineOwner() => _FallbackPipelineOwner(this);
+}
+
+/// Most passes of [_FallbackPipelineOwner.flushLayout]; each one lays out
+/// only the text that the layout before it built.
+const _fallbackPasses = 4;
+
+/// The root pipeline owner, which appends the fallback families to the
+/// text of every paragraph and text field before it is laid out. This
+/// reaches what a style of its own keeps from the default text style and
+/// the themes: an `inherit: false` style, such as a Cupertino dialog's,
+/// or one with its own `fontFamilyFallback`, such as google_fonts'.
+/// Never laid out without them, text has no size that a device would not
+/// give it, for an `AnimatedSize` to animate from.
+final class _FallbackPipelineOwner extends PipelineOwner {
+  // As the framework's own root: semantics are enabled through it, but it
+  // has no render tree of its own to send updates for.
+  _FallbackPipelineOwner(this.binding) : super(onSemanticsUpdate: (_) {});
+
+  final RendererBinding binding;
+
+  @override
+  void flushLayout() {
+    _fallBackInText();
+    super.flushLayout();
+    // Layout builds too, with the widgets' own text: a LayoutBuilder's
+    // child, a lazy list's items.
+    for (var pass = 1; pass < _fallbackPasses && _fallBackInText(); pass++) {
+      super.flushLayout();
+    }
+  }
+
+  /// Whether any text was given the families.
+  bool _fallBackInText() {
+    if (_fallbackFamilies.isEmpty) return false;
+    var changed = false;
+    void visit(RenderObject node) {
+      switch (node) {
+        case RenderParagraph(:final text):
+          final fallingBack = _withFallback(text, root: true);
+          if (fallingBack != text) {
+            node.text = fallingBack;
+            changed = true;
+          }
+        case RenderEditable(:final text?):
+          final fallingBack = _withFallback(text, root: true);
+          if (fallingBack != text) {
+            node.text = fallingBack;
+            changed = true;
+          }
+      }
+      node.visitChildren(visit);
+    }
+
+    for (final view in binding.renderViews) {
+      view.visitChildren(visit);
+    }
+    return changed;
+  }
+}
+
+/// [span] with the fallback families appended to the styles that set
+/// them; a span without a style takes its parent's, or, at the [root],
+/// gets one with only the families. Text already falling back to them is
+/// returned equal.
+InlineSpan _withFallback(InlineSpan span, {bool root = false}) {
+  if (span is! TextSpan) return span;
+  final style = span.style;
+  return TextSpan(
+    text: span.text,
+    children: span.children?.map(_withFallback).toList(),
+    style: style == null
+        ? (root ? TextStyle(fontFamilyFallback: _fallbackFamilies) : null)
+        : _fallingBack(style),
+    recognizer: span.recognizer,
+    mouseCursor: span.mouseCursor,
+    onEnter: span.onEnter,
+    onExit: span.onExit,
+    semanticsLabel: span.semanticsLabel,
+    semanticsIdentifier: span.semanticsIdentifier,
+    locale: span.locale,
+    spellOut: span.spellOut,
+  );
+}
+
+/// [style] with the fallback families after its own. Built anew rather
+/// than copied: a copy keeps a package font's package, which prefixes
+/// every fallback family with it, so the families would not be found.
+TextStyle _fallingBack(TextStyle style) {
+  final own = style.fontFamilyFallback ?? const <String>[];
+  return TextStyle(
+    inherit: style.inherit,
+    color: style.color,
+    backgroundColor: style.backgroundColor,
+    fontSize: style.fontSize,
+    fontWeight: style.fontWeight,
+    fontStyle: style.fontStyle,
+    letterSpacing: style.letterSpacing,
+    wordSpacing: style.wordSpacing,
+    textBaseline: style.textBaseline,
+    height: style.height,
+    leadingDistribution: style.leadingDistribution,
+    locale: style.locale,
+    foreground: style.foreground,
+    background: style.background,
+    shadows: style.shadows,
+    fontFeatures: style.fontFeatures,
+    fontVariations: style.fontVariations,
+    decoration: style.decoration,
+    decorationColor: style.decorationColor,
+    decorationStyle: style.decorationStyle,
+    decorationThickness: style.decorationThickness,
+    debugLabel: style.debugLabel,
+    // Already prefixed with the package, as are the style's own fallback
+    // families.
+    fontFamily: style.fontFamily,
+    fontFamilyFallback: [
+      ...own,
+      for (final family in _fallbackFamilies)
+        if (!own.contains(family)) family,
+    ],
+    overflow: style.overflow,
   );
 }
 

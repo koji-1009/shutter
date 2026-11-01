@@ -1,21 +1,23 @@
-import '../dart_literal.dart';
-
 /// What an action does to its target before the capture.
-enum ActionKind {
+enum ActionKind(
+  /// Whether the state it leaves lasts through the capture: a press, a
+  /// hover, or focus.
+  final bool held,
+) {
   /// Taps it: a pointer down and up.
-  tap,
+  tap(false),
 
   /// Enters text into it, as a keyboard would.
-  enter,
+  enter(false),
 
   /// Holds a pointer down on it through the capture.
-  press,
+  press(true),
 
   /// Keeps a mouse pointer over it through the capture.
-  hover,
+  hover(true),
 
   /// Gives it keyboard focus, with the focus highlight a keyboard shows.
-  focus,
+  focus(true),
 }
 
 /// How an action's target is found.
@@ -34,17 +36,68 @@ enum TargetKind {
   label,
 }
 
-/// One `shot --tap`, `--enter`, `--press`, `--hover`, or `--focus`.
-class const ShotAction({
-  required final ActionKind kind,
-  required final TargetKind by,
+/// The widget an action acts on: `key:<value>`, `text:<value>`,
+/// `label:<value>`, or `type:<value>` on the command line.
+class const ShotTarget(
+  /// How the widget is found.
+  final TargetKind by,
 
-  /// The key, text, or type name.
-  required final String value,
+  /// The key, text, label, or type name.
+  final String value,
+) {
+  /// The widget with a `ValueKey<String>` of [value].
+  const ShotTarget.key(String value) : this(TargetKind.key, value);
+
+  /// The `Text` showing exactly [value], or the `EditableText` holding it.
+  const ShotTarget.text(String value) : this(TargetKind.text, value);
+
+  /// The widget whose semantics label is exactly [value]: a text field's
+  /// label or hint, a button's text.
+  const ShotTarget.label(String value) : this(TargetKind.label, value);
+
+  /// The widget of type [value], with or without type arguments, e.g.
+  /// `DropdownButton<String>`.
+  const ShotTarget.type(String value) : this(TargetKind.type, value);
+
+  @override
+  bool operator ==(Object other) =>
+      other is ShotTarget && other.by == by && other.value == value;
+
+  @override
+  int get hashCode => Object.hash(by, value);
+
+  /// `text:Save`, as on the command line.
+  @override
+  String toString() => '${by.name}:$value';
+}
+
+/// One `shot --tap`, `--enter`, `--press`, `--hover`, or `--focus`.
+class const ShotAction._(
+  final ActionKind kind,
+
+  /// The widget it acts on.
+  final ShotTarget target, [
 
   /// The text `--enter` types.
   final String? text,
-}) {
+]) {
+  /// Taps [target]: a pointer down and up.
+  const ShotAction.tap(ShotTarget target) : this._(ActionKind.tap, target);
+
+  /// Enters [text] into the text field [target] is or holds, as a
+  /// keyboard would.
+  const ShotAction.enter(ShotTarget target, String text)
+    : this._(ActionKind.enter, target, text);
+
+  /// Holds a pointer down on [target] through the capture.
+  const ShotAction.press(ShotTarget target) : this._(ActionKind.press, target);
+
+  /// Keeps a mouse pointer over [target] through the capture.
+  const ShotAction.hover(ShotTarget target) : this._(ActionKind.hover, target);
+
+  /// Gives [target] keyboard focus, highlighted as with a keyboard.
+  const ShotAction.focus(ShotTarget target) : this._(ActionKind.focus, target);
+
   /// As given on the command line, and recorded in the manifest:
   /// `tap text:Save`, `enter key:name=Koji`.
   String get label {
@@ -52,16 +105,20 @@ class const ShotAction({
       final text? => '=$text',
       null => '',
     };
-    return '${kind.name} ${by.name}:$value$text';
+    return '${kind.name} $target$text';
   }
 
-  /// The harness's `ShutterAction` for this action, as Dart source.
-  String get source {
-    final text = switch (this.text) {
-      final text? => ', text: ${dartString(text)}',
-      null => '',
-    };
-    return '\$shutter.ShutterAction(.${kind.name}, .${by.name}, '
-        '${dartString(value)}$text)';
-  }
+  @override
+  bool operator ==(Object other) =>
+      other is ShotAction &&
+      other.kind == kind &&
+      other.target == target &&
+      other.text == text;
+
+  @override
+  int get hashCode => Object.hash(kind, target, text);
+
+  /// [label]: `tap text:Save`, `enter key:name=Koji`.
+  @override
+  String toString() => label;
 }

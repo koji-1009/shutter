@@ -1,12 +1,9 @@
 import 'package:args/command_runner.dart';
-import 'package:path/path.dart' as p;
 
-import '../engine/engine.dart';
-import '../project/project.dart';
+import '../api/shoot.dart';
+import '../api/shot.dart';
 import '../reporters/shot_reporter.dart';
 import '../run/manifest.dart';
-import '../run/timestamp_id.dart';
-import '../scan/scanner.dart';
 import '../shutter_exception.dart';
 import 'context.dart';
 import 'io_sinks.dart';
@@ -150,10 +147,10 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
     final source = args.option('widget');
     final imports = args.multiOption('import');
     final rawSize = args.option('size');
-    final unbounded = rawSize == unboundedSize;
     final size = switch (rawSize) {
-      final raw? when !unbounded => parseSize(raw),
-      _ => null,
+      unboundedSize => WidgetSize.unbounded,
+      final raw? => parseSize(raw),
+      null => null,
     };
     final actions = parseActions(args);
     final screen = args.option('capture') == 'screen';
@@ -171,10 +168,7 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
       final raw? => parseKeyboardTint(raw),
       null => null,
     };
-    final networkImages = parseNetworkImages(
-      args.multiOption('network-image'),
-      workingDirectory: context.workingDirectory,
-    );
+    final networkImages = parseNetworkImages(args.multiOption('network-image'));
     final platform = ShotPlatform.values.byName(args.option('platform')!);
     final files = args.rest;
     if (source == null && (imports.isNotEmpty || rawSize != null)) {
@@ -191,88 +185,27 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
         'Name the preview files to shoot, or give --widget; not both.',
       );
     }
-    final project = context.project();
-    requireFlutterTest(project);
-    final shell = resolveShell(
-      project,
-      args.option('shell'),
-      workingDirectory: context.workingDirectory,
+    final run = await shoot(
+      context,
+      switch (source) {
+        final source? => WidgetExpression(source, imports: imports, size: size),
+        null => PreviewFiles(files),
+      },
+      settle: Duration(milliseconds: settle),
+      shell: args.option('shell'),
+      actions: actions,
+      capture: screen
+          ? ScreenCapture(viewport: viewport)
+          : const PreviewCapture(),
+      keyboard: switch (keyboard) {
+        final height? => Keyboard(height, tint: keyboardTint),
+        null => null,
+      },
+      networkImages: networkImages,
+      platform: platform,
+      semantics: semantics,
     );
-    final sdk = context.sdk();
-    final widget = switch (source) {
-      final source? => parseWidgetShot(
-        project,
-        source: source,
-        imports: imports,
-        size: size,
-        unbounded: unbounded,
-        workingDirectory: context.workingDirectory,
-      ),
-      null => null,
-    };
-    final paths = [
-      for (final file in files)
-        libFile(
-          project,
-          file,
-          workingDirectory: context.workingDirectory,
-          what: 'preview file',
-        ),
-    ];
-    final libraries = await Scanner(
-      project,
-      sdkPath: sdk.dartSdkPath,
-    ).scan(paths);
-    final found = {
-      for (final library in libraries)
-        for (final c in library.candidates) c.file,
-    };
-    for (final path in paths) {
-      if (!found.contains(project.relative(path))) {
-        throw ShutterException.noInput(
-          '${project.relative(path)} has no @Preview.',
-        );
-      }
-    }
-    // Hashed before rendering, so the record is the file that was shot.
-    final shellRecord = shell == null ? null : recordedFile(project, shell);
-    final imageRecords = networkImageFiles(project, networkImages);
-    final runDir = createTimestampDir(project.runsDir, context.clock());
-    final engine = context.engineFactory(sdk);
-    final shots = await engine.capture(
-      CaptureRequest(
-        project: project,
-        libraries: libraries,
-        runDir: runDir,
-        settleMs: settle,
-        widget: widget,
-        shell: shell,
-        actions: actions,
-        screen: screen,
-        viewport: viewport,
-        keyboard: keyboard,
-        keyboardTint: keyboardTint,
-        networkImages: networkImages,
-        semantics: semantics,
-        platform: platform,
-      ),
-    );
-    final manifest = RunManifest(
-      run: p.basename(runDir),
-      shots: [...shots]..sort(Shot.bySource),
-      shell: shellRecord,
-      setup: (
-        actions: [for (final action in actions) action.label],
-        screen: screen,
-        viewport: viewport,
-        keyboard: keyboard,
-        keyboardTint: keyboardTint,
-        networkImages: imageRecords,
-        semantics: semantics,
-        platform: platform,
-      ),
-    )..write(runDir);
-    reportShots(manifest, runDir, ShutterIO.stdoutSink);
-    return manifest.exitCode;
+    reportShots(run.manifest, run.dir, ShutterIO.stdoutSink);
+    return run.manifest.exitCode;
   }
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+Shutter as a Dart library.
+
+* `package:shutter/shutter.dart` exposes `shot` and `prune`, so another Dart tool shoots without starting a process or reading the YAML report. `shot` takes the project directory, relative to which every path is read, and the CLI's options as types: `PreviewFiles` or a `WidgetExpression` with its imports and a `LogicalSize` or `WidgetSize.unbounded`, `settle`, `shell`, `ShotAction`s, `PreviewCapture` or `ScreenCapture` with its viewport, a `Keyboard` and its tint, `networkImages`, `platform`, and `semantics`.
+* `shot` returns the run's id and directory and each shot's id, status, name, file and line, size, PNG path, error, and `at`. A shot that fails to render is a `ShotStatus.error` shot; a run that cannot be shot throws a `ShutterException` with the exit code the CLI would use. Every argument, result, and progress event compares by value and prints what it holds.
+* `onProgress` receives the scan of the preview files, each `flutter test` run, each shot as its test finishes, and each google_fonts download, each with a line for a log.
+
 ## 1.2.0
 
 Shots drawn as iOS, a `--widget` at its own size, and a way to clear old runs.

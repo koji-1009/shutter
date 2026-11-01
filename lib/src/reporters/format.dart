@@ -1,8 +1,10 @@
 import '../run/manifest.dart';
 import 'yaml_scalar.dart';
 
-/// `200` for integral values, `0.5` otherwise.
-String formatNumber(double value) => jsonNumber(value).toString();
+/// `200` for integral values, `0.5` otherwise; `Infinity` and `NaN` as
+/// they are.
+String formatNumber(double value) =>
+    value.isFinite ? jsonNumber(value).toString() : '$value';
 
 /// `[200, 56]`.
 String formatSize((double, double) size) =>

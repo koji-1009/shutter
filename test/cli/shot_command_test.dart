@@ -254,7 +254,7 @@ void main() {
       'nope.dart',
     ], fakeContext(root));
     expect(missing.exitCode, 66);
-    expect(missing.stderr, contains('--shell nope.dart does not exist.'));
+    expect(missing.stderr, contains('shell nope.dart does not exist.'));
   });
 
   test('actions: every --tap in order, then the held one; recorded in the '
@@ -291,7 +291,7 @@ void main() {
     expect(
       [
         for (final action in request.actions)
-          (action.kind, action.by, action.value, action.text),
+          (action.kind, action.target.by, action.target.value, action.text),
       ],
       [
         (ActionKind.tap, TargetKind.text, 'Open, then close', null),
@@ -467,21 +467,18 @@ void main() {
     }
     expect((await run(['outside.dart'])).exitCode, 64);
     expect((await run(['lib/nope.dart'])).exitCode, 66);
-    for (final size in [
-      '1',
-      '0x1',
-      '1x-1',
-      'axb',
-      '1x2x3',
-      'Infinityx1',
-      'Unbounded',
-    ]) {
+    for (final size in ['1', 'axb', '1x2x3', 'Unbounded']) {
       final bad = await run(['--widget', 'x', '--size', size]);
       expect(bad.exitCode, 64, reason: size);
       expect(
         bad.stderr,
         contains('--size must be <width>x<height>, e.g. 390x844, or unbounded'),
       );
+    }
+    for (final size in ['0x1', '1x-1', 'Infinityx1']) {
+      final bad = await run(['--widget', 'x', '--size', size]);
+      expect(bad.exitCode, 64, reason: size);
+      expect(bad.stderr, contains('widget size must be > 0 and finite'));
     }
     for (final settle in ['soon', '-1']) {
       final bad = await run(['--widget', 'x', '--settle', settle]);
@@ -491,7 +488,6 @@ void main() {
     for (final (option, target) in [
       ('--tap', 'Save'),
       ('--tap', 'name:Save'),
-      ('--tap', 'text:'),
       ('--enter', 'name=Koji'),
     ]) {
       final bad = await run(['--widget', 'x', option, target]);
@@ -504,6 +500,9 @@ void main() {
         ),
       );
     }
+    final noTarget = await run(['--widget', 'x', '--tap', 'text:']);
+    expect(noTarget.exitCode, 64);
+    expect(noTarget.stderr, contains('tap text:: the action names no widget.'));
     final noText = await run(['--widget', 'x', '--enter', 'key:name']);
     expect(noText.exitCode, 64);
     expect(noText.stderr, contains('--enter must be <target>=<text>'));
@@ -517,7 +516,10 @@ void main() {
         'key:b',
       ]);
       expect(held.exitCode, 64, reason: second);
-      expect(held.stderr, contains('at most one of --press, --hover'));
+      expect(
+        held.stderr,
+        contains('at most one press, hover, or focus action'),
+      );
     }
     final viewport = await run(['--widget', 'x', '--viewport', '390x844']);
     expect(viewport.exitCode, 64);
@@ -532,12 +534,18 @@ void main() {
     ]);
     expect(badViewport.exitCode, 64);
     expect(badViewport.stderr, contains('--viewport must be <width>x<height>'));
-    for (final keyboard in ['0', '-1', 'tall', 'Infinity', 'NaN']) {
+    final tall = await run(['--widget', 'x', '--keyboard', 'tall']);
+    expect(tall.exitCode, 64);
+    expect(
+      tall.stderr,
+      contains('--keyboard must be a height in logical pixels'),
+    );
+    for (final keyboard in ['0', '-1', 'Infinity', 'NaN']) {
       final bad = await run(['--widget', 'x', '--keyboard', keyboard]);
       expect(bad.exitCode, 64, reason: keyboard);
       expect(
         bad.stderr,
-        contains('--keyboard must be a height in logical pixels'),
+        contains('keyboard height must be a logical size > 0'),
       );
     }
     for (final tint in ['gray', '9E9E9', '#9E9E9E9E9', '0x9E9E9E', '']) {
@@ -571,17 +579,32 @@ void main() {
     ]);
     expect(noKeyboard.exitCode, 64);
     expect(noKeyboard.stderr, contains('--keyboard-tint needs --keyboard.'));
-    for (final image in [
-      'https://example.com/a.png',
-      'example.com/a.png=outside.dart',
-      'file:///a.png=outside.dart',
-      'https:///a.png=outside.dart',
-      'https://example.com/a.png=',
-      'http://[=outside.dart',
+    for (final (image, message) in [
+      ('https://example.com/a.png', '--network-image must be <url>=<file>'),
+      (
+        'example.com/a.png=outside.dart',
+        'network image URL example.com/a.png must be http or https',
+      ),
+      (
+        'file:///a.png=outside.dart',
+        'network image URL file:///a.png must be http or https',
+      ),
+      (
+        'https:///a.png=outside.dart',
+        'network image URL https:///a.png must be http or https, with a host',
+      ),
+      (
+        'https://example.com/a.png=',
+        'network image https://example.com/a.png names no file.',
+      ),
+      (
+        'http://[=outside.dart',
+        'network image URL http://[ must be http or https',
+      ),
     ]) {
       final bad = await run(['--widget', 'x', '--network-image', image]);
       expect(bad.exitCode, 64, reason: image);
-      expect(bad.stderr, contains('--network-image must be <url>=<file>'));
+      expect(bad.stderr, contains(message));
     }
     final twice = await run([
       '--widget',
@@ -605,11 +628,11 @@ void main() {
     expect(noImage.exitCode, 66);
     expect(
       noImage.stderr,
-      contains('--network-image file nope.png does not exist.'),
+      contains('network image file nope.png does not exist.'),
     );
     final outside = await run(['--widget', 'x', '--import', 'outside.dart']);
     expect(outside.exitCode, 64);
-    expect(outside.stderr, contains('--import must be under lib/'));
+    expect(outside.stderr, contains('import must be under lib/'));
     expect(
       (await run(['--widget', 'x', '--import', 'nope.dart'])).exitCode,
       66,

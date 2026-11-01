@@ -145,6 +145,9 @@ typedef RunSetup = ({
 String colorHex(int argb) =>
     '#${argb.toRadixString(16).padLeft(8, '0').toUpperCase()}';
 
+/// [argb] as the Dart literal `0xAARRGGBB`.
+String colorLiteral(int argb) => '0x${colorHex(argb).substring(1)}';
+
 /// The setup of a run shot without actions, of the preview alone.
 const RunSetup plainSetup = (
   actions: [],

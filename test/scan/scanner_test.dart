@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:path/path.dart' as p;
 import 'package:shutter/src/project/project.dart';
 import 'package:shutter/src/scan/candidate.dart';
@@ -410,6 +413,112 @@ Widget c() => const Text('');
     expect(
       await Scanner(Project.load(createProject()), sdkPath: dartSdk).scan([]),
       isEmpty,
+    );
+  });
+
+  test('a later scan of the same project sees what changed since: the '
+      'file, a file it imports, a file that appeared, and new '
+      'packages', () async {
+    final root = createProject(
+      resolvable: true,
+      files: {
+        'lib/preview/a.dart':
+            "${previews}import '../ui/label.dart';\n"
+            "@Preview(name: label)\nWidget a() => const Text('');",
+        'lib/ui/label.dart': "const label = 'A';",
+      },
+    );
+    final project = Project.load(root);
+    Future<List<Candidate>> candidates(String file) async => [
+      for (final library in await Scanner(
+        project,
+        sdkPath: dartSdk,
+      ).scan([p.join(root, file)]))
+        ...library.candidates,
+    ];
+
+    expect((await candidates('lib/preview/a.dart')).single.error, isNull);
+    // An imported file changed: the name it declared is gone.
+    writeFiles(root, {'lib/ui/label.dart': "const title = 'Title';"});
+    expect(
+      (await candidates('lib/preview/a.dart')).single.error,
+      contains('label'),
+    );
+    // The scanned file changed: another preview.
+    writeFiles(root, {
+      'lib/preview/a.dart':
+          "${previews}import '../ui/label.dart';\n"
+          "@Preview(name: title)\nWidget a() => const Text('');\n"
+          "@Preview(name: title)\nWidget b() => const Text('');",
+    });
+    expect(
+      [for (final c in await candidates('lib/preview/a.dart')) c.error],
+      [null, null],
+    );
+    // A file that was missing appeared.
+    writeFiles(root, {
+      'lib/preview/b.dart':
+          "${previews}import '../ui/later.dart';\n"
+          "@Preview(name: later)\nWidget b() => const Text('');",
+    });
+    expect(
+      (await candidates('lib/preview/b.dart')).single.error,
+      contains('later'),
+    );
+    writeFiles(root, {'lib/ui/later.dart': "const later = 'Later';"});
+    expect((await candidates('lib/preview/b.dart')).single.error, isNull);
+    // `pub get` added a package.
+    writeFiles(root, {
+      'lib/preview/c.dart':
+          "${previews}import 'package:extra/extra.dart';\n"
+          "@Preview(name: extra)\nWidget c() => const Text('');",
+      'extra/lib/extra.dart': "const extra = 'Extra';",
+    });
+    expect(
+      (await candidates('lib/preview/c.dart')).single.error,
+      contains('extra'),
+    );
+    final config = File(project.packageConfigPath);
+    final json = jsonDecode(config.readAsStringSync()) as Map<String, Object?>;
+    (json['packages']! as List<Object?>).add({
+      'name': 'extra',
+      'rootUri': '../extra/',
+      'packageUri': 'lib/',
+      'languageVersion': '3.10',
+    });
+    config.writeAsStringSync(jsonEncode(json));
+    expect((await candidates('lib/preview/c.dart')).single.error, isNull);
+  });
+
+  test('scans of two projects at once each get their own analysis', () async {
+    String project(String symbol) => createProject(
+      resolvable: true,
+      files: {
+        'lib/a.dart':
+            "$previews@Preview()\nWidget $symbol() => const Text('');",
+      },
+    );
+    final roots = [project('first'), project('second')];
+    final scans = [
+      for (final root in roots)
+        Scanner(
+          Project.load(root),
+          sdkPath: dartSdk,
+        ).scan([p.join(root, 'lib', 'a.dart')]),
+    ];
+    expect(
+      [
+        for (final libraries in await Future.wait(scans))
+          libraries.single.candidates.single.symbol,
+      ],
+      ['first', 'second'],
+    );
+    // The first project again, after the second replaced its analysis.
+    expect(
+      (await Scanner(Project.load(roots.first), sdkPath: dartSdk).scan([
+        p.join(roots.first, 'lib', 'a.dart'),
+      ])).single.candidates.single.symbol,
+      'first',
     );
   });
 }

@@ -14,6 +14,8 @@ import '../helpers.dart';
 import 'e2e_helpers.dart';
 
 void main() {
+  final shared = sharedExample();
+
   test('the init shell compiles; size and brightness apply', () async {
     final root = await exampleCopy();
     Directory(p.join(root, 'lib', 'preview')).deleteSync(recursive: true);
@@ -123,7 +125,7 @@ Widget plainTile() => const ListTile(title: Text('x'));
   test(
     '--shell outside lib/ compiles and replaces the preview dir shell',
     () async {
-      final root = await exampleCopy();
+      final root = await shared();
       writeFiles(root, {
         // No Material, unlike the example's lib/preview/shell.dart.
         '.dart_tool/shutter/shell.dart': '''
@@ -160,7 +162,7 @@ Widget tile() => const ListTile(title: Text('x'));
   test(
     'a style that inherits nothing still falls back to host fonts',
     () async {
-      final root = await exampleCopy();
+      final root = await shared();
       // CupertinoAlertDialog's title style is `inherit: false` and names the
       // Cupertino system font, so neither the default text style nor a theme
       // reaches it. Emoji, rather than CJK, because the CI host has emoji
@@ -263,7 +265,7 @@ Widget shown() => Builder(
   test(
     'scripts beyond CJK fall back to host fonts',
     () async {
-      final root = await exampleCopy();
+      final root = await shared();
       // The same letters in two orders: boxes draw them alike, glyphs
       // differently. Han characters only Simplified Chinese has.
       const scripts = {

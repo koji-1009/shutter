@@ -8,8 +8,10 @@ import '../helpers.dart';
 import 'e2e_helpers.dart';
 
 void main() {
+  final shared = sharedExample();
+
   test('a MultiPreview whose previews throw is an error shot', () async {
-    final root = await exampleCopy();
+    final root = await shared();
     writeFiles(root, {
       'lib/preview/boom_preview.dart': '''
 import 'package:flutter/widget_previews.dart';
@@ -35,7 +37,7 @@ Widget boom() => const Text('x');
 
   test('a static const annotation is shot; a sealed class is not; a '
       'non-widget is an error', () async {
-    final root = await exampleCopy();
+    final root = await shared();
     writeFiles(root, {
       'lib/preview/resolved_preview.dart': '''
 import 'package:flutter/widget_previews.dart';
@@ -75,7 +77,7 @@ int notAWidget() => 1;
   });
 
   test("a library's class that shadows a Flutter one compiles", () async {
-    final root = await exampleCopy();
+    final root = await shared();
     writeFiles(root, {
       'lib/preview/shadow_preview.dart': '''
 import 'package:flutter/material.dart';

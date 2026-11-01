@@ -9,10 +9,10 @@ import 'package:yaml/yaml.dart';
 
 import '../helpers.dart';
 
-/// Copies `example/` (sources only) into a temporary project and
-/// resolves its dependencies.
-Future<String> exampleCopy() async {
-  final root = tempDir();
+/// Copies `example/` (sources only) into a temporary project, [into]
+/// when given, and resolves its dependencies.
+Future<String> exampleCopy({String? into}) async {
+  final root = into ?? tempDir();
   for (final entity in Directory('example').listSync(recursive: true)) {
     final rel = p.relative(entity.path, from: 'example');
     if (entity is! File ||
@@ -30,6 +30,23 @@ Future<String> exampleCopy() async {
   ], workingDirectory: root);
   expect(pubGet.exitCode, 0, reason: '${pubGet.stdout}${pubGet.stderr}');
   return root;
+}
+
+/// Declares, in `main`, a copy of `example/` for the tests of the file
+/// that only add files to it, each under names of its own; a test that
+/// changes what is there takes an [exampleCopy] of its own. The copy, its
+/// compiled tests, and the analysis of its previews then carry over from
+/// test to test. The returned function makes the copy when a test first
+/// asks for it; it is deleted after the file's last test.
+Future<String> Function() sharedExample() {
+  Directory? dir;
+  Future<String>? copy;
+  tearDownAll(() => dir?.deleteSync(recursive: true));
+  return () => copy ??= exampleCopy(
+    into: (dir = Directory.systemTemp.createTempSync(
+      'shutter_test_',
+    )).resolveSymbolicLinksSync(),
+  );
 }
 
 final String flutter = FlutterSdk.require(environment: Platform.environment)

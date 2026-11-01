@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/ast/ast.dart';
@@ -5,6 +7,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/diagnostic/diagnostic.dart';
+import 'package:path/path.dart' as p;
 
 import '../project/project.dart';
 import '../shutter_exception.dart';
@@ -25,17 +28,20 @@ class Scanner(
 }) {
   /// Resolves [paths] (absolute library files under `lib/`) and returns
   /// the libraries holding previews.
+  ///
+  /// The analysis is kept for the next scan of the same project in this
+  /// process, which then reads again only the files that changed: a scan
+  /// that resolves Flutter takes seconds, and a tool shooting from Dart
+  /// may shoot many times.
   Future<List<SourceLibrary>> scan(List<String> paths) async {
     if (paths.isEmpty) return const [];
-    final collection = AnalysisContextCollection(
-      includedPaths: [project.libDir],
-      sdkPath: sdkPath,
-    );
+    final analysis = await _Analysis.begin(project, sdkPath);
     try {
       final libraries = <SourceLibrary>[];
       for (final path in paths.toSet()) {
-        final session = collection.contextFor(path).currentSession;
+        final session = analysis.collection.contextFor(path).currentSession;
         final unit = await session.getResolvedUnit(path) as ResolvedUnitResult;
+        analysis.track(unit.libraryElement);
         if (!unit.isLibrary) {
           throw ShutterException.usage(
             '${project.relative(path)} is a part; name its library file.',
@@ -55,8 +61,125 @@ class Scanner(
       }
       return libraries;
     } finally {
-      await collection.dispose();
+      await analysis.end();
     }
+  }
+}
+
+/// The analysis of one project, kept between scans in this process.
+class _Analysis(
+  /// What it was built from; a scan with another key builds anew.
+  final String key,
+  final AnalysisContextCollection collection,
+) {
+  /// The analysis of the project scanned last.
+  static _Analysis? _last;
+
+  /// Begins a scan of [project] with the last analysis, when it was built
+  /// from the same project, SDK, package config, and analysis options,
+  /// told of every file that changed since; else with a new one, the last
+  /// one disposed of once its scans end. [end] ends the scan.
+  static Future<_Analysis> begin(Project project, String sdkPath) async {
+    String version(String path) => switch (_version(path)) {
+      (final modified, final size) => '$modified $size',
+      null => '-',
+    };
+
+    final key = [
+      project.root,
+      sdkPath,
+      version(p.join(sdkPath, 'version')),
+      version(project.packageConfigPath),
+      version(p.join(project.root, 'analysis_options.yaml')),
+    ].join('\n');
+    final last = _last;
+    if (last != null && last.key == key) {
+      // Counted before the wait, so that a scan of another project
+      // meanwhile does not dispose of it under this one.
+      last._scans++;
+      await last._refresh();
+      return last;
+    }
+    final analysis = _last = _Analysis(
+      key,
+      AnalysisContextCollection(
+        includedPaths: [project.libDir],
+        sdkPath: sdkPath,
+      ),
+    );
+    analysis._scans++;
+    if (last != null) await last._retire();
+    return analysis;
+  }
+
+  /// Scans under way.
+  int _scans = 0;
+
+  /// Whether a newer analysis replaced this one.
+  bool _retired = false;
+
+  /// Each file a scan read, directly or through imports, exports, and
+  /// parts, with its modification time and size then; null for one
+  /// missing then.
+  final _files = <String, (DateTime, int)?>{};
+
+  /// Notes the files of [library] and of every library it reaches.
+  void track(LibraryElement library) {
+    final seen = <LibraryElement>{};
+    final pending = [library];
+    while (pending.isNotEmpty) {
+      final next = pending.removeLast();
+      if (!seen.add(next)) continue;
+      for (final fragment in next.fragments) {
+        _note(fragment.source.fullName);
+        for (final directive in [
+          ...fragment.libraryImports,
+          ...fragment.libraryExports,
+          ...fragment.partIncludes,
+        ]) {
+          switch (directive.uri) {
+            case DirectiveUriWithLibrary(library: final reached):
+              pending.add(reached);
+            case DirectiveUriWithSource(:final source):
+              _note(source.fullName);
+          }
+        }
+      }
+    }
+  }
+
+  void _note(String path) => _files[path] = _version(path);
+
+  static (DateTime, int)? _version(String path) {
+    final stat = FileStat.statSync(path);
+    return stat.type == FileSystemEntityType.notFound
+        ? null
+        : (stat.modified, stat.size);
+  }
+
+  /// Tells the analysis of each file that changed, appeared, or went
+  /// away since a scan read it.
+  Future<void> _refresh() async {
+    final changed = [
+      for (final MapEntry(key: path, value: version) in _files.entries)
+        if (_version(path) != version) path,
+    ];
+    if (changed.isEmpty) return;
+    for (final context in collection.contexts) {
+      changed.forEach(context.changeFile);
+      await context.applyPendingFileChanges();
+    }
+  }
+
+  /// Ends a scan [begin] began.
+  Future<void> end() async {
+    _scans--;
+    if (_retired && _scans == 0) await collection.dispose();
+  }
+
+  Future<void> _retire() async {
+    _retired = true;
+    if (_scans == 0) await collection.dispose();
   }
 }
 

@@ -306,21 +306,27 @@ ShotRun shotRun(StoredRun run) => ShotRun(
   dir: run.dir,
   shots: [
     for (final shot in run.manifest.shots)
-      ShotResult(
-        id: shot.id,
-        status: shot.status,
-        name: shot.name,
-        file: shot.file,
-        line: shot.line,
-        size: switch (shot.size) {
-          (final width, final height)? => LogicalSize(width, height),
-          null => null,
-        },
-        brightness: shot.brightness,
-        textScaleFactor: shot.textScaleFactor,
-        png: run.pngPath(shot),
-        error: shot.error,
-        at: shot.at,
-      ),
+      shotResult(shot, png: run.pngPath(shot)),
   ],
 );
+
+/// [shot] as a [ShotResult], its PNG at the absolute path [png].
+ShotResult shotResult(Shot shot, {required String? png}) => ShotResult(
+  id: shot.id,
+  status: shot.status,
+  name: shot.name,
+  file: shot.file,
+  line: shot.line,
+  size: logicalSize(shot.size),
+  brightness: shot.brightness,
+  textScaleFactor: shot.textScaleFactor,
+  png: png,
+  error: shot.error,
+  at: shot.at,
+);
+
+/// [size], `(width, height)`, as a [LogicalSize].
+LogicalSize? logicalSize((double, double)? size) => switch (size) {
+  (final width, final height)? => LogicalSize(width, height),
+  null => null,
+};

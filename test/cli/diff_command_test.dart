@@ -163,7 +163,7 @@ void main() {
     expect(result.exitCode, 1);
     expect(
       result.stderr,
-      contains('--title does not fit one line on the 38px sheets'),
+      contains('The title does not fit one line on the 38px sheets'),
     );
   });
 
@@ -182,7 +182,7 @@ void main() {
     expect(result.exitCode, 1);
     expect(
       result.stderr,
-      contains('--title was not drawn for the 38px sheets: boom'),
+      contains('The title was not drawn for the 38px sheets: boom'),
     );
     final diffDir = p.join(
       root,

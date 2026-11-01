@@ -20,6 +20,7 @@ executables:
 dependencies:
   analyzer: ^14.0.0
   args: ^2.7.0
+  collection: ^1.19.0
   crypto: ^3.0.0
   image: ^4.3.0
   path: ^1.9.0

@@ -19,13 +19,13 @@ final class const ScanStarted(
 
   @override
   bool operator ==(Object other) =>
-      other is ScanStarted && sameElements(other.files, files);
+      other is ScanStarted && listEquality.equals(other.files, files);
 
   @override
-  int get hashCode => Object.hashAll(files);
+  int get hashCode => listEquality.hash(files);
 
   @override
-  String toString() => describe('ScanStarted', {'files': files});
+  String toString() => 'ScanStarted(files: $files)';
 }
 
 /// `flutter test` starts rendering every shot. [round] counts from 1; a
@@ -44,7 +44,7 @@ final class const RenderStarted(final int round) extends ShotProgress {
   int get hashCode => Object.hash(RenderStarted, round);
 
   @override
-  String toString() => describe('RenderStarted', {'round': round});
+  String toString() => 'RenderStarted(round: $round)';
 }
 
 /// One shot finished rendering in [round]; whether it is `ok` or an
@@ -62,7 +62,7 @@ final class const ShotRendered(final int round, final String id)
   int get hashCode => Object.hash(round, id);
 
   @override
-  String toString() => describe('ShotRendered', {'round': round, 'id': id});
+  String toString() => 'ShotRendered(round: $round, id: $id)';
 }
 
 /// google_fonts files missing from the cache are being downloaded.
@@ -75,11 +75,11 @@ final class const FontsDownloading(
 
   @override
   bool operator ==(Object other) =>
-      other is FontsDownloading && sameElements(other.fonts, fonts);
+      other is FontsDownloading && listEquality.equals(other.fonts, fonts);
 
   @override
-  int get hashCode => Object.hashAll(fonts);
+  int get hashCode => listEquality.hash(fonts);
 
   @override
-  String toString() => describe('FontsDownloading', {'fonts': fonts});
+  String toString() => 'FontsDownloading(fonts: $fonts)';
 }

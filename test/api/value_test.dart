@@ -60,6 +60,10 @@ void main() {
       'WidgetExpression(expression: B(), imports: [lib/a.dart], '
       'size: 200x56.5)',
     );
+    expect(
+      '${WidgetExpression('A()')}',
+      'WidgetExpression(expression: A(), imports: [])',
+    );
     valueType(() => PreviewCapture(), [
       const ScreenCapture(),
     ], 'PreviewCapture()');

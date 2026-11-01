@@ -12,16 +12,15 @@ final class const PruneResult({
   @override
   bool operator ==(Object other) =>
       other is PruneResult &&
-      sameElements(other.removed, removed) &&
-      sameElements(other.kept, kept);
+      listEquality.equals(other.removed, removed) &&
+      listEquality.equals(other.kept, kept);
 
   @override
   int get hashCode =>
-      Object.hash(Object.hashAll(removed), Object.hashAll(kept));
+      Object.hash(listEquality.hash(removed), listEquality.hash(kept));
 
   @override
-  String toString() =>
-      describe('PruneResult', {'removed': removed, 'kept': kept});
+  String toString() => 'PruneResult(removed: $removed, kept: $kept)';
 }
 
 /// Deletes every run under `.dart_tool/shutter/runs/` of the Flutter

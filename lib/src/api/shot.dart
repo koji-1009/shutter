@@ -22,13 +22,13 @@ final class const PreviewFiles(
 ) extends ShotSubject {
   @override
   bool operator ==(Object other) =>
-      other is PreviewFiles && sameElements(other.files, files);
+      other is PreviewFiles && listEquality.equals(other.files, files);
 
   @override
-  int get hashCode => Object.hashAll(files);
+  int get hashCode => listEquality.hash(files);
 
   @override
-  String toString() => describe('PreviewFiles', {'files': files});
+  String toString() => 'PreviewFiles(files: $files)';
 }
 
 /// One widget expression, without a preview file, as `shutter shot
@@ -49,18 +49,15 @@ final class const WidgetExpression(
   bool operator ==(Object other) =>
       other is WidgetExpression &&
       other.expression == expression &&
-      sameElements(other.imports, imports) &&
+      listEquality.equals(other.imports, imports) &&
       other.size == size;
 
   @override
-  int get hashCode => Object.hash(expression, Object.hashAll(imports), size);
+  int get hashCode => Object.hash(expression, listEquality.hash(imports), size);
 
   @override
-  String toString() => describe('WidgetExpression', {
-    'expression': expression,
-    'imports': imports,
-    'size': size,
-  });
+  String toString() =>
+      'WidgetExpression(${['expression: $expression', 'imports: $imports', if (size != null) 'size: $size'].join(', ')})';
 }
 
 /// The size of a [WidgetExpression]: a [LogicalSize], or
@@ -112,7 +109,7 @@ final class PreviewCapture extends ShotCapture {
   int get hashCode => (PreviewCapture).hashCode;
 
   @override
-  String toString() => describe('PreviewCapture', const {});
+  String toString() => 'PreviewCapture()';
 }
 
 /// The whole screen: the viewport, with the menus and dialogs the app
@@ -130,7 +127,8 @@ final class const ScreenCapture({
   int get hashCode => Object.hash(ScreenCapture, viewport);
 
   @override
-  String toString() => describe('ScreenCapture', {'viewport': viewport});
+  String toString() =>
+      'ScreenCapture(${viewport == null ? '' : 'viewport: $viewport'})';
 }
 
 /// An on-screen keyboard to lay the preview out with, as `--keyboard`
@@ -152,13 +150,8 @@ final class const Keyboard(
   int get hashCode => Object.hash(height, tint);
 
   @override
-  String toString() => describe('Keyboard', {
-    'height': _number(height),
-    'tint': switch (tint) {
-      final tint? => '0x${colorHex(tint).substring(1)}',
-      null => null,
-    },
-  });
+  String toString() =>
+      'Keyboard(${['height: ${_number(height)}', if (tint case final tint?) 'tint: 0x${colorHex(tint).substring(1)}'].join(', ')})';
 }
 
 /// The outcome of [shot]: the run directory and each shot in it.
@@ -182,14 +175,13 @@ final class const ShotRun({
       other is ShotRun &&
       other.id == id &&
       other.dir == dir &&
-      sameElements(other.shots, shots);
+      listEquality.equals(other.shots, shots);
 
   @override
-  int get hashCode => Object.hash(id, dir, Object.hashAll(shots));
+  int get hashCode => Object.hash(id, dir, listEquality.hash(shots));
 
   @override
-  String toString() =>
-      describe('ShotRun', {'id': id, 'dir': dir, 'shots': shots});
+  String toString() => 'ShotRun(id: $id, dir: $dir, shots: $shots)';
 }
 
 /// One shot of a [ShotRun].
@@ -255,19 +247,8 @@ final class const ShotResult({
   );
 
   @override
-  String toString() => describe('ShotResult', {
-    'id': id,
-    'status': status.name,
-    'name': name,
-    'file': file,
-    'line': line,
-    'size': size,
-    'brightness': brightness,
-    'textScaleFactor': textScaleFactor,
-    'png': png,
-    'error': error,
-    'at': at,
-  });
+  String toString() =>
+      'ShotResult(${['id: $id', 'status: ${status.name}', 'name: $name', if (file != null) 'file: $file', if (line != null) 'line: $line', if (size != null) 'size: $size', if (brightness != null) 'brightness: $brightness', if (textScaleFactor != null) 'textScaleFactor: $textScaleFactor', if (png != null) 'png: $png', if (error != null) 'error: $error', if (at != null) 'at: $at'].join(', ')})';
 }
 
 /// Shoots [subject] in the Flutter project at or above [projectDir] into

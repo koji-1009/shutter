@@ -1,7 +1,8 @@
 /// Shutter as a Dart library: [shot] renders a Flutter project's previews,
-/// or one widget expression, to PNG as a new run, and [prune] deletes old
-/// runs, as `shutter shot`, `shutter semantics`, and `shutter prune` do,
-/// without starting a process.
+/// or one widget expression, to PNG as a new run, [diff] compares two
+/// runs, and [prune] deletes old runs, as `shutter shot`, `shutter
+/// semantics`, `shutter diff`, and `shutter prune` do, without starting a
+/// process.
 ///
 /// ```dart
 /// import 'package:shutter/shutter.dart';
@@ -18,12 +19,16 @@
 /// }
 /// ```
 ///
-/// A shot that fails to render is a [ShotStatus.error] in the run; a run
-/// that cannot be shot at all throws a [ShutterException].
+/// A shot that fails to render is a [ShotStatus.error] in the run, and a
+/// change between two runs is an entry of the diff; a run that cannot be
+/// shot, or runs that cannot be compared, throw a [ShutterException].
 library;
 
+export 'src/api/diff.dart' hide shotDiff;
 export 'src/api/prune.dart';
-export 'src/api/shot.dart' hide shotRun;
+export 'src/api/shot.dart' hide logicalSize, shotResult, shotRun;
+export 'src/diff/composite.dart' show CompositeDirection;
+export 'src/diff/run_diff.dart' show DiffStatus;
 export 'src/engine/interaction.dart';
 export 'src/engine/progress.dart';
 export 'src/run/manifest.dart' show ShotPlatform, ShotStatus;

@@ -143,6 +143,112 @@ void main() {
     );
   });
 
+  test('diff arguments and results compare by value and print what they '
+      'hold', () {
+    var title = 'Search';
+    String fresh() => title.substring(0);
+    valueType(() => DiffComposite(title: fresh()), [
+      const DiffComposite(),
+      const DiffComposite(direction: CompositeDirection.vertical, title: 'x'),
+      const DiffComposite(title: 'Find'),
+    ], 'DiffComposite(direction: auto, title: Search)');
+    expect('${const DiffComposite()}', 'DiffComposite(direction: auto)');
+    title = 'lib/preview/shell.dart';
+    valueType(() => ShotFile(path: fresh(), sha256: 'abc'), [
+      const ShotFile(path: 'lib/preview/shell.dart', sha256: 'abd'),
+      const ShotFile(path: 'shell.dart', sha256: 'abc'),
+    ], 'ShotFile(path: lib/preview/shell.dart, sha256: abc)');
+    title = 'tap text:Open';
+    ShotSetup setup({
+      String action = 'tap text:Open',
+      String url = 'https://example.com/a.png',
+    }) => ShotSetup(
+      shell: ShotFile(path: 'shell.dart', sha256: 'a'),
+      actions: [action],
+      capture: ScreenCapture(viewport: LogicalSize(390, 844)),
+      keyboard: Keyboard(336),
+      networkImages: {url: ShotFile(path: 'a.png', sha256: 'b')},
+      semantics: true,
+      platform: ShotPlatform.ios,
+    );
+    valueType(
+      () => setup(action: fresh()),
+      [
+        const ShotSetup(),
+        setup(action: 'tap text:Close'),
+        setup(url: 'https://example.com/b.png'),
+      ],
+      'ShotSetup(shell: ShotFile(path: shell.dart, sha256: a), '
+      'actions: [tap text:Open], '
+      'capture: ScreenCapture(viewport: 390x844), '
+      'keyboard: Keyboard(height: 336), '
+      'networkImages: {https://example.com/a.png: '
+      'ShotFile(path: a.png, sha256: b)}, '
+      'semantics: true, platform: ios)',
+    );
+    expect(
+      '${const ShotSetup()}',
+      'ShotSetup(actions: [], capture: PreviewCapture(), networkImages: {}, '
+          'semantics: false, platform: android)',
+    );
+    title = '/app/runs/r2/a.0.png';
+    const shot = ShotResult(id: 'a.0', status: ShotStatus.ok, name: 'a');
+    ShotDiffEntry entry(String png) => ShotDiffEntry(
+      status: DiffStatus.changed,
+      shot: shot,
+      diffRatio: 0.25,
+      beforeSize: LogicalSize(2, 2),
+      beforePng: '/app/runs/r1/a.0.png',
+      afterPng: png,
+      diffPng: '/app/diffs/d/a.0.png',
+      compositePng: '/app/diffs/d/a.0-composite.png',
+    );
+    valueType(
+      () => entry(fresh()),
+      [
+        entry('/app/runs/r3/a.0.png'),
+        const ShotDiffEntry(status: DiffStatus.unchanged, shot: shot),
+      ],
+      'ShotDiffEntry(status: changed, '
+      'shot: ShotResult(id: a.0, status: ok, name: a), diffRatio: 0.25, '
+      'beforeSize: 2x2, beforePng: /app/runs/r1/a.0.png, '
+      'afterPng: /app/runs/r2/a.0.png, diffPng: /app/diffs/d/a.0.png, '
+      'compositePng: /app/diffs/d/a.0-composite.png)',
+    );
+    title = '/app/runs/r2';
+    const unchanged = ShotDiffEntry(status: DiffStatus.unchanged, shot: shot);
+    ShotDiff result({
+      String after = '/app/runs/r2',
+      List<ShotDiffEntry> entries = const [unchanged],
+      List<String> warnings = const ['w'],
+    }) => ShotDiff(
+      before: '/app/runs/r1',
+      after: after,
+      beforeSetup: const ShotSetup(),
+      afterSetup: const ShotSetup(platform: ShotPlatform.ios),
+      dir: '/app/diffs/d',
+      entries: entries,
+      warnings: warnings,
+    );
+    valueType(
+      () => result(after: fresh()),
+      [
+        result(after: '/app/runs/r3'),
+        result(entries: const []),
+        result(warnings: const []),
+      ],
+      'ShotDiff(before: /app/runs/r1, after: /app/runs/r2, '
+      'beforeSetup: ${const ShotSetup()}, '
+      'afterSetup: ${const ShotSetup(platform: ShotPlatform.ios)}, '
+      'dir: /app/diffs/d, entries: [$unchanged], warnings: [w])',
+    );
+    expect(
+      '${const ShotDiff(before: 'a', after: 'b', beforeSetup: ShotSetup(), afterSetup: ShotSetup(), entries: [])}',
+      'ShotDiff(before: a, after: b, beforeSetup: ${const ShotSetup()}, '
+          'afterSetup: ${const ShotSetup()}, entries: [], warnings: [])',
+    );
+  });
+
   test('progress events compare by value and print what they hold', () {
     var name = 'lib/a.dart';
     String fresh() => name.substring(0);

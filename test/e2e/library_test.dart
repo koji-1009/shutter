@@ -44,6 +44,25 @@ void main() {
     expect(broken.hasErrors, isTrue);
     expect(broken.shots.single.error, contains('Missing'));
 
+    // The two runs compared from Dart, a title drawn above each sheet.
+    final compared = await diff(
+      root,
+      run.dir,
+      broken.dir,
+      composite: const DiffComposite(title: 'Button'),
+    );
+    expect(compared.hasChanges, isTrue);
+    final removed = [
+      for (final entry in compared.entries)
+        if (entry.status == DiffStatus.removed) entry,
+    ];
+    expect(removed.map((e) => e.shot.id), {
+      for (final result in run.shots) result.id,
+    });
+    for (final entry in removed) {
+      expect(File(entry.compositePng!).existsSync(), isTrue);
+    }
+
     await expectLater(
       shot(root, const PreviewFiles(['lib/preview/nope.dart'])),
       throwsA(

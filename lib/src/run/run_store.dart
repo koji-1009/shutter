@@ -20,9 +20,13 @@ class StoredRun(
 final _latest = RegExp(r'^latest(?:~(\d{1,9}))?$');
 
 /// Loads the run named by [argument]: `latest` / `latest~N`, a directory
-/// containing `manifest.json`, or a run id under
-/// `.dart_tool/shutter/runs/`.
-StoredRun loadRun(Project project, String argument) {
+/// containing `manifest.json` (relative to [workingDirectory], or
+/// absolute), or a run id under `.dart_tool/shutter/runs/`.
+StoredRun loadRun(
+  Project project,
+  String argument, {
+  required String workingDirectory,
+}) {
   if (_latest.firstMatch(argument) case final match?) {
     final ids = _runIds(project);
     final back = int.parse(match.group(1) ?? '0');
@@ -34,9 +38,12 @@ StoredRun loadRun(Project project, String argument) {
     final dir = p.join(project.runsDir, ids[ids.length - 1 - back]);
     return StoredRun(dir, RunManifest.read(dir));
   }
-  for (final candidate in [argument, p.join(project.runsDir, argument)]) {
+  for (final candidate in [
+    p.join(workingDirectory, argument),
+    p.join(project.runsDir, argument),
+  ]) {
     if (File(p.join(candidate, manifestFileName)).existsSync()) {
-      final dir = p.normalize(p.absolute(candidate));
+      final dir = p.normalize(candidate);
       return StoredRun(dir, RunManifest.read(dir));
     }
   }

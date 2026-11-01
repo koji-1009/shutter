@@ -131,6 +131,10 @@ class const ShutterEntry({
   final String? symbol,
   required final Object? Function() annotation,
   required final Function target,
+
+  /// Lay the preview out without bounding its width either, at its own
+  /// size (`--size unbounded`).
+  final bool unbounded = false,
 });
 
 /// google_fonts' failure messages: a fetched file (by hash), or, with
@@ -358,12 +362,14 @@ Future<void> _capture(
     child = RepaintBoundary(key: key, child: child);
     // Without a finite height the preview gets unbounded height, as in a
     // scrolling list, and is shot at its own height; the width stays
-    // bounded by the viewport, as on a screen.
+    // bounded by the viewport, as on a screen, unless the entry is
+    // unbounded.
     child = _withFallbackFonts(
       OverflowBox(
         alignment: Alignment.topLeft,
         minWidth: 0,
         minHeight: 0,
+        maxWidth: entry.unbounded ? double.infinity : null,
         maxHeight: double.infinity,
         child: child,
       ),

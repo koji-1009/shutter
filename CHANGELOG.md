@@ -2,9 +2,10 @@
 
 ## Unreleased
 
-Shots drawn as iOS.
+Shots drawn as iOS, and a `--widget` at its own size.
 
 * `shutter shot --platform ios` (and `semantics`) draws every preview as iOS instead of Android, the platform `flutter test` runs as: `defaultTargetPlatform` is `iOS` while each preview is shot, so a theme without its own `platform`, the back button, page transitions, adaptive widgets, and the app's own `defaultTargetPlatform` checks draw as on an iPhone. `shot` prints it, `manifest.json` records it, and `diff` prints both runs' when they differ. It is not part of shot ids.
+* `shutter shot --widget <expression> --size unbounded` lays the widget out with neither dimension bounded and shoots it at its own size, however wide; without `--size`, its width still stops at the viewport's 800.
 
 ## 1.1.1
 

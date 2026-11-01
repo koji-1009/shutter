@@ -3,6 +3,7 @@ library;
 
 import 'dart:io';
 
+import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:shutter/src/run/manifest.dart';
 import 'package:test/test.dart';
@@ -47,6 +48,27 @@ void main() {
     final own = RunManifest.read(lastRun(root)).shots.single.size!;
     expect(own.$1, lessThan(200));
     expect(own.$2, 52);
+
+    // Without --size the width stops at the viewport's 800; --size
+    // unbounded shoots the widget at its own width, past the viewport.
+    const wide = 'SizedBox(width: 1200, height: 30)';
+    final capped = await shutter(root, ['shot', '--widget', wide]);
+    expect(capped.exitCode, 0, reason: capped.stdout + capped.stderr);
+    expect(RunManifest.read(lastRun(root)).shots.single.size, (800.0, 30.0));
+    final free = await shutter(root, [
+      'shot',
+      '--widget',
+      wide,
+      '--size',
+      'unbounded',
+    ]);
+    expect(free.exitCode, 0, reason: free.stdout + free.stderr);
+    final freeShot = RunManifest.read(lastRun(root)).shots.single;
+    expect(freeShot.size, (1200.0, 30.0));
+    final freeImage = img.decodePng(
+      File(p.join(lastRun(root), freeShot.png!)).readAsBytesSync(),
+    )!;
+    expect((freeImage.width, freeImage.height), (2400, 60));
 
     final broken = await shutter(root, ['shot', '--widget', 'Missing()']);
     expect(broken.exitCode, 2, reason: broken.stdout + broken.stderr);

@@ -202,15 +202,25 @@ void main() {
     expect(other.staticId, isNot(sized.staticId));
     // Infinity has no literal, and the harness reads a non-finite
     // dimension as unset, so the widget is shot at its own height.
-    const unbounded = WidgetShot(
+    const tall = WidgetShot(
       source: 'Text("x")',
       imports: [],
       size: (200, double.infinity),
     );
     expect(
-      unbounded.helperSource(),
+      tall.helperSource(),
       contains(r'size: $ui.Size(200.0, double.infinity)'),
     );
+    expect(tall.helperSource(), isNot(contains('unbounded:')));
+    // --size unbounded: no size, and the entry lifts the width bound too.
+    const unbounded = WidgetShot(
+      source: 'Text("x")',
+      imports: [],
+      unbounded: true,
+    );
+    final unboundedSource = unbounded.helperSource();
+    expect(unboundedSource, contains("Preview(name: 'Text(\"x\")')"));
+    expect(unboundedSource, contains('    unbounded: true,\n'));
   });
 
   test('writeGeneratedTest adds the --widget helper', () {

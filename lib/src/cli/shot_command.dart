@@ -33,7 +33,10 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
       )
       ..addOption(
         'size',
-        help: 'Logical size of the --widget shot, e.g. 390x844.',
+        help:
+            'Logical size of the --widget shot, e.g. 390x844, or '
+            '$unboundedSize to shoot it at its own size with neither '
+            'dimension bounded.',
       )
       ..addOption(
         'settle',
@@ -146,9 +149,11 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
     final settle = parseCount(args, 'settle');
     final source = args.option('widget');
     final imports = args.multiOption('import');
-    final size = switch (args.option('size')) {
-      final raw? => parseSize(raw),
-      null => null,
+    final rawSize = args.option('size');
+    final unbounded = rawSize == unboundedSize;
+    final size = switch (rawSize) {
+      final raw? when !unbounded => parseSize(raw),
+      _ => null,
     };
     final actions = parseActions(args);
     final screen = args.option('capture') == 'screen';
@@ -172,7 +177,7 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
     );
     final platform = ShotPlatform.values.byName(args.option('platform')!);
     final files = args.rest;
-    if (source == null && (imports.isNotEmpty || size != null)) {
+    if (source == null && (imports.isNotEmpty || rawSize != null)) {
       throw ShutterException.usage('--import and --size need --widget.');
     }
     if (keyboardTint != null && keyboard == null) {
@@ -200,6 +205,7 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
         source: source,
         imports: imports,
         size: size,
+        unbounded: unbounded,
         workingDirectory: context.workingDirectory,
       ),
       null => null,

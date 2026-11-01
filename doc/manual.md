@@ -36,9 +36,11 @@ A path is relative to the working directory (or absolute); a named file without 
 ## One widget without a preview file
 
 `--widget` is shot instead of preview files: nothing under `lib/` is scanned, and nothing is written to the project outside `.dart_tool/shutter/`.
-The generated test imports `package:flutter/widgets.dart` and every `--import`, and shoots the expression as a `Preview` named after it, sized by `--size`; without `--size` the widget is shot at its own size.
+The generated test imports `package:flutter/widgets.dart` and every `--import`, and shoots the expression as a `Preview` named after it, sized by `--size`.
+Without `--size` the widget is shot at its own height and at its own width up to the viewport's (see Drawing model).
+`--size unbounded` lifts that limit too: the widget is laid out with neither dimension bounded and shot at its own size, past the viewport when it is larger (with `--capture screen`, the PNG stops at the viewport). Text then wraps only at its own line breaks, and a widget that needs a bounded width (an `Expanded` in a `Row`) fails there.
 An `--import` path is relative to the working directory (or absolute) and must be under `lib/`; `package:` URIs pass through.
-The shot id hashes the expression and the resolved imports, so the same `--widget` and `--import` give the same id in every run, from any working directory; `--size` does not change the id.
+The shot id hashes the expression and the resolved imports, so the same `--widget` and `--import` give the same id in every run, from any working directory; `--size`, `unbounded` included, does not change the id.
 A widget expression that does not compile is an `error` shot carrying the compiler message; it has no `file` or `at`.
 `--widget` and preview files cannot be combined in one shot.
 
@@ -137,7 +139,7 @@ Each run records its shell file in `manifest.json`, with the sha256 of its bytes
 
 Viewport: `--viewport` when given; else `size` when both dimensions are finite; a missing or infinite dimension uses 800×600 logical pixels.
 The captured region takes a finite dimension of `size` as it is.
-Without a finite width, the preview takes its own width, up to the viewport's, as on a screen.
+Without a finite width, the preview takes its own width, up to the viewport's, as on a screen; a `--widget` shot with `--size unbounded` takes its own width past it.
 Without a finite height, the preview gets unbounded height, as in a scrolling list, and is shot at its own height, even past the viewport (with `--capture screen`, the PNG stops at the viewport): `Size(360, double.infinity)` shoots a widget 360 wide at the height it has in a list.
 A widget that needs a bounded height (a `Scaffold`, a `ListView`, an `Expanded` in a `Column`) fails there; give it a finite height.
 `brightness` sets the platform brightness and `textScaleFactor` the platform text scale, so the shell's app widget picks them up as on a device.

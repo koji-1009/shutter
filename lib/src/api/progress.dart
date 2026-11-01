@@ -1,4 +1,4 @@
-import 'value.dart';
+import 'package:collection/collection.dart';
 
 /// What a shot run is doing, as it does it; each event's [message] is a
 /// line for a log.
@@ -19,10 +19,11 @@ final class const ScanStarted(
 
   @override
   bool operator ==(Object other) =>
-      other is ScanStarted && listEquality.equals(other.files, files);
+      other is ScanStarted &&
+      const ListEquality<String>().equals(other.files, files);
 
   @override
-  int get hashCode => listEquality.hash(files);
+  int get hashCode => const ListEquality<String>().hash(files);
 
   @override
   String toString() => 'ScanStarted(files: $files)';
@@ -75,10 +76,11 @@ final class const FontsDownloading(
 
   @override
   bool operator ==(Object other) =>
-      other is FontsDownloading && listEquality.equals(other.fonts, fonts);
+      other is FontsDownloading &&
+      const ListEquality<String>().equals(other.fonts, fonts);
 
   @override
-  int get hashCode => listEquality.hash(fonts);
+  int get hashCode => const ListEquality<String>().hash(fonts);
 
   @override
   String toString() => 'FontsDownloading(fonts: $fonts)';

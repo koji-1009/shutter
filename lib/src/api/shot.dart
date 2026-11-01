@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:path/path.dart' as p;
 
 import '../cli/context.dart';
@@ -6,7 +7,6 @@ import '../run/manifest.dart';
 import '../shutter_exception.dart';
 import 'progress.dart';
 import 'shoot.dart';
-import 'value.dart';
 
 /// What a run shoots: the previews of [PreviewFiles], or one
 /// [WidgetExpression].
@@ -22,10 +22,11 @@ final class const PreviewFiles(
 ) extends ShotSubject {
   @override
   bool operator ==(Object other) =>
-      other is PreviewFiles && listEquality.equals(other.files, files);
+      other is PreviewFiles &&
+      const ListEquality<String>().equals(other.files, files);
 
   @override
-  int get hashCode => listEquality.hash(files);
+  int get hashCode => const ListEquality<String>().hash(files);
 
   @override
   String toString() => 'PreviewFiles(files: $files)';
@@ -49,11 +50,12 @@ final class const WidgetExpression(
   bool operator ==(Object other) =>
       other is WidgetExpression &&
       other.expression == expression &&
-      listEquality.equals(other.imports, imports) &&
+      const ListEquality<String>().equals(other.imports, imports) &&
       other.size == size;
 
   @override
-  int get hashCode => Object.hash(expression, listEquality.hash(imports), size);
+  int get hashCode =>
+      Object.hash(expression, const ListEquality<String>().hash(imports), size);
 
   @override
   String toString() =>
@@ -175,10 +177,11 @@ final class const ShotRun({
       other is ShotRun &&
       other.id == id &&
       other.dir == dir &&
-      listEquality.equals(other.shots, shots);
+      const ListEquality<ShotResult>().equals(other.shots, shots);
 
   @override
-  int get hashCode => Object.hash(id, dir, listEquality.hash(shots));
+  int get hashCode =>
+      Object.hash(id, dir, const ListEquality<ShotResult>().hash(shots));
 
   @override
   String toString() => 'ShotRun(id: $id, dir: $dir, shots: $shots)';

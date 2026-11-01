@@ -1,7 +1,8 @@
+import 'package:collection/collection.dart';
+
 import '../project/project.dart';
 import '../run/run_store.dart';
 import '../shutter_exception.dart';
-import 'value.dart';
 
 /// The outcome of [prune]: absolute paths of the run directories, oldest
 /// first.
@@ -12,12 +13,14 @@ final class const PruneResult({
   @override
   bool operator ==(Object other) =>
       other is PruneResult &&
-      listEquality.equals(other.removed, removed) &&
-      listEquality.equals(other.kept, kept);
+      const ListEquality<String>().equals(other.removed, removed) &&
+      const ListEquality<String>().equals(other.kept, kept);
 
   @override
-  int get hashCode =>
-      Object.hash(listEquality.hash(removed), listEquality.hash(kept));
+  int get hashCode => Object.hash(
+    const ListEquality<String>().hash(removed),
+    const ListEquality<String>().hash(kept),
+  );
 
   @override
   String toString() => 'PruneResult(removed: $removed, kept: $kept)';

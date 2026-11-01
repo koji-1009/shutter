@@ -6,6 +6,7 @@ import '../run/manifest.dart';
 import '../shutter_exception.dart';
 import 'progress.dart';
 import 'shoot.dart';
+import 'value.dart';
 
 /// What a run shoots: the previews of [PreviewFiles], or one
 /// [WidgetExpression].
@@ -18,7 +19,17 @@ final class const PreviewFiles(
   /// Files under the project's `lib/`, relative to the project directory
   /// given to [shot], or absolute. Each must hold a preview.
   final List<String> files,
-) extends ShotSubject;
+) extends ShotSubject {
+  @override
+  bool operator ==(Object other) =>
+      other is PreviewFiles && sameElements(other.files, files);
+
+  @override
+  int get hashCode => Object.hashAll(files);
+
+  @override
+  String toString() => describe('PreviewFiles', {'files': files});
+}
 
 /// One widget expression, without a preview file, as `shutter shot
 /// --widget`.
@@ -33,7 +44,24 @@ final class const WidgetExpression(
 
   /// The size to lay it out at; none stops its width at the viewport's.
   final WidgetSize? size,
-}) extends ShotSubject;
+}) extends ShotSubject {
+  @override
+  bool operator ==(Object other) =>
+      other is WidgetExpression &&
+      other.expression == expression &&
+      sameElements(other.imports, imports) &&
+      other.size == size;
+
+  @override
+  int get hashCode => Object.hash(expression, Object.hashAll(imports), size);
+
+  @override
+  String toString() => describe('WidgetExpression', {
+    'expression': expression,
+    'imports': imports,
+    'size': size,
+  });
+}
 
 /// The size of a [WidgetExpression]: a [LogicalSize], or
 /// [WidgetSize.unbounded].
@@ -76,6 +104,15 @@ sealed class ShotCapture {
 /// The preview alone.
 final class PreviewCapture extends ShotCapture {
   const PreviewCapture();
+
+  @override
+  bool operator ==(Object other) => other is PreviewCapture;
+
+  @override
+  int get hashCode => (PreviewCapture).hashCode;
+
+  @override
+  String toString() => describe('PreviewCapture', const {});
 }
 
 /// The whole screen: the viewport, with the menus and dialogs the app
@@ -84,7 +121,17 @@ final class const ScreenCapture({
   /// The viewport, the preview at its top left; none keeps the one the
   /// preview's size gives.
   final LogicalSize? viewport,
-}) extends ShotCapture;
+}) extends ShotCapture {
+  @override
+  bool operator ==(Object other) =>
+      other is ScreenCapture && other.viewport == viewport;
+
+  @override
+  int get hashCode => Object.hash(ScreenCapture, viewport);
+
+  @override
+  String toString() => describe('ScreenCapture', {'viewport': viewport});
+}
 
 /// An on-screen keyboard to lay the preview out with, as `--keyboard`
 /// (experimental). The keyboard itself is not drawn.
@@ -96,7 +143,23 @@ final class const Keyboard(
   /// `--keyboard-tint`; none leaves the area as the app paints it. Not
   /// with `semantics`.
   final int? tint,
-});
+}) {
+  @override
+  bool operator ==(Object other) =>
+      other is Keyboard && other.height == height && other.tint == tint;
+
+  @override
+  int get hashCode => Object.hash(height, tint);
+
+  @override
+  String toString() => describe('Keyboard', {
+    'height': _number(height),
+    'tint': switch (tint) {
+      final tint? => '0x${colorHex(tint).substring(1)}',
+      null => null,
+    },
+  });
+}
 
 /// The outcome of [shot]: the run directory and each shot in it.
 final class const ShotRun({
@@ -113,6 +176,20 @@ final class const ShotRun({
   /// Whether any shot is an [ShotStatus.error]; `shutter shot` exits 2
   /// then.
   bool get hasErrors => shots.any((s) => s.status == ShotStatus.error);
+
+  @override
+  bool operator ==(Object other) =>
+      other is ShotRun &&
+      other.id == id &&
+      other.dir == dir &&
+      sameElements(other.shots, shots);
+
+  @override
+  int get hashCode => Object.hash(id, dir, Object.hashAll(shots));
+
+  @override
+  String toString() =>
+      describe('ShotRun', {'id': id, 'dir': dir, 'shots': shots});
 }
 
 /// One shot of a [ShotRun].
@@ -146,7 +223,52 @@ final class const ShotResult({
 
   /// `path:line:column` inside the project where the error points.
   final String? at,
-});
+}) {
+  @override
+  bool operator ==(Object other) =>
+      other is ShotResult &&
+      other.id == id &&
+      other.status == status &&
+      other.name == name &&
+      other.file == file &&
+      other.line == line &&
+      other.size == size &&
+      other.brightness == brightness &&
+      other.textScaleFactor == textScaleFactor &&
+      other.png == png &&
+      other.error == error &&
+      other.at == at;
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    status,
+    name,
+    file,
+    line,
+    size,
+    brightness,
+    textScaleFactor,
+    png,
+    error,
+    at,
+  );
+
+  @override
+  String toString() => describe('ShotResult', {
+    'id': id,
+    'status': status.name,
+    'name': name,
+    'file': file,
+    'line': line,
+    'size': size,
+    'brightness': brightness,
+    'textScaleFactor': textScaleFactor,
+    'png': png,
+    'error': error,
+    'at': at,
+  });
+}
 
 /// Shoots [subject] in the Flutter project at or above [projectDir] into
 /// a new run, as `shutter shot`, or `shutter semantics` with

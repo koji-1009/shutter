@@ -54,6 +54,17 @@ class const ShotTarget(
   /// The widget of type [value], with or without type arguments, e.g.
   /// `DropdownButton<String>`.
   const ShotTarget.type(String value) : this(TargetKind.type, value);
+
+  @override
+  bool operator ==(Object other) =>
+      other is ShotTarget && other.by == by && other.value == value;
+
+  @override
+  int get hashCode => Object.hash(by, value);
+
+  /// `text:Save`, as on the command line.
+  @override
+  String toString() => '${by.name}:$value';
 }
 
 /// One `shot --tap`, `--enter`, `--press`, `--hover`, or `--focus`.
@@ -103,6 +114,20 @@ class const ShotAction._(
       final text? => '=$text',
       null => '',
     };
-    return '${kind.name} ${by.name}:$value$text';
+    return '${kind.name} $target$text';
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is ShotAction &&
+      other.kind == kind &&
+      other.target == target &&
+      other.text == text;
+
+  @override
+  int get hashCode => Object.hash(kind, target, text);
+
+  /// [label]: `tap text:Save`, `enter key:name=Koji`.
+  @override
+  String toString() => label;
 }

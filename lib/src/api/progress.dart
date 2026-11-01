@@ -1,3 +1,5 @@
+import 'value.dart';
+
 /// What a shot run is doing, as it does it; each event's [message] is a
 /// line for a log.
 sealed class ShotProgress {
@@ -14,6 +16,16 @@ final class const ScanStarted(
 ) extends ShotProgress {
   @override
   String get message => 'scanning ${files.join(', ')}';
+
+  @override
+  bool operator ==(Object other) =>
+      other is ScanStarted && sameElements(other.files, files);
+
+  @override
+  int get hashCode => Object.hashAll(files);
+
+  @override
+  String toString() => describe('ScanStarted', {'files': files});
 }
 
 /// `flutter test` starts rendering every shot. [round] counts from 1; a
@@ -23,6 +35,16 @@ final class const RenderStarted(final int round) extends ShotProgress {
   @override
   String get message =>
       round == 1 ? 'rendering' : 'rendering again with added fonts';
+
+  @override
+  bool operator ==(Object other) =>
+      other is RenderStarted && other.round == round;
+
+  @override
+  int get hashCode => Object.hash(RenderStarted, round);
+
+  @override
+  String toString() => describe('RenderStarted', {'round': round});
 }
 
 /// One shot finished rendering in [round]; whether it is `ok` or an
@@ -31,6 +53,16 @@ final class const ShotRendered(final int round, final String id)
     extends ShotProgress {
   @override
   String get message => 'rendered $id';
+
+  @override
+  bool operator ==(Object other) =>
+      other is ShotRendered && other.round == round && other.id == id;
+
+  @override
+  int get hashCode => Object.hash(round, id);
+
+  @override
+  String toString() => describe('ShotRendered', {'round': round, 'id': id});
 }
 
 /// google_fonts files missing from the cache are being downloaded.
@@ -40,4 +72,14 @@ final class const FontsDownloading(
 ) extends ShotProgress {
   @override
   String get message => 'downloading ${fonts.join(', ')}';
+
+  @override
+  bool operator ==(Object other) =>
+      other is FontsDownloading && sameElements(other.fonts, fonts);
+
+  @override
+  int get hashCode => Object.hashAll(fonts);
+
+  @override
+  String toString() => describe('FontsDownloading', {'fonts': fonts});
 }

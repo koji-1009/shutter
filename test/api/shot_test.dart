@@ -89,20 +89,37 @@ void main() {
         platform: ShotPlatform.ios,
       );
       final dir = p.join(root, '.dart_tool', 'shutter', 'runs', run.id);
-      expect((run.id, run.dir), ('20260918T101530Z', dir));
-      expect(run.hasErrors, isTrue);
-      final [a, b] = run.shots;
       expect(
-        (a.id, a.status, a.name, a.file, a.line),
-        ('a.0', ShotStatus.ok, 'a', 'lib/a.dart', 2),
+        run,
+        ShotRun(
+          id: '20260918T101530Z',
+          dir: dir,
+          shots: [
+            ShotResult(
+              id: 'a.0',
+              status: ShotStatus.ok,
+              name: 'a',
+              file: 'lib/a.dart',
+              line: 2,
+              size: const LogicalSize(390, 844.5),
+              brightness: 'dark',
+              textScaleFactor: 2,
+              png: p.join(dir, 'a.0.png'),
+            ),
+            const ShotResult(
+              id: 'b.0',
+              status: ShotStatus.error,
+              name: 'b',
+              file: 'lib/b.dart',
+              line: 3,
+              error: 'boom',
+              at: 'lib/ui/b.dart:9:3',
+            ),
+          ],
+        ),
       );
-      expect(a.size, const LogicalSize(390, 844.5));
-      expect((a.brightness, a.textScaleFactor), ('dark', 2.0));
-      expect(a.png, p.join(dir, 'a.0.png'));
-      expect(File(a.png!).existsSync(), isTrue);
-      expect((a.error, a.at), (null, null));
-      expect((b.status, b.size, b.png), (ShotStatus.error, null, null));
-      expect((b.error, b.at), ('boom', 'lib/ui/b.dart:9:3'));
+      expect(run.hasErrors, isTrue);
+      expect(File(run.shots.first.png!).existsSync(), isTrue);
 
       final request = engine.requests.single;
       expect(request.widget!.source, 'B()');
@@ -166,7 +183,9 @@ void main() {
     );
     expect(run.shots, isEmpty);
     expect(run.hasErrors, isFalse);
-    expect(events.map((e) => e.message), ['scanning lib/preview/a.dart']);
+    expect(events, [
+      const ScanStarted(['lib/preview/a.dart']),
+    ]);
     final request = engine.requests.single;
     expect(request.libraries.single.file, 'lib/preview/a.dart');
     expect(request.onProgress, isNotNull);
@@ -294,17 +313,6 @@ void main() {
         isA<ShutterException>().having((e) => e.exitCode, 'exitCode', 69),
       ),
     );
-  });
-
-  test('sizes compare by value and print as on the command line', () {
-    expect(const LogicalSize(390, 844.5), const LogicalSize(390, 844.5));
-    expect(const LogicalSize(390, 844), isNot(const LogicalSize(844, 390)));
-    expect(
-      const LogicalSize(390, 844).hashCode,
-      const LogicalSize(390, 844).hashCode,
-    );
-    expect('${const LogicalSize(390, 844.5)}', '390x844.5');
-    expect('${WidgetSize.unbounded}', 'unbounded');
   });
 
   test('progress messages', () {

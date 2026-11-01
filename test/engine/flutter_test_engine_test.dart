@@ -257,8 +257,7 @@ void main() {
         onProgress: events.add,
       ),
     );
-    expect(events.map((e) => e.message), ['rendering', 'rendered a.0']);
-    expect(events.last, isA<ShotRendered>().having((e) => e.round, 'round', 1));
+    expect(events, [const RenderStarted(1), const ShotRendered(1, 'a.0')]);
   });
 
   test('no tests registered (exit 79) means no shots', () async {
@@ -479,10 +478,13 @@ void googleFontsTests() {
           );
       expect(fake.calls, hasLength(2));
       expect(fetched, hasLength(2));
-      expect(events.map((e) => e.message), [
-        'rendering',
-        'downloading Lobster-Regular.ttf, NotoSansJP-Regular.ttf',
-        'rendering again with added fonts',
+      expect(events, [
+        const RenderStarted(1),
+        const FontsDownloading([
+          'Lobster-Regular.ttf',
+          'NotoSansJP-Regular.ttf',
+        ]),
+        const RenderStarted(2),
       ]);
       expect(fake.generated.first, contains('googleFonts: true,'));
       expect(fake.generated.last, contains("family: 'Lobster_regular',"));

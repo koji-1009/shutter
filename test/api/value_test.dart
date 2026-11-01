@@ -249,6 +249,27 @@ void main() {
     );
   });
 
+  test('doctor checks compare by value and print what they hold', () {
+    var message = 'font cache missing';
+    String fresh() => message.substring(0);
+    valueType(
+      () =>
+          DoctorCheck(CheckLevel.warn, fresh(), hint: 'run `flutter precache`'),
+      [
+        DoctorCheck(CheckLevel.fail, message, hint: 'run `flutter precache`'),
+        const DoctorCheck(CheckLevel.warn, 'x', hint: 'run `flutter precache`'),
+        DoctorCheck(CheckLevel.warn, message),
+      ],
+      'DoctorCheck(level: warn, message: font cache missing, '
+      'hint: run `flutter precache`)',
+    );
+    message = 'project app';
+    expect(
+      '${DoctorCheck(CheckLevel.ok, fresh())}',
+      'DoctorCheck(level: ok, message: project app)',
+    );
+  });
+
   test('progress events compare by value and print what they hold', () {
     var name = 'lib/a.dart';
     String fresh() => name.substring(0);

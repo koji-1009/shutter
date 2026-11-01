@@ -180,7 +180,7 @@ Each is followed by `--settle` milliseconds; shoot again with another `--settle`
 
 ## From Dart
 
-Another Dart tool can shoot and compare without starting a process: `package:shutter/shutter.dart` exposes `shot`, `diff`, and `prune`, with typed arguments and results.
+Another Dart tool can shoot and compare without starting a process: `package:shutter/shutter.dart` exposes `shot`, `diff`, `doctor`, and `prune`, with typed arguments and results.
 
 ```dart
 import 'package:shutter/shutter.dart';
@@ -210,6 +210,7 @@ The project directory is an argument, and relative paths are relative to it, not
 A shot that fails to render comes back with `status: error`, and a change between runs is an entry of the diff; a run that cannot be shot, or runs that cannot be compared, throw a `ShutterException` carrying the exit code the CLI would use.
 `onProgress` is told of the scan, each `flutter test` run, each shot as it finishes, and each google_fonts download.
 `diff` names a run as `shutter diff` does, and returns what each run was shot with, so a difference in shell, actions, or platform is visible.
+`doctor` returns the checks of `shutter doctor`, each `ok`, `warn`, or `fail` with what to do about it: an old Flutter or a missing font cache is found there, not by `shot`.
 
 ## Limits
 

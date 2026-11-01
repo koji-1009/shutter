@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
+import 'package:shutter/src/api/progress.dart';
 import 'package:shutter/src/engine/engine.dart';
 import 'package:shutter/src/engine/flutter_test_engine.dart';
 import 'package:shutter/src/engine/widget_shot.dart';
@@ -30,7 +31,8 @@ Candidate candidate(String file, String symbol, {String? error}) => Candidate(
 SourceLibrary library(String file, List<Candidate> candidates) =>
     SourceLibrary(file: file, imports: const [], candidates: candidates);
 
-/// A `flutter test` stand-in: records calls and answers from [respond].
+/// A `flutter test` stand-in: records calls and answers from [respond],
+/// handing over the answer's stdout line by line.
 class FakeFlutter {
   FakeFlutter(this.respond);
 
@@ -42,12 +44,17 @@ class FakeFlutter {
     String executable,
     List<String> arguments, {
     String? workingDirectory,
+    void Function(String line)? onStdoutLine,
   }) async {
     calls.add(arguments);
     generated.add(
       File(p.join(workingDirectory!, arguments[1])).readAsStringSync(),
     );
-    return respond(calls.length - 1, arguments, workingDirectory);
+    final answer = respond(calls.length - 1, arguments, workingDirectory);
+    if (onStdoutLine != null) {
+      '${answer.stdout}'.split('\n').forEach(onStdoutLine);
+    }
+    return answer;
   }
 }
 
@@ -212,6 +219,46 @@ void main() {
       ),
     );
     expect(shots.single.status, ShotStatus.ok);
+  });
+
+  test('progress: the render as it starts, and each shot as its test '
+      'finishes', () async {
+    String event(Map<String, Object?> json) => jsonEncode(json);
+    final fake = FakeFlutter(
+      (call, args, cwd) => result(
+        0,
+        stdout: [
+          event({
+            'type': 'testStart',
+            'test': {'id': 1, 'name': 'loading shutter_test.dart'},
+          }),
+          event({'type': 'testDone', 'testID': 1, 'hidden': true}),
+          event({
+            'type': 'testStart',
+            'test': {'id': 2, 'name': 'a.0'},
+          }),
+          'not json',
+          event({'type': 'print', 'message': 'hi'}),
+          event({'type': 'testDone', 'testID': 2, 'hidden': false}),
+          event({'type': 'testDone', 'testID': 3, 'hidden': false}),
+        ].join('\n'),
+      ),
+    );
+    final events = <ShotProgress>[];
+    await FlutterTestEngine(
+      sdk: FlutterSdk('/sdk'),
+      processRunner: fake.call,
+    ).capture(
+      CaptureRequest(
+        project: project,
+        libraries: const [],
+        runDir: runDir,
+        settleMs: 300,
+        onProgress: events.add,
+      ),
+    );
+    expect(events.map((e) => e.message), ['rendering', 'rendered a.0']);
+    expect(events.last, isA<ShotRendered>().having((e) => e.round, 'round', 1));
   });
 
   test('no tests registered (exit 79) means no shots', () async {
@@ -410,18 +457,33 @@ void googleFontsTests() {
     test('downloads every missing font, then captures again', () async {
       final fake = flutterMissing([hashOf(lobster), hashOf(noto)]);
       final fetched = <Uri>[];
-      final shots = await FlutterTestEngine(
-        sdk: FlutterSdk('/sdk'),
-        processRunner: fake.call,
-        fetchFont: (url) async {
-          fetched.add(url);
-          return Uint8List.fromList(
-            url.path.contains(hashOf(lobster)) ? lobster : noto,
+      final events = <ShotProgress>[];
+      final shots =
+          await FlutterTestEngine(
+            sdk: FlutterSdk('/sdk'),
+            processRunner: fake.call,
+            fetchFont: (url) async {
+              fetched.add(url);
+              return Uint8List.fromList(
+                url.path.contains(hashOf(lobster)) ? lobster : noto,
+              );
+            },
+          ).capture(
+            CaptureRequest(
+              project: project,
+              libraries: request().libraries,
+              runDir: runDir,
+              settleMs: 300,
+              onProgress: events.add,
+            ),
           );
-        },
-      ).capture(request());
       expect(fake.calls, hasLength(2));
       expect(fetched, hasLength(2));
+      expect(events.map((e) => e.message), [
+        'rendering',
+        'downloading Lobster-Regular.ttf, NotoSansJP-Regular.ttf',
+        'rendering again with added fonts',
+      ]);
       expect(fake.generated.first, contains('googleFonts: true,'));
       expect(fake.generated.last, contains("family: 'Lobster_regular',"));
       expect(fake.generated.last, contains("asset: 'NotoSansJP-Regular.ttf',"));

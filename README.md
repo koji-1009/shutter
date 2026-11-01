@@ -178,6 +178,28 @@ Each is followed by `--settle` milliseconds; shoot again with another `--settle`
 
 `diff` exiting 1 means "changed", not "failed". Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter SDK, 70 internal error, 78 project not usable.
 
+## From Dart
+
+Another Dart tool can shoot without starting a process: `package:shutter/shutter.dart` exposes `shot` and `prune`, with typed arguments and results.
+
+```dart
+import 'package:shutter/shutter.dart';
+
+final run = await shot(
+  '/path/to/app',
+  const PreviewFiles(['lib/preview/notification_tile_preview.dart']),
+  platform: ShotPlatform.ios,
+  onProgress: (event) => print(event.message),
+);
+for (final result in run.shots) {
+  print('${result.id} ${result.status.name} ${result.png ?? result.error}');
+}
+```
+
+The project directory is an argument, and relative paths are relative to it, not to the current directory.
+A shot that fails to render comes back with `status: error`; a run that cannot be shot at all throws a `ShutterException` carrying the exit code the CLI would use.
+`onProgress` is told of the scan, each `flutter test` run, each shot as it finishes, and each google_fonts download.
+
 ## Limits
 
 * One capture per preview: state comes from the widget's construction expression and from taps, entered text, a press, a hover, or focus before the capture; scrolling and dragging are not shot, nor is the on-screen keyboard (`--keyboard` leaves room for it).

@@ -131,9 +131,9 @@ void main() {
           runDir: '/runs/r1',
           settleMs: 300,
           actions: const [
-            ShotAction(kind: .tap, by: .text, value: r"it's $1"),
-            ShotAction(kind: .enter, by: .key, value: 'name', text: "O'Hara"),
-            ShotAction(kind: .focus, by: .label, value: 'Email'),
+            ShotAction.tap(.text(r"it's $1")),
+            ShotAction.enter(.key('name'), "O'Hara"),
+            ShotAction.focus(.label('Email')),
           ],
           screen: true,
           viewport: (390, 844.5),

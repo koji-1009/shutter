@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../api/progress.dart';
 import '../fonts/font_cache.dart';
 import '../fonts/google_fonts.dart';
 import '../fonts/host_fonts.dart';
@@ -65,13 +66,20 @@ class FlutterTestEngine implements Engine {
     final cache = FontCache(request.project.googleFontsDir, fetch: fetchFont);
     final design = DesignSupport.detect(request.project, sdk);
     final fallback = hostFallback(request.project);
-    Future<_Pass> shoot() => _capture(
-      request,
-      design,
-      cache.list(),
-      fallback.families(),
-      googleFonts: googleFonts != null,
-    );
+    var round = 0;
+    Future<_Pass> shoot() {
+      round++;
+      request.onProgress?.call(RenderStarted(round));
+      return _capture(
+        request,
+        design,
+        cache.list(),
+        fallback.families(),
+        googleFonts: googleFonts != null,
+        round: round,
+      );
+    }
+
     var pass = await shoot();
     final known = <String, GoogleFontFile>{};
     final failures = <String, String>{};
@@ -89,6 +97,7 @@ class FlutterTestEngine implements Engine {
               pending,
               known,
               failures,
+              request.onProgress,
             ) ||
             added;
       }
@@ -107,20 +116,29 @@ class FlutterTestEngine implements Engine {
   }
 
   /// Downloads the google_fonts files [pending] names into [cache],
-  /// noting in [failures] why a file could not be. Returns whether any
-  /// was added.
+  /// noting in [failures] why a file could not be, and telling
+  /// [onProgress] of the files it downloads. Returns whether any was
+  /// added.
   Future<bool> _fetchGoogleFonts(
     String googleFonts,
     FontCache cache,
     Set<String> pending,
     Map<String, GoogleFontFile> known,
     Map<String, String> failures,
+    void Function(ShotProgress event)? onProgress,
   ) async {
     if (known.isEmpty) {
       for (final font in scanGoogleFonts(googleFonts).values) {
         known[font.hash] = font;
         known[p.basenameWithoutExtension(font.assetName)] = font;
       }
+    }
+    final downloads = {
+      for (final key in pending)
+        if (known[key] case final font?) font.assetName,
+    };
+    if (downloads.isNotEmpty) {
+      onProgress?.call(FontsDownloading([...downloads]));
     }
     var added = false;
     Future<void> fetch(String key) async {
@@ -145,16 +163,17 @@ class FlutterTestEngine implements Engine {
     return added;
   }
 
-  /// One capture. Returns the shots; per shot id, the google_fonts files
-  /// (hashes) that failed to load; the text laid out; and the font files
-  /// loaded. When the generated test does not compile, every shot is an
-  /// error carrying the first compiler error.
+  /// One capture, the [round]th. Returns the shots; per shot id, the
+  /// google_fonts files (hashes) that failed to load; the text laid out;
+  /// and the font files loaded. When the generated test does not compile,
+  /// every shot is an error carrying the first compiler error.
   Future<_Pass> _capture(
     CaptureRequest request,
     DesignSupport design,
     List<CachedFont> fonts,
     Map<String, List<String>> fallbackFonts, {
     required bool googleFonts,
+    required int round,
   }) async {
     final project = request.project;
     final shots = <Shot>[
@@ -172,13 +191,26 @@ class FlutterTestEngine implements Engine {
         fallbackFonts: fallbackFonts,
       ),
     );
-    final result = await _run(sdk.executable(), [
-      'test',
-      p.relative(testPath, from: project.root),
-      '--reporter',
-      'json',
-      if (File(project.packageConfigPath).existsSync()) '--no-pub',
-    ], workingDirectory: project.root);
+    final onProgress = request.onProgress;
+    final testNames = <int, String>{};
+    final result = await _run(
+      sdk.executable(),
+      [
+        'test',
+        p.relative(testPath, from: project.root),
+        '--reporter',
+        'json',
+        if (File(project.packageConfigPath).existsSync()) '--no-pub',
+      ],
+      workingDirectory: project.root,
+      onStdoutLine: onProgress == null
+          ? null
+          : (line) {
+              if (finishedShot(line, testNames) case final id?) {
+                onProgress(ShotRendered(round, id));
+              }
+            },
+    );
     Directory(p.dirname(testPath)).deleteSync(recursive: true);
     final missingFonts = <String, Set<String>>{};
     final texts = <LaidOutText>[];
@@ -290,6 +322,29 @@ class FlutterTestEngine implements Engine {
     }
     return shots;
   }
+}
+
+/// The id of the shot a line of `flutter test --reporter json` output
+/// reports finished, else null. Each test is named after its shot, and
+/// [names] keeps the name of each test seen starting, by its test id;
+/// hidden tests (loading the suite, `setUpAll`) are not shots.
+String? finishedShot(String line, Map<int, String> names) {
+  final Object? event;
+  try {
+    event = jsonDecode(line);
+  } on FormatException {
+    return null;
+  }
+  switch (event) {
+    case {
+      'type': 'testStart',
+      'test': {'id': final int id, 'name': final String name},
+    }:
+      names[id] = name;
+    case {'type': 'testDone', 'testID': final int id, 'hidden': false}:
+      return names[id];
+  }
+  return null;
 }
 
 /// Flattens `flutter test --reporter json` output: `error` and `message`

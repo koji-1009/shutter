@@ -1,7 +1,7 @@
 import 'package:args/command_runner.dart';
 
+import '../api/prune.dart';
 import '../reporters/prune_reporter.dart';
-import '../run/run_store.dart';
 import '../shutter_exception.dart';
 import 'context.dart';
 import 'io_sinks.dart';
@@ -41,8 +41,12 @@ class PruneCommand(final ShutterContext context) extends Command<int> {
       throw ShutterException.usage('Give --keep <n>, the runs to keep.');
     }
     final keep = parseCount(args, 'keep');
-    final (:removed, :kept) = pruneRuns(context.project(), keep);
-    reportPrune(removed: removed, kept: kept, sink: ShutterIO.stdoutSink);
+    final result = prune(context.workingDirectory, keep: keep);
+    reportPrune(
+      removed: result.removed,
+      kept: result.kept,
+      sink: ShutterIO.stdoutSink,
+    );
     return 0;
   }
 }

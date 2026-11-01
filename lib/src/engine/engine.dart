@@ -1,3 +1,4 @@
+import '../api/progress.dart';
 import '../project/project.dart';
 import '../run/manifest.dart';
 import '../scan/candidate.dart';
@@ -48,6 +49,10 @@ class const CaptureRequest({
 
   /// The platform the app is drawn as.
   final ShotPlatform platform = ShotPlatform.android,
+
+  /// Told of each render as it starts, each shot as it finishes, and each
+  /// font download.
+  final void Function(ShotProgress event)? onProgress,
 });
 
 /// The only swappable layer: turns scanned previews and a `--widget` into

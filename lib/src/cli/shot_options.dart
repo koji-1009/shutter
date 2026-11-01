@@ -85,41 +85,55 @@ int parseKeyboardTint(String raw) {
   return int.parse(digits.length == 6 ? 'FF$digits' : digits, radix: 16);
 }
 
-/// Parses each `--network-image <url>=<file>`: the absolute path of the
-/// file served for each URL, in the order given. The URL ends at the last
-/// `=`, so its query keeps its own; the file is relative to
-/// [workingDirectory] and must exist.
-Map<String, String> parseNetworkImages(
-  List<String> raws, {
-  required String workingDirectory,
-}) {
+/// Splits each `--network-image <url>=<file>` into the file for its URL,
+/// in the order given. The URL ends at the last `=`, so its query keeps
+/// its own; [resolveNetworkImages] checks both.
+Map<String, String> parseNetworkImages(List<String> raws) {
   final images = <String, String>{};
   for (final raw in raws) {
     final equals = raw.lastIndexOf('=');
-    final url = equals < 0 ? null : Uri.tryParse(raw.substring(0, equals));
-    final file = raw.substring(equals + 1);
-    if (url == null ||
-        !(url.isScheme('http') || url.isScheme('https')) ||
-        url.host.isEmpty ||
-        file.isEmpty) {
-      throw ShutterException.usage(
-        '--network-image must be <url>=<file>, e.g. '
-        'https://example.com/avatar.png=test/images/avatar.png (got "$raw").',
-      );
-    }
+    if (equals < 0) throw _networkImageUsage(raw);
     final key = raw.substring(0, equals);
     if (images.containsKey(key)) {
       throw ShutterException.usage('--network-image gives $key twice.');
     }
-    final path = p.normalize(p.join(workingDirectory, file));
-    if (!File(path).existsSync()) {
-      throw ShutterException.noInput(
-        '--network-image file $file does not exist.',
-      );
-    }
-    images[key] = path;
+    images[key] = raw.substring(equals + 1);
   }
   return images;
+}
+
+/// The usage error of a `--network-image` given as [raw].
+ShutterException _networkImageUsage(String raw) => ShutterException.usage(
+  '--network-image must be <url>=<file>, e.g. '
+  'https://example.com/avatar.png=test/images/avatar.png (got "$raw").',
+);
+
+/// The absolute path of the file served for each `http` or `https` URL
+/// of [images], in its order. Each file is relative to
+/// [workingDirectory] and must exist.
+Map<String, String> resolveNetworkImages(
+  Map<String, String> images, {
+  required String workingDirectory,
+}) => {
+  for (final MapEntry(key: raw, value: file) in images.entries)
+    raw: _networkImageFile(raw, file, workingDirectory),
+};
+
+String _networkImageFile(String raw, String file, String workingDirectory) {
+  final url = Uri.tryParse(raw);
+  if (url == null ||
+      !(url.isScheme('http') || url.isScheme('https')) ||
+      url.host.isEmpty ||
+      file.isEmpty) {
+    throw _networkImageUsage('$raw=$file');
+  }
+  final path = p.normalize(p.join(workingDirectory, file));
+  if (!File(path).existsSync()) {
+    throw ShutterException.noInput(
+      '--network-image file $file does not exist.',
+    );
+  }
+  return path;
 }
 
 /// The manifest record of each `--network-image` file in [images].
@@ -188,7 +202,14 @@ ShotAction _action(ActionKind kind, String raw) {
       'label:<label>, or type:<Widget> (got "$raw").',
     );
   }
-  return ShotAction(kind: kind, by: by, value: value, text: text);
+  final shotTarget = ShotTarget(by, value);
+  return switch (kind) {
+    ActionKind.tap => ShotAction.tap(shotTarget),
+    ActionKind.enter => ShotAction.enter(shotTarget, text!),
+    ActionKind.press => ShotAction.press(shotTarget),
+    ActionKind.hover => ShotAction.hover(shotTarget),
+    ActionKind.focus => ShotAction.focus(shotTarget),
+  };
 }
 
 /// Help of the target the action options take.

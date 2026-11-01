@@ -9,6 +9,7 @@ import '../scan/candidate.dart';
 import 'design.dart';
 import 'engine.dart';
 import 'harness_text.dart';
+import 'interaction.dart';
 
 /// File header of every generated Dart file: the code is machine
 /// written from the project's own sources, so lints do not apply.
@@ -167,7 +168,7 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
   if (request.actions.isNotEmpty) {
     buffer.writeln('      actions: [');
     for (final action in request.actions) {
-      buffer.writeln('        ${action.source},');
+      buffer.writeln('        ${_actionSource(action)},');
     }
     buffer.writeln('      ],');
   }
@@ -229,4 +230,14 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
     ..writeln('  );')
     ..writeln('}');
   return buffer.toString();
+}
+
+/// The harness's `ShutterAction` for [action], as Dart source.
+String _actionSource(ShotAction action) {
+  final text = switch (action.text) {
+    final text? => ', text: ${dartString(text)}',
+    null => '',
+  };
+  return '\$shutter.ShutterAction(.${action.kind.name}, .${action.by.name}, '
+      '${dartString(action.value)}$text)';
 }

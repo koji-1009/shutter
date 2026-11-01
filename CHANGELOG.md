@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0
 
 Shots drawn as iOS, a `--widget` at its own size, and a way to clear old runs.
 

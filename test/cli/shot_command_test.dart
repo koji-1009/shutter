@@ -158,7 +158,30 @@ void main() {
     final fromRoot = await widgetFrom(root, 'lib/ui/b.dart');
     final fromLib = await widgetFrom(p.join(root, 'lib'), 'ui/b.dart');
     expect(fromRoot.size, (200.0, 56.5));
+    expect(fromRoot.unbounded, isFalse);
     expect(fromLib.staticId, fromRoot.staticId);
+  });
+
+  test('--size unbounded leaves both dimensions unbounded and the id as '
+      'without it', () async {
+    final root = createProject();
+    Future<WidgetShot> widget(List<String> size) async {
+      final engine = FakeEngine(const []);
+      final result = await runCli([
+        'shot',
+        '--widget',
+        'B()',
+        ...size,
+      ], fakeContext(root, engine: engine));
+      expect(result.exitCode, 0, reason: result.stderr);
+      return engine.requests.single.widget!;
+    }
+
+    final unbounded = await widget(['--size', 'unbounded']);
+    expect((unbounded.size, unbounded.unbounded), (null, true));
+    final own = await widget([]);
+    expect((own.size, own.unbounded), (null, false));
+    expect(unbounded.staticId, own.staticId);
   });
 
   test('--import is repeatable; package: URIs pass through', () async {
@@ -259,9 +282,12 @@ void main() {
       '336.5',
       '--keyboard-tint',
       '#9e9e9e',
+      '--platform',
+      'ios',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
     final request = engine.requests.single;
+    expect(request.platform, ShotPlatform.ios);
     expect(
       [
         for (final action in request.actions)
@@ -291,12 +317,14 @@ void main() {
     expect(report['viewport'], [390, 844]);
     expect(report['keyboard'], 336.5);
     expect(report['keyboard_tint'], '#FF9E9E9E');
+    expect(report['platform'], 'ios');
     final manifest = RunManifest.read(report['run'] as String);
     final setup = manifest.setup;
     expect(setup.actions, labels);
     expect((setup.screen, setup.viewport), (true, (390.0, 844.0)));
     expect(setup.keyboard, 336.5);
     expect(setup.keyboardTint, 0xFF9E9E9E);
+    expect(setup.platform, ShotPlatform.ios);
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),
@@ -315,6 +343,7 @@ void main() {
       expect((request.screen, request.viewport), (false, null));
       expect(request.keyboard, isNull);
       expect(request.keyboardTint, isNull);
+      expect(request.platform, ShotPlatform.android);
     }
   });
 
@@ -420,6 +449,7 @@ void main() {
     for (final args in [
       ['--import', 'x'],
       ['--size', '1x1'],
+      ['--size', 'unbounded'],
     ]) {
       final bad = await run(args);
       expect(bad.exitCode, 64, reason: '$args');
@@ -437,10 +467,21 @@ void main() {
     }
     expect((await run(['outside.dart'])).exitCode, 64);
     expect((await run(['lib/nope.dart'])).exitCode, 66);
-    for (final size in ['1', '0x1', '1x-1', 'axb', '1x2x3', 'Infinityx1']) {
+    for (final size in [
+      '1',
+      '0x1',
+      '1x-1',
+      'axb',
+      '1x2x3',
+      'Infinityx1',
+      'Unbounded',
+    ]) {
       final bad = await run(['--widget', 'x', '--size', size]);
       expect(bad.exitCode, 64, reason: size);
-      expect(bad.stderr, contains('--size must be'));
+      expect(
+        bad.stderr,
+        contains('--size must be <width>x<height>, e.g. 390x844, or unbounded'),
+      );
     }
     for (final settle in ['soon', '-1']) {
       final bad = await run(['--widget', 'x', '--settle', settle]);

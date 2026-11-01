@@ -86,6 +86,7 @@ void main() {
           'https://example.com/a.png': (path: 'test/a.png', sha256: 'cd34'),
         },
         semantics: true,
+        platform: ShotPlatform.ios,
       ),
     ).write(dir);
     final back = RunManifest.read(dir);
@@ -98,9 +99,11 @@ void main() {
       'https://example.com/a.png': (path: 'test/a.png', sha256: 'cd34'),
     });
     expect(setup.semantics, isTrue);
+    expect(setup.platform, ShotPlatform.ios);
     expect(back.toJson().keys, [
       'run',
       'image',
+      'platform',
       'actions',
       'capture',
       'viewport',
@@ -113,6 +116,7 @@ void main() {
     expect(jsonEncode(back.toJson()['viewport']), '[390,844.5]');
     expect(jsonEncode(back.toJson()['keyboard']), '336');
     expect(back.toJson()['image'], 'semantics');
+    expect(back.toJson()['platform'], 'ios');
     final plain = RunManifest.fromJson(const {'run': 'r', 'shots': []});
     expect(plain.toJson().keys, ['run', 'shots']);
     expect(plain.setup.actions, isEmpty);
@@ -121,5 +125,6 @@ void main() {
     expect(plain.setup.keyboardTint, isNull);
     expect(plain.setup.networkImages, isEmpty);
     expect(plain.setup.semantics, isFalse);
+    expect(plain.setup.platform, ShotPlatform.android);
   });
 }

@@ -10,6 +10,10 @@ import '../project/project.dart';
 import '../run/manifest.dart';
 import '../shutter_exception.dart';
 
+/// The `--size` that lays the `--widget` out with neither dimension
+/// bounded.
+const unboundedSize = 'unbounded';
+
 /// The `--widget` expression with its `--import` files resolved to URIs:
 /// `package:flutter/widgets.dart` first, then each import.
 WidgetShot parseWidgetShot(
@@ -17,6 +21,7 @@ WidgetShot parseWidgetShot(
   required String source,
   required List<String> imports,
   required (double, double)? size,
+  required bool unbounded,
   required String workingDirectory,
 }) => WidgetShot(
   source: source,
@@ -25,6 +30,7 @@ WidgetShot parseWidgetShot(
     for (final import in imports) _importUri(project, import, workingDirectory),
   ],
   size: size,
+  unbounded: unbounded,
 );
 
 /// Parses option [name] as an integer ≥ 0, or throws a usage error.
@@ -48,8 +54,9 @@ int parseCount(ArgResults results, String name) {
       when width > 0 && height > 0 && width.isFinite && height.isFinite) {
     return (width, height);
   }
+  final unbounded = name == 'size' ? ', or $unboundedSize' : '';
   throw ShutterException.usage(
-    '--$name must be <width>x<height>, e.g. 390x844 (got "$raw").',
+    '--$name must be <width>x<height>, e.g. 390x844$unbounded (got "$raw").',
   );
 }
 

@@ -14,6 +14,10 @@ class const WidgetShot({
 
   /// Logical size, when given.
   final (double, double)? size,
+
+  /// Lay the widget out with neither dimension bounded, at its own size
+  /// (`--size unbounded`).
+  final bool unbounded = false,
 }) {
   /// Static half of the shot id: the expression and its imports, so the
   /// same `--widget` and `--import` give the same id in every run.
@@ -40,6 +44,7 @@ class const WidgetShot({
           'annotation':
               '() => const \$preview.Preview(name: ${dartString(source)}$size)',
           'target': '() => $source',
+          if (unbounded) 'unbounded': 'true',
         },
       ],
     );

@@ -74,6 +74,45 @@ void main() {
     expect(() => loadRun(project, 'latest~x'), noInput('no run "latest~x"'));
   });
 
+  test('pruneRuns deletes all but the newest runs with their claims, and '
+      'leaves a run still being shot', () {
+    final project = Project.load(createProject());
+    final nothing = pruneRuns(project, 1);
+    expect(nothing.removed, isEmpty);
+    expect(nothing.kept, isEmpty);
+    final ids = [
+      '20260917T235959Z',
+      '20260918T101530Z',
+      '20260918T101530Z-2',
+      '20260918T101530Z-10',
+    ];
+    for (final id in ids) {
+      writeRun(project, id);
+    }
+    // Shot by shutter, so with the file that claimed its id.
+    File(p.join(project.runsDir, '.20260917T235959Z')).createSync();
+    // Claimed and being shot: no manifest yet.
+    final shooting = p.join(project.runsDir, '20260918T101531Z');
+    Directory(shooting).createSync(recursive: true);
+    File(p.join(project.runsDir, '.20260918T101531Z')).createSync();
+    String dir(String id) => p.join(project.runsDir, id);
+
+    final pruned = pruneRuns(project, 2);
+    expect(pruned.removed, [dir(ids[0]), dir(ids[1])]);
+    expect(pruned.kept, [dir(ids[2]), dir(ids[3])]);
+    for (final id in ids.take(2)) {
+      expect(Directory(dir(id)).existsSync(), isFalse, reason: id);
+    }
+    expect(File(dir('.20260917T235959Z')).existsSync(), isFalse);
+    expect(Directory(shooting).existsSync(), isTrue);
+    expect(File(dir('.20260918T101531Z')).existsSync(), isTrue);
+    expect(p.basename(loadRun(project, 'latest').dir), ids[3]);
+
+    expect(pruneRuns(project, 5).removed, isEmpty);
+    expect(pruneRuns(project, 0).removed, [dir(ids[2]), dir(ids[3])]);
+    expect(Directory(shooting).existsSync(), isTrue);
+  });
+
   test('createTimestampDir names directories after UTC time, suffixing '
       'collisions', () {
     final parent = tempDir();

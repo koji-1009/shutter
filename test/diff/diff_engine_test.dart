@@ -50,6 +50,7 @@ void main() {
           keyboardTint: null,
           networkImages: {},
           semantics: false,
+          platform: ShotPlatform.android,
         ),
       )..write(dir),
     );

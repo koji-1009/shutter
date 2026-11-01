@@ -94,6 +94,7 @@ shots:
             'https://example.com/b?w=2': (path: 'test/b.png', sha256: 'ef56'),
           },
           semantics: true,
+          platform: ShotPlatform.ios,
         ),
       ),
     );
@@ -102,6 +103,7 @@ shots:
       contains(
         'shell: default\n'
         'image: semantics\n'
+        'platform: ios\n'
         'actions: ["tap text:Open", "press key:save"]\n'
         'capture: screen\n'
         'viewport: [390, 844]\n'
@@ -125,6 +127,7 @@ shots:
           keyboardTint: null,
           networkImages: {},
           semantics: false,
+          platform: ShotPlatform.android,
         ),
       ),
     );

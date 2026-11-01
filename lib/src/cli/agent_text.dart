@@ -19,6 +19,7 @@ It makes no judgement; what to shoot, how to prepare the before state, whether a
  9. `diff --composite` writes one image per entry holding its before, diff and after panels, which is the one to post when you want a single attachment; `--title <text>` puts a line of your own above them, in any script. Check it before posting: it is what the reviewer sees.
 10. The images are files under `.dart_tool/shutter/`; where to post them is up to you. A path alone renders nothing: `gh pr comment <number> --attach '<png>#<alt text>'` (gh 2.99+) uploads them into a GitHub comment, `glab mr note create <mr> --attach <png>` (glab 1.117+, experimental) into a GitLab one.
 11. Keep the preview files: the next change is shot against the same subjects, and the Flutter Widget Previewer draws them too.
+12. Runs accumulate under `.dart_tool/shutter/runs/`. `shutter prune --keep <n>` deletes every run but the newest n, the user's own included, so prune when the user asks for it, or once the images you posted no longer need their runs.
 
 ## Preview files
 
@@ -47,6 +48,7 @@ Widget settingsSignedOut() => const SettingsPage(user: null);
 * HTTP is blocked while shooting, so an `Image.network` is an `error` shot. Fetch the image first and serve it with `--network-image <url>=<file>` (repeatable), the same in the before and after shots: `curl --create-dirs -o .dart_tool/shutter/images/avatar.png <url>`, then `shutter shot <preview-file> --network-image <url>=.dart_tool/shutter/images/avatar.png`. Only `NetworkImage` is served, not `package:http`.
 * `shutter shot` shoots only the files it is given: `shutter shot lib/preview/settings_page_preview.dart`.
 * Top-level functions, static methods, and constructors without required arguments are all valid targets; `MultiPreview` and `Preview` subclasses work too.
+* Shots are drawn as Android, the platform `flutter test` runs as. For an app that ships on iOS, or a change to iOS-only code, pass `--platform ios` to the before and after shots alike: the theme, the back button, page transitions, adaptive widgets, and the app's own `defaultTargetPlatform` checks then draw as on an iPhone. `diff` prints `platform:` when the two runs differ in it.
 
 ## Shell
 
@@ -70,7 +72,7 @@ shutter shot --widget 'PrimaryButton(label: "OK")' --import lib/ui/button.dart -
 * `--widget` is any Dart expression of type `Widget`; `--import` is a file under `lib/` (or a `package:` URI) it needs imported, repeatable. `package:flutter/widgets.dart` is always imported, so Material widgets need the Material library the project uses as an `--import` (`package:material_ui/material_ui.dart` or `package:flutter/material.dart`).
 * Only that widget is shot, wrapped in the shell; nothing is written to the project outside `.dart_tool/shutter/`.
 * The generated test is compiled inside the project, so `--import` reaches only what the project's `pubspec.yaml` already resolves: add the package first, then shoot it.
-* Without `--size` the widget is shot at its own size; `--size` fixes both dimensions and stretches the widget to them.
+* Without `--size` the widget is shot at its own height and its own width up to 800; `--size` fixes both dimensions and stretches the widget to them. `--size unbounded` shoots it at its own size with neither dimension bounded, so the image is exactly as large as the widget, however wide; text then wraps only at its own line breaks.
 * The same `--widget` and `--import` give the same shot id in every run, so before and after line up in `diff`.
 
 ## Pressed, hovered, focused, opened, typed

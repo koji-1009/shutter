@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+Shots drawn as iOS, a `--widget` at its own size, and a way to clear old runs.
+
+* `shutter shot --platform ios` (and `semantics`) draws every preview as iOS instead of Android, the platform `flutter test` runs as: `defaultTargetPlatform` is `iOS` while each preview is shot, so a theme without its own `platform`, the back button, page transitions, adaptive widgets, and the app's own `defaultTargetPlatform` checks draw as on an iPhone. `shot` prints it, `manifest.json` records it, and `diff` prints both runs' when they differ. It is not part of shot ids.
+* `shutter shot --widget <expression> --size unbounded` lays the widget out with neither dimension bounded and shoots it at its own size, however wide; without `--size`, its width still stops at the viewport's 800.
+* `shutter prune --keep <n>` deletes every run under `.dart_tool/shutter/runs/` but the newest n, and prints the run directories it removed and kept. A run still being shot is left as it is.
+
 ## 1.1.1
 
 Host fallback fonts for any script the host has a font for, and in text whose style keeps them out.

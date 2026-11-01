@@ -10,6 +10,7 @@ import 'package:shutter/src/engine/widget_shot.dart';
 import 'package:shutter/src/fonts/font_cache.dart';
 import 'package:shutter/src/fonts/google_fonts.dart';
 import 'package:shutter/src/project/project.dart';
+import 'package:shutter/src/run/manifest.dart';
 import 'package:shutter/src/scan/candidate.dart';
 import 'package:test/test.dart';
 
@@ -140,6 +141,7 @@ void main() {
           keyboardTint: 0x809E9E9E,
           networkImages: const {r'https://example.com/$a.png': '/p/a.png'},
           semantics: true,
+          platform: ShotPlatform.ios,
         ),
         materialFontsDir: '/sdk/fonts',
         design: const DesignSupport(available: [], shell: null),
@@ -163,7 +165,8 @@ void main() {
         '      networkImages: {\n'
         "        'https://example.com/\\\$a.png': '/p/a.png',\n"
         '      },\n'
-        '      semantics: true,\n',
+        '      semantics: true,\n'
+        '      platform: .iOS,\n',
       ),
     );
     final plain = mainSource(const [], config(project));
@@ -173,6 +176,7 @@ void main() {
     expect(plain, isNot(contains('keyboard')));
     expect(plain, isNot(contains('networkImages:')));
     expect(plain, isNot(contains('semantics:')));
+    expect(plain, isNot(contains('platform:')));
   });
 
   test('a --widget helper imports unprefixed, escapes the expression in the '

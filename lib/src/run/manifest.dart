@@ -111,12 +111,25 @@ typedef RecordedFile = ({String path, String sha256});
 /// The shell file a run was shot with.
 typedef ShellFile = RecordedFile;
 
+/// The platform a run draws the app as (`--platform`). `flutter test`
+/// draws as Android unless told otherwise.
+enum ShotPlatform {
+  android('android'),
+  ios('iOS');
+
+  const ShotPlatform(this.targetPlatform);
+
+  /// Name of the Flutter `TargetPlatform` value.
+  final String targetPlatform;
+}
+
 /// What a run did to every preview besides rendering it: the actions
 /// performed before the capture, whether the whole viewport was
 /// captured, the `--viewport`, the `--keyboard` height and its
 /// `--keyboard-tint` (ARGB), the file served for each `--network-image`
-/// URL, and whether the images are of the semantics tree
-/// (`shutter semantics`) rather than of what the app paints.
+/// URL, whether the images are of the semantics tree
+/// (`shutter semantics`) rather than of what the app paints, and the
+/// `--platform` the app was drawn as.
 typedef RunSetup = ({
   List<String> actions,
   bool screen,
@@ -125,6 +138,7 @@ typedef RunSetup = ({
   int? keyboardTint,
   Map<String, RecordedFile> networkImages,
   bool semantics,
+  ShotPlatform platform,
 });
 
 /// [argb] as `#AARRGGBB`.
@@ -140,6 +154,7 @@ const RunSetup plainSetup = (
   keyboardTint: null,
   networkImages: {},
   semantics: false,
+  platform: ShotPlatform.android,
 );
 
 RecordedFile? _recordedFile(Object? json) => switch (json) {
@@ -193,6 +208,10 @@ class const RunManifest({
           key: ?_recordedFile(value),
       },
       semantics: json['image'] == 'semantics',
+      platform: switch (json['platform']) {
+        final String name => ShotPlatform.values.byName(name),
+        _ => ShotPlatform.android,
+      },
     ),
   );
 
@@ -214,11 +233,13 @@ class const RunManifest({
       :keyboardTint,
       :networkImages,
       :semantics,
+      :platform,
     ) = setup;
     return {
       'run': run,
       if (semantics) 'image': 'semantics',
       if (shell case final shell?) 'shell': _recordedFileJson(shell),
+      if (platform != ShotPlatform.android) 'platform': platform.name,
       if (actions.isNotEmpty) 'actions': actions,
       if (screen) 'capture': 'screen',
       if (viewport case (final w, final h)?)

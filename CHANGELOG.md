@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+Shots drawn as iOS.
+
+* `shutter shot --platform ios` (and `semantics`) draws every preview as iOS instead of Android, the platform `flutter test` runs as: `defaultTargetPlatform` is `iOS` while each preview is shot, so a theme without its own `platform`, the back button, page transitions, adaptive widgets, and the app's own `defaultTargetPlatform` checks draw as on an iPhone. `shot` prints it, `manifest.json` records it, and `diff` prints both runs' when they differ. It is not part of shot ids.
+
 ## 1.1.1
 
 Host fallback fonts for any script the host has a font for, and in text whose style keeps them out.

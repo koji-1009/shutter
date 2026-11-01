@@ -107,14 +107,23 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
             'e.g. 9E9E9E.',
       );
     }
-    argParser.addMultiOption(
-      'network-image',
-      help:
-          'Serve this file to Image.network for this URL, as <url>=<file>, '
-          'e.g. https://example.com/avatar.png=test/images/avatar.png. '
-          'Repeatable.',
-      splitCommas: false,
-    );
+    argParser
+      ..addMultiOption(
+        'network-image',
+        help:
+            'Serve this file to Image.network for this URL, as <url>=<file>, '
+            'e.g. https://example.com/avatar.png=test/images/avatar.png. '
+            'Repeatable.',
+        splitCommas: false,
+      )
+      ..addOption(
+        'platform',
+        help:
+            'Draw the app as on this platform: its theme, page transitions, '
+            'and adaptive widgets.',
+        allowed: [for (final platform in ShotPlatform.values) platform.name],
+        defaultsTo: ShotPlatform.android.name,
+      );
   }
 
   @override
@@ -161,6 +170,7 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
       args.multiOption('network-image'),
       workingDirectory: context.workingDirectory,
     );
+    final platform = ShotPlatform.values.byName(args.option('platform')!);
     final files = args.rest;
     if (source == null && (imports.isNotEmpty || size != null)) {
       throw ShutterException.usage('--import and --size need --widget.');
@@ -238,6 +248,7 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
         keyboardTint: keyboardTint,
         networkImages: networkImages,
         semantics: semantics,
+        platform: platform,
       ),
     );
     final manifest = RunManifest(
@@ -252,6 +263,7 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
         keyboardTint: keyboardTint,
         networkImages: imageRecords,
         semantics: semantics,
+        platform: platform,
       ),
     )..write(runDir);
     reportShots(manifest, runDir, ShutterIO.stdoutSink);

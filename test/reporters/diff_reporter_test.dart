@@ -150,122 +150,146 @@ entries:
     });
   });
 
-  test('the image, actions, capture, viewport, keyboard and its tint, and '
-      'network images of both runs, each only when they differ', () async {
-    Future<YamlMap> report(RunSetup before, RunSetup after) async => loadYaml(
-      await collect(
-        (sink) => reportDiff(
-          RunDiff(
-            before: 'a',
-            after: 'b',
-            entries: const [],
-            beforeSetup: before,
-            afterSetup: after,
+  test(
+    'the image, platform, actions, capture, viewport, keyboard and its '
+    'tint, and network images of both runs, each only when they differ',
+    () async {
+      Future<YamlMap> report(RunSetup before, RunSetup after) async => loadYaml(
+        await collect(
+          (sink) => reportDiff(
+            RunDiff(
+              before: 'a',
+              after: 'b',
+              entries: const [],
+              beforeSetup: before,
+              afterSetup: after,
+            ),
+            null,
+            sink,
           ),
-          null,
-          sink,
         ),
-      ),
-    ) as YamlMap;
-    const pressed = (
-      actions: ['press text:OK'],
-      screen: false,
-      viewport: null,
-      keyboard: null,
-      keyboardTint: null,
-      networkImages: <String, RecordedFile>{},
-      semantics: false,
-    );
-    const screen = (
-      actions: ['press text:OK'],
-      screen: true,
-      viewport: (390.0, 844.0),
-      keyboard: null,
-      keyboardTint: null,
-      networkImages: <String, RecordedFile>{},
-      semantics: false,
-    );
-    final same = await report(pressed, pressed);
-    for (final key in [
-      'image',
-      'actions',
-      'capture',
-      'viewport',
-      'keyboard',
-      'keyboard_tint',
-      'network_images',
-    ]) {
-      expect(same.containsKey(key), isFalse, reason: key);
-    }
-    final pressedOnly = await report(plainSetup, pressed);
-    expect(pressedOnly['actions'], {
-      'before': <Object?>[],
-      'after': ['press text:OK'],
-    });
-    expect(pressedOnly.containsKey('capture'), isFalse);
-    final captured = await report(pressed, screen);
-    expect(captured.containsKey('actions'), isFalse);
-    expect(captured['capture'], {'before': 'preview', 'after': 'screen'});
-    expect(captured['viewport'], {
-      'before': 'default',
-      'after': [390, 844],
-    });
-    expect(captured.containsKey('keyboard'), isFalse);
-    const typing = (
-      actions: <String>[],
-      screen: false,
-      viewport: null,
-      keyboard: 336.0,
-      keyboardTint: null,
-      networkImages: <String, RecordedFile>{},
-      semantics: false,
-    );
-    final keyboard = await report(plainSetup, typing);
-    expect(keyboard['keyboard'], {'before': 'none', 'after': 336});
-    expect(keyboard.containsKey('keyboard_tint'), isFalse);
-    expect(keyboard.containsKey('network_images'), isFalse);
-    const tinted = (
-      actions: <String>[],
-      screen: false,
-      viewport: null,
-      keyboard: 336.0,
-      keyboardTint: 0xFF9E9E9E,
-      networkImages: <String, RecordedFile>{},
-      semantics: false,
-    );
-    final tint = await report(typing, tinted);
-    expect(tint.containsKey('keyboard'), isFalse);
-    expect(tint['keyboard_tint'], {'before': 'none', 'after': '#FF9E9E9E'});
-    const served = (
-      actions: <String>[],
-      screen: false,
-      viewport: null,
-      keyboard: null,
-      keyboardTint: null,
-      networkImages: {
-        'https://example.com/a.png': (path: 'test/a.png', sha256: 'cd34'),
-      },
-      semantics: false,
-    );
-    final images = await report(plainSetup, served);
-    expect(images['network_images'], {
-      'before': 'none',
-      'after': {
-        'https://example.com/a.png': {'path': 'test/a.png', 'sha256': 'cd34'},
-      },
-    });
-    const tree = (
-      actions: <String>[],
-      screen: false,
-      viewport: null,
-      keyboard: null,
-      keyboardTint: null,
-      networkImages: <String, RecordedFile>{},
-      semantics: true,
-    );
-    final image = await report(plainSetup, tree);
-    expect(image['image'], {'before': 'paint', 'after': 'semantics'});
-  });
+      ) as YamlMap;
+      const pressed = (
+        actions: ['press text:OK'],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+      );
+      const screen = (
+        actions: ['press text:OK'],
+        screen: true,
+        viewport: (390.0, 844.0),
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+      );
+      final same = await report(pressed, pressed);
+      for (final key in [
+        'image',
+        'platform',
+        'actions',
+        'capture',
+        'viewport',
+        'keyboard',
+        'keyboard_tint',
+        'network_images',
+      ]) {
+        expect(same.containsKey(key), isFalse, reason: key);
+      }
+      final pressedOnly = await report(plainSetup, pressed);
+      expect(pressedOnly['actions'], {
+        'before': <Object?>[],
+        'after': ['press text:OK'],
+      });
+      expect(pressedOnly.containsKey('capture'), isFalse);
+      final captured = await report(pressed, screen);
+      expect(captured.containsKey('actions'), isFalse);
+      expect(captured['capture'], {'before': 'preview', 'after': 'screen'});
+      expect(captured['viewport'], {
+        'before': 'default',
+        'after': [390, 844],
+      });
+      expect(captured.containsKey('keyboard'), isFalse);
+      const typing = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: 336.0,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+      );
+      final keyboard = await report(plainSetup, typing);
+      expect(keyboard['keyboard'], {'before': 'none', 'after': 336});
+      expect(keyboard.containsKey('keyboard_tint'), isFalse);
+      expect(keyboard.containsKey('network_images'), isFalse);
+      const tinted = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: 336.0,
+        keyboardTint: 0xFF9E9E9E,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+      );
+      final tint = await report(typing, tinted);
+      expect(tint.containsKey('keyboard'), isFalse);
+      expect(tint['keyboard_tint'], {'before': 'none', 'after': '#FF9E9E9E'});
+      const served = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: {
+          'https://example.com/a.png': (path: 'test/a.png', sha256: 'cd34'),
+        },
+        semantics: false,
+        platform: ShotPlatform.android,
+      );
+      final images = await report(plainSetup, served);
+      expect(images['network_images'], {
+        'before': 'none',
+        'after': {
+          'https://example.com/a.png': {'path': 'test/a.png', 'sha256': 'cd34'},
+        },
+      });
+      const tree = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: true,
+        platform: ShotPlatform.android,
+      );
+      final image = await report(plainSetup, tree);
+      expect(image['image'], {'before': 'paint', 'after': 'semantics'});
+      expect(image.containsKey('platform'), isFalse);
+      const ios = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.ios,
+      );
+      final platform = await report(plainSetup, ios);
+      expect(platform['platform'], {'before': 'android', 'after': 'ios'});
+      expect(platform.containsKey('image'), isFalse);
+    },
+  );
 
   test('a change of one pixel in many keeps a nonzero ratio', () async {
     const one = RunDiff(

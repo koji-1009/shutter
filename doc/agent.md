@@ -44,6 +44,7 @@ Widget settingsSignedOut() => const SettingsPage(user: null);
 * HTTP is blocked while shooting, so an `Image.network` is an `error` shot. Fetch the image first and serve it with `--network-image <url>=<file>` (repeatable), the same in the before and after shots: `curl --create-dirs -o .dart_tool/shutter/images/avatar.png <url>`, then `shutter shot <preview-file> --network-image <url>=.dart_tool/shutter/images/avatar.png`. Only `NetworkImage` is served, not `package:http`.
 * `shutter shot` shoots only the files it is given: `shutter shot lib/preview/settings_page_preview.dart`.
 * Top-level functions, static methods, and constructors without required arguments are all valid targets; `MultiPreview` and `Preview` subclasses work too.
+* Shots are drawn as Android, the platform `flutter test` runs as. For an app that ships on iOS, or a change to iOS-only code, pass `--platform ios` to the before and after shots alike: the theme, the back button, page transitions, adaptive widgets, and the app's own `defaultTargetPlatform` checks then draw as on an iPhone. `diff` prints `platform:` when the two runs differ in it.
 
 ## Shell
 

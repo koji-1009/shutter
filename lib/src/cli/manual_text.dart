@@ -59,7 +59,7 @@ A state that comes from a gesture or from typing is shot by acting on the previe
 A target is `key:<value>` (a `ValueKey<String>`), `text:<string>` (a `Text` showing exactly that string, or an `EditableText` holding it), `label:<string>` (a widget whose semantics label is exactly that string: a text field's `labelText` or `hintText`, a button's text), or `type:<Widget>` (a widget of that type, with or without type arguments: `type:Checkbox`, `type:DropdownButton<String>`); offstage widgets do not count.
 `label:` names a text field without a key: `--enter 'label:Email=example@example.com'`.
 Each action is followed by `--settle` milliseconds drawn in 16 ms frames, as on a device, so `--settle` is also how long after an action the capture comes: an animation the action starts (ink, a check mark, a menu opening) is shot at that point of its course.
-`flutter test` runs as Android, so Material 3 presses use `InkSparkle`: its sparkle shows from about 100 ms to about 600 ms of a press, then the flat pressed overlay stays, as on a device.
+`flutter test` runs as Android, so Material 3 presses use `InkSparkle`: its sparkle shows from about 100 ms to about 600 ms of a press, then the flat pressed overlay stays, as on a device. With `--platform ios` they use `InkRipple`, as on an iPhone (see Platform).
 
 The actions apply to every preview of the run.
 A preview is an `error` shot, without a PNG and with `at` pointing at the preview, when a target matches no widget or more than one, when a pointer at the target's centre does not reach it (covered, outside the viewport, or ignoring pointers), when an `--enter` target holds no text field or more than one, or when a `--focus` target cannot take focus.
@@ -71,7 +71,7 @@ They are not part of shot ids, so a run with actions pairs shot for shot with on
 
 A page is shot through a preview of its own: returned from a preview function, it is shot from its first frame, with an id of its own.
 A tap that pushes a page covers the preview, which is then no longer painted: without `--capture screen` the shot is an `error` saying so.
-With `--capture screen` the page is shot; its transition takes 450 ms (`flutter test` runs as Android), so `--settle 700` shoots it once it is in place.
+With `--capture screen` the page is shot; its transition takes 450 ms (`flutter test` runs as Android), or 500 ms with `--platform ios`, so `--settle 700` shoots it once it is in place.
 
 ## Capturing the screen
 
@@ -80,6 +80,19 @@ The shot's size is the viewport's.
 `--viewport <width>x<height>` sets the viewport, with the preview at its top left: give a small preview the room a menu or a dialog opens into.
 Without it, the viewport is the drawing model's.
 The run records the capture and the viewport as it does its actions.
+
+## Platform
+
+`flutter test` draws the app as Android: `defaultTargetPlatform` is `android`, and so is the platform of every `ThemeData` that does not set its own.
+`--platform ios` draws every preview of the run as iOS: shutter sets `debugDefaultTargetPlatformOverride` while each preview is shot and restores it afterwards.
+What follows the platform draws as on an iPhone: a theme without its own `platform` (and with it the back button's chevron, Cupertino page transitions, and `InkRipple` presses), `.adaptive` widgets, and the app's own code reading `defaultTargetPlatform`.
+A `ThemeData` that sets `platform` keeps it, and `Platform.isIOS` of `dart:io` still names the host's operating system.
+Material text on iOS names the system font through `CupertinoSystemText` and `CupertinoSystemDisplay`, which shutter resolves to SF Pro on a macOS host and to Roboto elsewhere (see Fonts under Drawing model).
+The view, its pixel ratio, and the fonts loaded are the same for either platform.
+`--platform android`, the default, draws as `flutter test` does.
+
+The run records `platform: ios` in `manifest.json`; `shot` prints it, and `diff` prints both runs' when they differ, since the platform changes the image without any widget changing.
+It is not part of shot ids, so a run as iOS pairs shot for shot with one as Android.
 
 ## The semantics tree
 
@@ -254,7 +267,7 @@ When Flutter ships a capture command in the previewer itself, it replaces v1 wit
 
 ## Runs
 
-`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `image` for a `semantics` run, `shell` when a shell file was used, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` when given, `shots`).
+`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `image` for a `semantics` run, `shell` when a shell file was used, `platform` for a run as iOS, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` when given, `shots`).
 `<run-id>` is the UTC time of the shot (`20260918T101530Z`), suffixed `-2`, `-3`, ... when taken; a hidden `.<run-id>` file claims the name, so runs started in the same second get distinct ids.
 `shot` prints the run directory as `run:`; `diff` accepts a run's directory, its id, `latest` for the newest run, or `latest~N` for the run N before it.
 `latest` counts runs in id order (time, then suffix) and skips a run still being shot, whose `manifest.json` is not written yet.
@@ -298,9 +311,9 @@ When the two runs were shot with different shells (path or sha256), `shell` show
 ## Output
 
 `shot`, `semantics`, and `diff` print YAML starting with the comment `# shutter ai-report v1`, with absolute paths to open.
-`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (when given), `summary`, and `shots`, errors first.
+`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `platform` (as iOS), `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (when given), `summary`, and `shots`, errors first.
 `semantics` gives the same, with `image: semantics` after `shell`.
-`diff` gives `diff` (with `--images` or `--composite`), `before`, `after`, `shell`, `image`, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (each when the two runs differ in it; `image` is `paint` for a `shot` run), `summary`, and `entries` in the order changed → added → removed → unchanged.
+`diff` gives `diff` (with `--images` or `--composite`), `before`, `after`, `shell`, `image`, `platform`, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (each when the two runs differ in it; `image` is `paint` for a `shot` run), `summary`, and `entries` in the order changed → added → removed → unchanged.
 
 ## Exit codes
 
@@ -315,13 +328,13 @@ Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter 
 
 ## Commands
 
-| command     | purpose                                                                                                                                                                                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent`     | the step-by-step playbook                                                                                                                                                                                                                               |
-| `manual`    | this document                                                                                                                                                                                                                                           |
-| `doctor`    | SDK version, font cache, shell (`--shell`)                                                                                                                                                                                                              |
-| `init`      | write `shell.dart` (`--shell`)                                                                                                                                                                                                                          |
-| `shot`      | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`) |
-| `semantics` | draw the semantics tree of the same subjects into a new run, with the options of `shot` except `--keyboard-tint`                                                                                                                                        |
-| `diff`      | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                                                                    |
+| command     | purpose                                                                                                                                                                                                                                                               |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`     | the step-by-step playbook                                                                                                                                                                                                                                             |
+| `manual`    | this document                                                                                                                                                                                                                                                         |
+| `doctor`    | SDK version, font cache, shell (`--shell`)                                                                                                                                                                                                                            |
+| `init`      | write `shell.dart` (`--shell`)                                                                                                                                                                                                                                        |
+| `shot`      | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`, `--platform`) |
+| `semantics` | draw the semantics tree of the same subjects into a new run, with the options of `shot` except `--keyboard-tint`                                                                                                                                                      |
+| `diff`      | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                                                                                  |
 ''';

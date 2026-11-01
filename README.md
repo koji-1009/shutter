@@ -152,18 +152,19 @@ shutter shot lib/preview/login_preview.dart --enter 'label:Email=example@example
 Each is followed by `--settle` milliseconds; shoot again with another `--settle` for another point of an animation.
 `--capture screen` holds the whole viewport, with the menus, dialogs, and tooltips the app draws above the preview.
 `--keyboard <height>` lays a screen out as with its on-screen keyboard up, which `--enter` does not raise; the keyboard itself is not drawn, and `--keyboard-tint 9E9E9E` paints its area gray.
+`--platform ios` draws the app as iOS instead of Android, the platform `flutter test` runs as: the theme, the back button, page transitions, and adaptive widgets follow.
 
 ## Subcommands
 
-| Command        | Purpose                                                                                                                                                                                                                                                  |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent`        | The step-by-step playbook for AI agents.                                                                                                                                                                                                                 |
-| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                                                                                                                                                |
-| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                                                                                                                      |
-| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                                                                                                                 |
-| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`). |
-| `semantics`    | Draw the semantics tree of the same subjects into a new run, with the options of `shot` except `--keyboard-tint`.                                                                                                                                        |
-| `diff <a> <b>` | Compare two runs (`--images`, `--composite`).                                                                                                                                                                                                            |
+| Command        | Purpose                                                                                                                                                                                                                                                                |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`        | The step-by-step playbook for AI agents.                                                                                                                                                                                                                               |
+| `manual`       | The reference: preview files, drawing model, engine, runs, ids, diff, output, exit codes.                                                                                                                                                                              |
+| `doctor`       | Check the Flutter SDK version, its font cache, and the project's shell (`--shell`).                                                                                                                                                                                    |
+| `init`         | Write `<preview dir>/shell.dart`, or the `--shell` file.                                                                                                                                                                                                               |
+| `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`, `--platform`). |
+| `semantics`    | Draw the semantics tree of the same subjects into a new run, with the options of `shot` except `--keyboard-tint`.                                                                                                                                                      |
+| `diff <a> <b>` | Compare two runs (`--images`, `--composite`).                                                                                                                                                                                                                          |
 
 ## Exit codes
 

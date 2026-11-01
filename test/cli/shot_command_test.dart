@@ -259,9 +259,12 @@ void main() {
       '336.5',
       '--keyboard-tint',
       '#9e9e9e',
+      '--platform',
+      'ios',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
     final request = engine.requests.single;
+    expect(request.platform, ShotPlatform.ios);
     expect(
       [
         for (final action in request.actions)
@@ -291,12 +294,14 @@ void main() {
     expect(report['viewport'], [390, 844]);
     expect(report['keyboard'], 336.5);
     expect(report['keyboard_tint'], '#FF9E9E9E');
+    expect(report['platform'], 'ios');
     final manifest = RunManifest.read(report['run'] as String);
     final setup = manifest.setup;
     expect(setup.actions, labels);
     expect((setup.screen, setup.viewport), (true, (390.0, 844.0)));
     expect(setup.keyboard, 336.5);
     expect(setup.keyboardTint, 0xFF9E9E9E);
+    expect(setup.platform, ShotPlatform.ios);
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),
@@ -315,6 +320,7 @@ void main() {
       expect((request.screen, request.viewport), (false, null));
       expect(request.keyboard, isNull);
       expect(request.keyboardTint, isNull);
+      expect(request.platform, ShotPlatform.android);
     }
   });
 

@@ -45,6 +45,9 @@ class const CaptureRequest({
   /// Draw the semantics tree of what is captured instead of what the app
   /// paints.
   final bool semantics = false,
+
+  /// The platform the app is drawn as.
+  final ShotPlatform platform = ShotPlatform.android,
 });
 
 /// The only swappable layer: turns scanned previews and a `--widget` into

@@ -189,6 +189,9 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
     buffer.writeln('      },');
   }
   if (request.semantics) buffer.writeln('      semantics: true,');
+  if (request.platform != ShotPlatform.android) {
+    buffer.writeln('      platform: .${request.platform.targetPlatform},');
+  }
   if (config.fallbackFonts.isNotEmpty) {
     buffer.writeln('      fallbackFonts: {');
     for (final MapEntry(:key, :value) in config.fallbackFonts.entries) {

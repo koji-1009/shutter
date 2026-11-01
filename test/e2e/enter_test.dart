@@ -8,8 +8,10 @@ import '../helpers.dart';
 import 'e2e_helpers.dart';
 
 void main() {
+  final shared = sharedExample();
+
   test('--enter types into a field, in order with the taps', () async {
-    final root = await exampleCopy();
+    final root = await shared();
     Future<(String, Map<String, Shot>)> shoot(List<String> args) =>
         shootIn(root, args);
     writeFiles(root, {
@@ -87,7 +89,7 @@ class _GreetingState extends State<_Greeting> {
   });
 
   test('--enter names a field without a key by its label', () async {
-    final root = await exampleCopy();
+    final root = await shared();
     Future<(String, Map<String, Shot>)> shoot(List<String> args) =>
         shootIn(root, args);
     // The example's LoginForm, as the app has it.

@@ -12,8 +12,10 @@ import '../helpers.dart';
 import 'e2e_helpers.dart';
 
 void main() {
+  final shared = sharedExample();
+
   test('a file that does not compile makes every shot an error', () async {
-    final root = await exampleCopy();
+    final root = await shared();
     writeFiles(root, {
       'lib/preview/broken_preview.dart': '''
 import 'package:flutter/widget_previews.dart';
@@ -41,6 +43,7 @@ Widget broken() => const DoesNotExist();
   test(
     'google_fonts that cannot be downloaded make the shot an error',
     () async {
+      // Its own copy: no google_fonts file in its cache.
       final root = await exampleCopy();
       final result = await runCli(
         ['shot', 'lib/preview/google_fonts_preview.dart'],
@@ -69,7 +72,7 @@ Widget broken() => const DoesNotExist();
   );
 
   test('a preview that ends the test process has no result', () async {
-    final root = await exampleCopy();
+    final root = await shared();
     writeFiles(root, {
       'lib/preview/crash_preview.dart': '''
 import 'dart:io';
@@ -88,6 +91,7 @@ Widget crash() => exit(3);
   });
 
   test('a shell that drops its child paints nothing', () async {
+    // Its own copy: it replaces the shell.
     final root = await exampleCopy();
     writeFiles(root, {
       'lib/preview/shell.dart': '''

@@ -32,10 +32,12 @@ Widget menu() => Align(
 ''';
 
 void main() {
+  final shared = sharedExample();
+
   test(
     '--capture screen draws the viewport at the scale of the preview',
     () async {
-      final root = await exampleCopy();
+      final root = await shared();
       writeFiles(root, {
         'lib/preview/box_preview.dart': '''
 import 'package:flutter/widget_previews.dart';
@@ -70,7 +72,7 @@ Widget box() => const ColoredBox(color: Color(0xFF0000FF));
   );
 
   test('--capture screen holds a menu that opens below the preview', () async {
-    final root = await exampleCopy();
+    final root = await shared();
     Future<(String, Map<String, Shot>)> shoot(List<String> args) =>
         shootIn(root, args);
     writeFiles(root, {'lib/preview/menu_state_preview.dart': menuPreview});
@@ -107,7 +109,7 @@ Widget box() => const ColoredBox(color: Color(0xFF0000FF));
 
   test('--keyboard lays out a Scaffold, and a layout reading the inset, above '
       'the keyboard; the screen shows what the app paints under it', () async {
-    final root = await exampleCopy();
+    final root = await shared();
     writeFiles(root, {
       'lib/preview/keyboard_preview.dart': '''
 import 'package:flutter/material.dart';
@@ -210,7 +212,7 @@ Widget own() => Builder(
   });
 
   test('--network-image serves a file to Image.network', () async {
-    final root = await exampleCopy();
+    final root = await shared();
     // A 1x1 opaque blue PNG.
     final blue = img.encodePng(
       img.Image(width: 1, height: 1)..setPixelRgb(0, 0, 0, 0, 255),
@@ -241,7 +243,7 @@ Widget own() => Builder(
 
   test('--capture screen holds a pushed page; --settle lets its transition '
       'end', () async {
-    final root = await exampleCopy();
+    final root = await shared();
     writeFiles(root, {'lib/preview/route_preview.dart': routePreview});
     // A page a tap pushes is in the screen; its transition takes 450 ms,
     // still under way at the default 300, over by 700.

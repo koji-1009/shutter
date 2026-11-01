@@ -2,40 +2,14 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:shutter/shutter.dart';
-import 'package:shutter/src/api/shot.dart' show shotIn;
-import 'package:shutter/src/cli/context.dart';
+import 'package:shutter/src/api/shoot.dart';
+import 'package:shutter/src/api/shot.dart' show shotRun;
 import 'package:shutter/src/run/manifest.dart';
+import 'package:shutter/src/run/run_store.dart';
 import 'package:test/test.dart';
 
 import '../cli/fakes.dart';
 import '../helpers.dart';
-
-/// [shotIn] with [shot]'s defaults.
-Future<ShotRun> shootIn(
-  ShutterContext context,
-  ShotSubject subject, {
-  Duration settle = const Duration(milliseconds: 300),
-  String? shell,
-  List<ShotAction> actions = const [],
-  ShotCapture capture = const PreviewCapture(),
-  Keyboard? keyboard,
-  Map<String, String> networkImages = const {},
-  ShotPlatform platform = ShotPlatform.android,
-  bool semantics = false,
-  void Function(ShotProgress event)? onProgress,
-}) => shotIn(
-  context,
-  subject,
-  settle: settle,
-  shell: shell,
-  actions: actions,
-  capture: capture,
-  keyboard: keyboard,
-  networkImages: networkImages,
-  platform: platform,
-  semantics: semantics,
-  onProgress: onProgress,
-);
 
 Matcher usageError(String message) => isA<ShutterException>()
     .having((e) => e.exitCode, 'exitCode', 64)
@@ -70,7 +44,7 @@ void main() {
           png: 'a.0.png',
         ),
       ]);
-      final run = await shootIn(
+      final stored = await shoot(
         fakeContext(root, engine: engine),
         const WidgetExpression(
           'B()',
@@ -88,6 +62,7 @@ void main() {
         networkImages: {'https://example.com/a.png': 'test/images/a.png'},
         platform: ShotPlatform.ios,
       );
+      final run = shotRun(stored);
       final dir = p.join(root, '.dart_tool', 'shutter', 'runs', run.id);
       expect(
         run,
@@ -151,7 +126,7 @@ void main() {
   test('paths are relative to the project directory given', () async {
     final root = createProject(files: {'lib/ui/b.dart': ''});
     final engine = FakeEngine(const []);
-    await shootIn(
+    await shoot(
       fakeContext(p.join(root, 'lib'), engine: engine),
       const WidgetExpression('B()', imports: ['ui/b.dart']),
     );
@@ -173,13 +148,15 @@ void main() {
     );
     final engine = FakeEngine(const []);
     final events = <ShotProgress>[];
-    final run = await shootIn(
-      fakeContext(root, engine: engine),
-      const PreviewFiles(['lib/preview/a.dart']),
-      capture: const ScreenCapture(),
-      keyboard: const Keyboard(300),
-      semantics: true,
-      onProgress: events.add,
+    final run = shotRun(
+      await shoot(
+        fakeContext(root, engine: engine),
+        const PreviewFiles(['lib/preview/a.dart']),
+        capture: const ScreenCapture(),
+        keyboard: const Keyboard(300),
+        semantics: true,
+        onProgress: events.add,
+      ),
     );
     expect(run.shots, isEmpty);
     expect(run.hasErrors, isFalse);
@@ -194,7 +171,7 @@ void main() {
     expect(request.semantics, isTrue);
 
     final unbounded = FakeEngine(const []);
-    await shootIn(
+    await shoot(
       fakeContext(root, engine: unbounded),
       const WidgetExpression('B()', size: WidgetSize.unbounded),
     );
@@ -206,14 +183,14 @@ void main() {
   test('arguments that do not fit together throw before the project is '
       'touched', () async {
     final root = createProject();
-    Future<ShotRun> run({
+    Future<StoredRun> run({
       ShotSubject subject = const WidgetExpression('A()'),
       Duration settle = Duration.zero,
       List<ShotAction> actions = const [],
       ShotCapture capture = const PreviewCapture(),
       Keyboard? keyboard,
       bool semantics = false,
-    }) => shootIn(
+    }) => shoot(
       fakeContext(root),
       subject,
       settle: settle,
@@ -295,7 +272,7 @@ void main() {
       ),
     );
     await expectLater(
-      shootIn(
+      shoot(
         fakeContext(createProject()),
         const WidgetExpression('A()'),
         networkImages: {'https://example.com/a.png': 'nope.png'},
@@ -305,7 +282,7 @@ void main() {
       ),
     );
     await expectLater(
-      shootIn(
+      shoot(
         fakeContext(createProject(), environment: const {}),
         const WidgetExpression('A()'),
       ),
@@ -332,8 +309,8 @@ void main() {
   test('actions: their target and whether they hold through the capture', () {
     const enter = ShotAction.enter(ShotTarget.key('name'), 'Koji');
     expect(
-      (enter.kind, enter.by, enter.value, enter.text),
-      (ActionKind.enter, TargetKind.key, 'name', 'Koji'),
+      (enter.kind, enter.target, enter.text),
+      (ActionKind.enter, const ShotTarget(TargetKind.key, 'name'), 'Koji'),
     );
     expect(
       [
@@ -344,7 +321,7 @@ void main() {
           ShotAction.hover(ShotTarget.type('A')),
           ShotAction.focus(ShotTarget.key('a')),
         ])
-          action.held,
+          action.kind.held,
       ],
       [false, false, true, true, true],
     );

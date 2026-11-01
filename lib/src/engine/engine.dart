@@ -1,8 +1,8 @@
-import '../api/progress.dart';
 import '../project/project.dart';
 import '../run/manifest.dart';
 import '../scan/candidate.dart';
 import 'interaction.dart';
+import 'progress.dart';
 import 'widget_shot.dart';
 
 /// What an engine is asked to capture.

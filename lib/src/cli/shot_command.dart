@@ -1,6 +1,7 @@
 import 'package:args/command_runner.dart';
 
 import '../api/shoot.dart';
+import '../api/shot.dart';
 import '../reporters/shot_reporter.dart';
 import '../run/manifest.dart';
 import '../shutter_exception.dart';
@@ -146,10 +147,10 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
     final source = args.option('widget');
     final imports = args.multiOption('import');
     final rawSize = args.option('size');
-    final unbounded = rawSize == unboundedSize;
     final size = switch (rawSize) {
-      final raw? when !unbounded => parseSize(raw),
-      _ => null,
+      unboundedSize => WidgetSize.unbounded,
+      final raw? => parseSize(raw),
+      null => null,
     };
     final actions = parseActions(args);
     final screen = args.option('capture') == 'screen';
@@ -184,32 +185,27 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
         'Name the preview files to shoot, or give --widget; not both.',
       );
     }
-    final (:dir, :manifest) = await shoot(
+    final run = await shoot(
       context,
-      ShotPlan(
-        files: files,
-        widget: switch (source) {
-          final source? => (
-            source: source,
-            imports: imports,
-            size: size,
-            unbounded: unbounded,
-          ),
-          null => null,
-        },
-        settleMs: settle,
-        shell: args.option('shell'),
-        actions: actions,
-        screen: screen,
-        viewport: viewport,
-        keyboard: keyboard,
-        keyboardTint: keyboardTint,
-        networkImages: networkImages,
-        semantics: semantics,
-        platform: platform,
-      ),
+      switch (source) {
+        final source? => WidgetExpression(source, imports: imports, size: size),
+        null => PreviewFiles(files),
+      },
+      settle: Duration(milliseconds: settle),
+      shell: args.option('shell'),
+      actions: actions,
+      capture: screen
+          ? ScreenCapture(viewport: viewport)
+          : const PreviewCapture(),
+      keyboard: switch (keyboard) {
+        final height? => Keyboard(height, tint: keyboardTint),
+        null => null,
+      },
+      networkImages: networkImages,
+      platform: platform,
+      semantics: semantics,
     );
-    reportShots(manifest, dir, ShutterIO.stdoutSink);
-    return manifest.exitCode;
+    reportShots(run.manifest, run.dir, ShutterIO.stdoutSink);
+    return run.manifest.exitCode;
   }
 }

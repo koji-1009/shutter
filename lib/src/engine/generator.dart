@@ -180,7 +180,7 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
     buffer.writeln('      keyboard: $keyboard,');
   }
   if (request.keyboardTint case final tint?) {
-    buffer.writeln('      keyboardTint: 0x${colorHex(tint).substring(1)},');
+    buffer.writeln('      keyboardTint: ${colorLiteral(tint)},');
   }
   if (request.networkImages.isNotEmpty) {
     buffer.writeln('      networkImages: {');
@@ -238,6 +238,7 @@ String _actionSource(ShotAction action) {
     final text? => ', text: ${dartString(text)}',
     null => '',
   };
-  return '\$shutter.ShutterAction(.${action.kind.name}, .${action.by.name}, '
-      '${dartString(action.value)}$text)';
+  final ShotTarget(:by, :value) = action.target;
+  return '\$shutter.ShutterAction(.${action.kind.name}, .${by.name}, '
+      '${dartString(value)}$text)';
 }

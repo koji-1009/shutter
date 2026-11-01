@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-import '../api/progress.dart';
 import '../fonts/font_cache.dart';
 import '../fonts/google_fonts.dart';
 import '../fonts/host_fonts.dart';
@@ -15,6 +14,7 @@ import '../scan/candidate.dart';
 import 'design.dart';
 import 'engine.dart';
 import 'generator.dart';
+import 'progress.dart';
 
 /// Captures after the first that may add fonts: google_fonts files, or
 /// host fonts for characters no fallback font draws. A font can surface
@@ -66,9 +66,7 @@ class FlutterTestEngine implements Engine {
     final cache = FontCache(request.project.googleFontsDir, fetch: fetchFont);
     final design = DesignSupport.detect(request.project, sdk);
     final fallback = hostFallback(request.project);
-    var round = 0;
-    Future<_Pass> shoot() {
-      round++;
+    Future<_Pass> shoot(int round) {
       request.onProgress?.call(RenderStarted(round));
       return _capture(
         request,
@@ -80,12 +78,12 @@ class FlutterTestEngine implements Engine {
       );
     }
 
-    var pass = await shoot();
+    var pass = await shoot(1);
     final known = <String, GoogleFontFile>{};
     final failures = <String, String>{};
     // Keys are file hashes, or `<Family>-<Variant>` asset names when the
     // project disallows runtime fetching.
-    for (var round = 0; round < _maxFontRounds; round++) {
+    for (var round = 2; round <= _maxFontRounds + 1; round++) {
       var added = fallback.cover(pass.texts, pass.fontFiles);
       final pending = {for (final hashes in pass.missingFonts.values) ...hashes}
           .difference(failures.keys.toSet());
@@ -102,7 +100,7 @@ class FlutterTestEngine implements Engine {
             added;
       }
       if (!added) break;
-      pass = await shoot();
+      pass = await shoot(round);
     }
     return [
       for (final shot in pass.shots)
@@ -329,13 +327,7 @@ class FlutterTestEngine implements Engine {
 /// [names] keeps the name of each test seen starting, by its test id;
 /// hidden tests (loading the suite, `setUpAll`) are not shots.
 String? finishedShot(String line, Map<int, String> names) {
-  final Object? event;
-  try {
-    event = jsonDecode(line);
-  } on FormatException {
-    return null;
-  }
-  switch (event) {
+  switch (_json(line)) {
     case {
       'type': 'testStart',
       'test': {'id': final int id, 'name': final String name},
@@ -352,13 +344,7 @@ String? finishedShot(String line, Map<int, String> names) {
 String testOutput(String stdout, String stderr) {
   final lines = <String>[];
   for (final line in '$stdout\n$stderr'.split('\n')) {
-    Object? event;
-    try {
-      event = jsonDecode(line);
-    } on FormatException {
-      event = null;
-    }
-    if (event is Map<String, Object?>) {
+    if (_json(line) case final Map<String, Object?> event) {
       for (final key in const ['error', 'message']) {
         if (event[key] case final String text) lines.add(text);
       }
@@ -367,6 +353,15 @@ String testOutput(String stdout, String stderr) {
     }
   }
   return lines.join('\n');
+}
+
+/// The JSON value [line] holds, or null when it is not JSON.
+Object? _json(String line) {
+  try {
+    return jsonDecode(line);
+  } on FormatException {
+    return null;
+  }
 }
 
 /// The first `path:line:column: Error: message` in [output], or only its

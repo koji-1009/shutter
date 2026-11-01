@@ -1,11 +1,12 @@
 import 'package:collection/collection.dart';
-import 'package:path/path.dart' as p;
 
 import '../cli/context.dart';
 import '../engine/interaction.dart';
+import '../engine/progress.dart';
+import '../reporters/format.dart';
 import '../run/manifest.dart';
+import '../run/run_store.dart';
 import '../shutter_exception.dart';
-import 'progress.dart';
 import 'shoot.dart';
 
 /// What a run shoots: the previews of [PreviewFiles], or one
@@ -84,7 +85,7 @@ final class const LogicalSize(final double width, final double height)
 
   /// `390x844`, as on the command line.
   @override
-  String toString() => '${_number(width)}x${_number(height)}';
+  String toString() => '${formatNumber(width)}x${formatNumber(height)}';
 }
 
 /// [WidgetSize.unbounded].
@@ -153,7 +154,7 @@ final class const Keyboard(
 
   @override
   String toString() =>
-      'Keyboard(${['height: ${_number(height)}', if (tint case final tint?) 'tint: 0x${colorHex(tint).substring(1)}'].join(', ')})';
+      'Keyboard(${['height: ${formatNumber(height)}', if (tint case final tint?) 'tint: ${colorLiteral(tint)}'].join(', ')})';
 }
 
 /// The outcome of [shot]: the run directory and each shot in it.
@@ -285,7 +286,7 @@ Future<ShotRun> shot(
   ShotPlatform platform = ShotPlatform.android,
   bool semantics = false,
   void Function(ShotProgress event)? onProgress,
-}) => shotIn(
+}) => shoot(
   ShutterContext(workingDirectory: projectDir),
   subject,
   settle: settle,
@@ -297,144 +298,29 @@ Future<ShotRun> shot(
   platform: platform,
   semantics: semantics,
   onProgress: onProgress,
-);
+).then(shotRun);
 
-/// [shot] against [context].
-Future<ShotRun> shotIn(
-  ShutterContext context,
-  ShotSubject subject, {
-  required Duration settle,
-  required String? shell,
-  required List<ShotAction> actions,
-  required ShotCapture capture,
-  required Keyboard? keyboard,
-  required Map<String, String> networkImages,
-  required ShotPlatform platform,
-  required bool semantics,
-  required void Function(ShotProgress event)? onProgress,
-}) async {
-  if (settle.isNegative) {
-    throw ShutterException.usage('settle must not be negative ($settle).');
-  }
-  _checkActions(actions);
-  final viewport = switch (capture) {
-    ScreenCapture(:final viewport?) => _size(viewport, 'viewport'),
-    _ => null,
-  };
-  if (keyboard != null) {
-    if (!(keyboard.height > 0 && keyboard.height.isFinite)) {
-      throw ShutterException.usage(
-        'keyboard height must be a logical size > 0 (got ${keyboard.height}).',
-      );
-    }
-    if (keyboard.tint case final tint? when tint < 0 || tint > 0xFFFFFFFF) {
-      throw ShutterException.usage(
-        'keyboard tint must be an ARGB color, 0x00000000 to 0xFFFFFFFF '
-        '(got 0x${tint.toRadixString(16)}).',
-      );
-    }
-    if (semantics && keyboard.tint != null) {
-      throw ShutterException.usage(
-        'semantics draws no keyboard tint: the keyboard is not in the '
-        'semantics tree.',
-      );
-    }
-  }
-  final (files, widget) = switch (subject) {
-    PreviewFiles(:final files) when files.isEmpty =>
-      throw ShutterException.usage('PreviewFiles names no file.'),
-    PreviewFiles(:final files) => (files, null),
-    WidgetExpression(:final expression, :final imports, :final size) => (
-      const <String>[],
-      (
-        source: expression,
-        imports: imports,
-        size: switch (size) {
-          final LogicalSize size => _size(size, 'widget size'),
-          _ => null,
+/// [run] as [shot] returns it.
+ShotRun shotRun(StoredRun run) => ShotRun(
+  id: run.manifest.run,
+  dir: run.dir,
+  shots: [
+    for (final shot in run.manifest.shots)
+      ShotResult(
+        id: shot.id,
+        status: shot.status,
+        name: shot.name,
+        file: shot.file,
+        line: shot.line,
+        size: switch (shot.size) {
+          (final width, final height)? => LogicalSize(width, height),
+          null => null,
         },
-        unbounded: size is UnboundedSize,
+        brightness: shot.brightness,
+        textScaleFactor: shot.textScaleFactor,
+        png: run.pngPath(shot),
+        error: shot.error,
+        at: shot.at,
       ),
-    ),
-  };
-  final (:dir, :manifest) = await shoot(
-    context,
-    ShotPlan(
-      files: files,
-      widget: widget,
-      settleMs: settle.inMilliseconds,
-      shell: shell,
-      actions: actions,
-      screen: capture is ScreenCapture,
-      viewport: viewport,
-      keyboard: keyboard?.height,
-      keyboardTint: keyboard?.tint,
-      networkImages: networkImages,
-      semantics: semantics,
-      platform: platform,
-      onProgress: onProgress,
-    ),
-  );
-  return ShotRun(
-    id: manifest.run,
-    dir: dir,
-    shots: [
-      for (final shot in manifest.shots)
-        ShotResult(
-          id: shot.id,
-          status: shot.status,
-          name: shot.name,
-          file: shot.file,
-          line: shot.line,
-          size: switch (shot.size) {
-            (final width, final height)? => LogicalSize(width, height),
-            null => null,
-          },
-          brightness: shot.brightness,
-          textScaleFactor: shot.textScaleFactor,
-          png: switch (shot.png) {
-            final png? => p.join(dir, png),
-            null => null,
-          },
-          error: shot.error,
-          at: shot.at,
-        ),
-    ],
-  );
-}
-
-/// Throws unless each action names its widget, and at most one is held,
-/// last.
-void _checkActions(List<ShotAction> actions) {
-  for (final action in actions) {
-    if (action.value.isEmpty) {
-      throw ShutterException.usage(
-        '${action.label}: the action names no widget.',
-      );
-    }
-  }
-  final held = actions.where((action) => action.held).length;
-  if (held > 1 || (held == 1 && !actions.last.held)) {
-    throw ShutterException.usage(
-      'Give at most one press, hover, or focus action, last: its state '
-      'lasts through the capture.',
-    );
-  }
-}
-
-/// [size] as the engine takes it, when both dimensions are > 0 and
-/// finite. [what] names it in errors.
-(double, double) _size(LogicalSize size, String what) {
-  if (size.width > 0 &&
-      size.height > 0 &&
-      size.width.isFinite &&
-      size.height.isFinite) {
-    return (size.width, size.height);
-  }
-  throw ShutterException.usage(
-    '$what must be > 0 and finite in both dimensions (got $size).',
-  );
-}
-
-String _number(double value) =>
-    value.isFinite ? '${jsonNumber(value)}' : '$value';
+  ],
+);

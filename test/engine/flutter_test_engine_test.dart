@@ -3,9 +3,9 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
-import 'package:shutter/src/api/progress.dart';
 import 'package:shutter/src/engine/engine.dart';
 import 'package:shutter/src/engine/flutter_test_engine.dart';
+import 'package:shutter/src/engine/progress.dart';
 import 'package:shutter/src/engine/widget_shot.dart';
 import 'package:shutter/src/fonts/host_fonts.dart';
 import 'package:shutter/src/project/flutter_sdk.dart';

@@ -22,9 +22,9 @@
 /// that cannot be shot at all throws a [ShutterException].
 library;
 
-export 'src/api/progress.dart';
 export 'src/api/prune.dart';
-export 'src/api/shot.dart' hide shotIn;
+export 'src/api/shot.dart' hide shotRun;
 export 'src/engine/interaction.dart';
+export 'src/engine/progress.dart';
 export 'src/run/manifest.dart' show ShotPlatform, ShotStatus;
 export 'src/shutter_exception.dart';

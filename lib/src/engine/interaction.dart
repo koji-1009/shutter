@@ -1,19 +1,23 @@
 /// What an action does to its target before the capture.
-enum ActionKind {
+enum ActionKind(
+  /// Whether the state it leaves lasts through the capture: a press, a
+  /// hover, or focus.
+  final bool held,
+) {
   /// Taps it: a pointer down and up.
-  tap,
+  tap(false),
 
   /// Enters text into it, as a keyboard would.
-  enter,
+  enter(false),
 
   /// Holds a pointer down on it through the capture.
-  press,
+  press(true),
 
   /// Keeps a mouse pointer over it through the capture.
-  hover,
+  hover(true),
 
   /// Gives it keyboard focus, with the focus highlight a keyboard shows.
-  focus,
+  focus(true),
 }
 
 /// How an action's target is found.
@@ -93,19 +97,6 @@ class const ShotAction._(
 
   /// Gives [target] keyboard focus, highlighted as with a keyboard.
   const ShotAction.focus(ShotTarget target) : this._(ActionKind.focus, target);
-
-  /// How [target] is found.
-  TargetKind get by => target.by;
-
-  /// The key, text, label, or type name of [target].
-  String get value => target.value;
-
-  /// Whether the state it leaves lasts through the capture: a press, a
-  /// hover, or focus.
-  bool get held => switch (kind) {
-    ActionKind.tap || ActionKind.enter => false,
-    ActionKind.press || ActionKind.hover || ActionKind.focus => true,
-  };
 
   /// As given on the command line, and recorded in the manifest:
   /// `tap text:Save`, `enter key:name=Koji`.

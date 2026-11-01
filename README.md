@@ -165,6 +165,7 @@ Each is followed by `--settle` milliseconds; shoot again with another `--settle`
 | `shot`         | Render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`, `--platform`). |
 | `semantics`    | Draw the semantics tree of the same subjects into a new run, with the options of `shot` except `--keyboard-tint`.                                                                                                                                                      |
 | `diff <a> <b>` | Compare two runs (`--images`, `--composite`).                                                                                                                                                                                                                          |
+| `prune`        | Delete every run but the newest `--keep <n>`.                                                                                                                                                                                                                          |
 
 ## Exit codes
 

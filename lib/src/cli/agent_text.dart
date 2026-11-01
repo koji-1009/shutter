@@ -19,6 +19,7 @@ It makes no judgement; what to shoot, how to prepare the before state, whether a
  9. `diff --composite` writes one image per entry holding its before, diff and after panels, which is the one to post when you want a single attachment; `--title <text>` puts a line of your own above them, in any script. Check it before posting: it is what the reviewer sees.
 10. The images are files under `.dart_tool/shutter/`; where to post them is up to you. A path alone renders nothing: `gh pr comment <number> --attach '<png>#<alt text>'` (gh 2.99+) uploads them into a GitHub comment, `glab mr note create <mr> --attach <png>` (glab 1.117+, experimental) into a GitLab one.
 11. Keep the preview files: the next change is shot against the same subjects, and the Flutter Widget Previewer draws them too.
+12. Runs accumulate under `.dart_tool/shutter/runs/`. `shutter prune --keep <n>` deletes every run but the newest n, the user's own included, so prune when the user asks for it, or once the images you posted no longer need their runs.
 
 ## Preview files
 

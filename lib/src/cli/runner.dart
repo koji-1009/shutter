@@ -11,6 +11,7 @@ import 'doctor_command.dart';
 import 'init_command.dart';
 import 'io_sinks.dart';
 import 'manual_text.dart';
+import 'prune_command.dart';
 import 'shot_command.dart';
 import 'text_command.dart';
 
@@ -42,7 +43,8 @@ CommandRunner<int> buildCommandRunner([ShutterContext? context]) {
     ..addCommand(InitCommand(ctx))
     ..addCommand(ShotCommand(ctx))
     ..addCommand(ShotCommand(ctx, semantics: true))
-    ..addCommand(DiffCommand(ctx));
+    ..addCommand(DiffCommand(ctx))
+    ..addCommand(PruneCommand(ctx));
 }
 
 class _ShutterRunner extends CommandRunner<int> {

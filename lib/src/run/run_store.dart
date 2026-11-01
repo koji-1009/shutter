@@ -46,6 +46,29 @@ StoredRun loadRun(Project project, String argument) {
   );
 }
 
+/// Deletes every run under `.dart_tool/shutter/runs/` but the newest
+/// [keep], counted as `latest` counts them, with the hidden file that
+/// claimed each id. A run whose manifest is not written yet, still being
+/// shot, is neither counted nor deleted. Returns the run directories
+/// removed and kept, oldest first.
+({List<String> removed, List<String> kept}) pruneRuns(
+  Project project,
+  int keep,
+) {
+  final ids = _runIds(project);
+  final cut = ids.length > keep ? ids.length - keep : 0;
+  final removed = [for (final id in ids.take(cut)) p.join(project.runsDir, id)];
+  for (final dir in removed) {
+    Directory(dir).deleteSync(recursive: true);
+    final claim = File(p.join(project.runsDir, '.${p.basename(dir)}'));
+    if (claim.existsSync()) claim.deleteSync();
+  }
+  return (
+    removed: removed,
+    kept: [for (final id in ids.skip(cut)) p.join(project.runsDir, id)],
+  );
+}
+
 /// Ids of the runs under `.dart_tool/shutter/runs/` whose manifest is
 /// written, oldest first: by time, then by the `-N` suffix.
 List<String> _runIds(Project project) {

@@ -276,6 +276,8 @@ When Flutter ships a capture command in the previewer itself, it replaces v1 wit
 
 `.dart_tool/shutter/` is ignored by git with the rest of `.dart_tool/`; shutter writes nothing else into the project.
 Runs, diff images, and downloaded google_fonts accumulate there until you delete it; `flutter clean` deletes it with `.dart_tool/`.
+`shutter prune --keep <n>` deletes every run but the newest n, counted as `latest` counts them, whoever shot them; `--keep 0` deletes them all. A run still being shot, whose `manifest.json` is not written yet, is left as it is, and diff images and fonts are not touched.
+It prints YAML starting with `# shutter ai-report v1`: the run directories `removed` and `kept`, oldest first.
 
 ### Ids
 
@@ -339,4 +341,5 @@ Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter 
 | `shot`      | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`, `--platform`) |
 | `semantics` | draw the semantics tree of the same subjects into a new run, with the options of `shot` except `--keyboard-tint`                                                                                                                                                      |
 | `diff`      | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                                                                                  |
+| `prune`     | delete every run but the newest (`--keep`)                                                                                                                                                                                                                            |
 ''';

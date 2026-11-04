@@ -34,6 +34,7 @@ Future<StoredRun> shoot(
   Map<String, String> networkImages = const {},
   ShotPlatform platform = ShotPlatform.android,
   double pixelRatio = defaultPixelRatio,
+  SafeAreaInsets? safeArea,
   bool semantics = false,
   void Function(ShotProgress event)? onProgress,
 }) async {
@@ -45,6 +46,15 @@ Future<StoredRun> shoot(
       'pixel ratio must be > 0 and finite (got ${formatNumber(pixelRatio)}).',
     );
   }
+  final insets = switch (safeArea) {
+    SafeAreaInsets(:final top, :final bottom)
+        when top >= 0 && bottom >= 0 && top.isFinite && bottom.isFinite =>
+      (top, bottom),
+    final safeArea? => throw ShutterException.usage(
+      'safe area insets must be logical sizes ≥ 0 (got $safeArea).',
+    ),
+    null => null,
+  };
   _checkActions(actions);
   final viewport = switch (capture) {
     ScreenCapture(:final viewport?) => _size(viewport, 'viewport'),
@@ -138,6 +148,7 @@ Future<StoredRun> shoot(
       semantics: semantics,
       platform: platform,
       pixelRatio: pixelRatio,
+      safeArea: insets,
       onProgress: onProgress,
     ),
   );
@@ -155,6 +166,7 @@ Future<StoredRun> shoot(
       semantics: semantics,
       platform: platform,
       pixelRatio: pixelRatio,
+      safeArea: insets,
     ),
   )..write(runDir);
   return StoredRun(runDir, manifest);

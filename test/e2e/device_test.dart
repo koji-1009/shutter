@@ -128,4 +128,85 @@ Widget odd() => const ColoredBox(color: Color(0xFF00FF00));
     }
     expect(_color(_png(oddRun, oddShots['Odd']!), 54, 21), (0, 255, 0));
   });
+
+  test('--safe-area pads the view: SafeArea keeps out of it, and a keyboard '
+      'absorbs the bottom inset from the padding only', () async {
+    final root = await shared();
+    File(p.join(root, 'lib/preview/safe_area_preview.dart'))
+        .writeAsStringSync('''
+import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+
+@Preview(name: 'SafeArea', size: Size(20, 40))
+Widget safeArea() => const ColoredBox(
+  color: Color(0xFFFF0000),
+  child: SafeArea(child: ColoredBox(color: Color(0xFF00FF00))),
+);
+
+@Preview(name: 'ViewPadding', size: Size(20, 10))
+Widget viewPadding() => Builder(
+  builder: (context) => ColoredBox(
+    color: MediaQuery.viewPaddingOf(context) == const EdgeInsets.only(top: 10, bottom: 5)
+        ? const Color(0xFF0000FF)
+        : const Color(0xFF00FF00),
+  ),
+);
+''');
+    const file = 'lib/preview/safe_area_preview.dart';
+    const red = (255, 0, 0);
+    const green = (0, 255, 0);
+    final (plain, plainShots) = await shootIn(root, [file]);
+    final (padded, paddedShots) = await shootIn(root, [
+      file,
+      '--safe-area',
+      '10,5',
+    ]);
+    final (typing, typingShots) = await shootIn(root, [
+      file,
+      '--safe-area',
+      '10,5',
+      '--keyboard',
+      '20',
+    ]);
+    for (final shots in [plainShots, paddedShots, typingShots]) {
+      for (final shot in shots.values) {
+        expect(shot.status, ShotStatus.ok, reason: shot.error);
+      }
+    }
+    // Rows at 2x: the top inset ends at 20, the bottom one starts at 70.
+    final plainPng = _png(plain, plainShots['SafeArea']!);
+    expect(
+      [
+        for (final y in [5, 40, 75]) _color(plainPng, 5, y),
+      ],
+      [green, green, green],
+    );
+    final paddedPng = _png(padded, paddedShots['SafeArea']!);
+    expect(
+      [
+        for (final y in [5, 40, 75]) _color(paddedPng, 5, y),
+      ],
+      [red, green, red],
+    );
+    final typingPng = _png(typing, typingShots['SafeArea']!);
+    expect(
+      [
+        for (final y in [5, 40, 75]) _color(typingPng, 5, y),
+      ],
+      [red, green, green],
+    );
+    for (final (run, shots) in [(padded, paddedShots), (typing, typingShots)]) {
+      expect(_color(_png(run, shots['ViewPadding']!), 5, 5), (0, 0, 255));
+    }
+    expect(RunManifest.read(padded).setup.safeArea, (10.0, 5.0));
+    expect(RunManifest.read(plain).setup.safeArea, isNull);
+
+    final diff = await shutter(root, ['diff', plain, padded]);
+    expect(diff.exitCode, 1, reason: diff.stdout + diff.stderr);
+    final report = loadYaml(diff.stdout) as YamlMap;
+    expect(report['safe_area'], {
+      'before': 'none',
+      'after': [10, 5],
+    });
+  });
 }

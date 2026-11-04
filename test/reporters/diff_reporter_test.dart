@@ -179,6 +179,7 @@ entries:
         semantics: false,
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
+        safeArea: null,
       );
       const screen = (
         actions: ['press text:OK'],
@@ -190,12 +191,14 @@ entries:
         semantics: false,
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
+        safeArea: null,
       );
       final same = await report(pressed, pressed);
       for (final key in [
         'image',
         'platform',
         'pixel_ratio',
+        'safe_area',
         'actions',
         'capture',
         'viewport',
@@ -229,6 +232,7 @@ entries:
         semantics: false,
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
+        safeArea: null,
       );
       final keyboard = await report(plainSetup, typing);
       expect(keyboard['keyboard'], {'before': 'none', 'after': 336});
@@ -244,6 +248,7 @@ entries:
         semantics: false,
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
+        safeArea: null,
       );
       final tint = await report(typing, tinted);
       expect(tint.containsKey('keyboard'), isFalse);
@@ -260,6 +265,7 @@ entries:
         semantics: false,
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
+        safeArea: null,
       );
       final images = await report(plainSetup, served);
       expect(images['network_images'], {
@@ -278,6 +284,7 @@ entries:
         semantics: true,
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
+        safeArea: null,
       );
       final image = await report(plainSetup, tree);
       expect(image['image'], {'before': 'paint', 'after': 'semantics'});
@@ -292,6 +299,7 @@ entries:
         semantics: false,
         platform: ShotPlatform.ios,
         pixelRatio: defaultPixelRatio,
+        safeArea: null,
       );
       final platform = await report(plainSetup, ios);
       expect(platform['platform'], {'before': 'android', 'after': 'ios'});
@@ -307,10 +315,30 @@ entries:
         semantics: false,
         platform: ShotPlatform.android,
         pixelRatio: 2.625,
+        safeArea: null,
       );
       final ratio = await report(plainSetup, dense);
       expect(ratio['pixel_ratio'], {'before': 2, 'after': 2.625});
       expect(ratio.containsKey('platform'), isFalse);
+      expect(ratio.containsKey('safe_area'), isFalse);
+      const notched = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: (59.0, 34.0),
+      );
+      final safeArea = await report(plainSetup, notched);
+      expect(safeArea['safe_area'], {
+        'before': 'none',
+        'after': [59, 34],
+      });
+      expect(safeArea.containsKey('pixel_ratio'), isFalse);
     },
   );
 

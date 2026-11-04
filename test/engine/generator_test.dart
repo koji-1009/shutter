@@ -143,6 +143,7 @@ void main() {
           semantics: true,
           platform: ShotPlatform.ios,
           pixelRatio: 3,
+          safeArea: (59, 34.5),
         ),
         materialFontsDir: '/sdk/fonts',
         design: const DesignSupport(available: [], shell: null),
@@ -168,7 +169,8 @@ void main() {
         '      },\n'
         '      semantics: true,\n'
         '      platform: .iOS,\n'
-        '      pixelRatio: 3.0,\n',
+        '      pixelRatio: 3.0,\n'
+        '      safeArea: (59.0, 34.5),\n',
       ),
     );
     final plain = mainSource(const [], config(project));
@@ -180,6 +182,7 @@ void main() {
     expect(plain, isNot(contains('semantics:')));
     expect(plain, isNot(contains('platform:')));
     expect(plain, isNot(contains('pixelRatio:')));
+    expect(plain, isNot(contains('safeArea:')));
   });
 
   test('a --widget helper imports unprefixed, escapes the expression in the '

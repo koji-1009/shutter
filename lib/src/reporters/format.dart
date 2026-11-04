@@ -56,13 +56,20 @@ String formatKeyboard(double? keyboard) => switch (keyboard) {
   null => 'none',
 };
 
+/// `[59, 34]`, top and bottom, or `none` for a run shot without
+/// `--safe-area`.
+String formatSafeArea((double, double)? safeArea) => switch (safeArea) {
+  final insets? => formatSize(insets),
+  null => 'none',
+};
+
 /// `semantics` for a run of `shutter semantics`, else `paint`.
 String formatImage(bool semantics) => semantics ? 'semantics' : 'paint';
 
-/// The `image`, `platform`, `pixel_ratio`, `actions`, `capture`,
-/// `viewport`, `keyboard`, `keyboard_tint`, and `network_images` lines of
-/// a run's [setup], each only when set (`platform` when not Android,
-/// `pixel_ratio` when not the default).
+/// The `image`, `platform`, `pixel_ratio`, `safe_area`, `actions`,
+/// `capture`, `viewport`, `keyboard`, `keyboard_tint`, and
+/// `network_images` lines of a run's [setup], each only when set
+/// (`platform` when not Android, `pixel_ratio` when not the default).
 void writeSetup(StringBuffer body, RunSetup setup) {
   if (setup.semantics) body.writeln('image: ${formatImage(true)}');
   if (setup.platform != ShotPlatform.android) {
@@ -70,6 +77,9 @@ void writeSetup(StringBuffer body, RunSetup setup) {
   }
   if (setup.pixelRatio != defaultPixelRatio) {
     body.writeln('pixel_ratio: ${formatNumber(setup.pixelRatio)}');
+  }
+  if (setup.safeArea case final safeArea?) {
+    body.writeln('safe_area: ${formatSafeArea(safeArea)}');
   }
   if (setup.actions.isNotEmpty) {
     body.writeln('actions: ${formatActions(setup.actions)}');

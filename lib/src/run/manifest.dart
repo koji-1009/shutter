@@ -133,8 +133,8 @@ const double defaultPixelRatio = 2;
 /// `--keyboard-tint` (ARGB), the file served for each `--network-image`
 /// URL, whether the images are of the semantics tree
 /// (`shutter semantics`) rather than of what the app paints, the
-/// `--platform` the app was drawn as, and the `--pixel-ratio` it was
-/// drawn at.
+/// `--platform` the app was drawn as, the `--pixel-ratio` it was drawn
+/// at, and the `--safe-area` insets, top and bottom.
 typedef RunSetup = ({
   List<String> actions,
   bool screen,
@@ -145,6 +145,7 @@ typedef RunSetup = ({
   bool semantics,
   ShotPlatform platform,
   double pixelRatio,
+  (double, double)? safeArea,
 });
 
 /// [argb] as `#AARRGGBB`.
@@ -165,6 +166,7 @@ const RunSetup plainSetup = (
   semantics: false,
   platform: ShotPlatform.android,
   pixelRatio: defaultPixelRatio,
+  safeArea: null,
 );
 
 RecordedFile? _recordedFile(Object? json) => switch (json) {
@@ -224,6 +226,13 @@ class const RunManifest({
       },
       pixelRatio:
           (json['pixel_ratio'] as num?)?.toDouble() ?? defaultPixelRatio,
+      safeArea: switch (json['safe_area']) {
+        [final num top, final num bottom] => (
+          top.toDouble(),
+          bottom.toDouble(),
+        ),
+        _ => null,
+      },
     ),
   );
 
@@ -247,6 +256,7 @@ class const RunManifest({
       :semantics,
       :platform,
       :pixelRatio,
+      :safeArea,
     ) = setup;
     return {
       'run': run,
@@ -255,6 +265,8 @@ class const RunManifest({
       if (platform != ShotPlatform.android) 'platform': platform.name,
       if (pixelRatio != defaultPixelRatio)
         'pixel_ratio': jsonNumber(pixelRatio),
+      if (safeArea case (final top, final bottom)?)
+        'safe_area': [jsonNumber(top), jsonNumber(bottom)],
       if (actions.isNotEmpty) 'actions': actions,
       if (screen) 'capture': 'screen',
       if (viewport case (final w, final h)?)

@@ -74,6 +74,7 @@ final class const ShotSetup({
 
   /// The device pixel ratio the app was drawn at.
   final double pixelRatio = 2,
+  final SafeAreaInsets? safeArea,
 }) {
   @override
   bool operator ==(Object other) =>
@@ -88,7 +89,8 @@ final class const ShotSetup({
       ) &&
       other.semantics == semantics &&
       other.platform == platform &&
-      other.pixelRatio == pixelRatio;
+      other.pixelRatio == pixelRatio &&
+      other.safeArea == safeArea;
 
   @override
   int get hashCode => Object.hash(
@@ -100,11 +102,12 @@ final class const ShotSetup({
     semantics,
     platform,
     pixelRatio,
+    safeArea,
   );
 
   @override
   String toString() =>
-      'ShotSetup(${[if (shell != null) 'shell: $shell', 'actions: $actions', 'capture: $capture', if (keyboard != null) 'keyboard: $keyboard', 'networkImages: $networkImages', 'semantics: $semantics', 'platform: ${platform.name}', 'pixelRatio: ${formatNumber(pixelRatio)}'].join(', ')})';
+      'ShotSetup(${[if (shell != null) 'shell: $shell', 'actions: $actions', 'capture: $capture', if (keyboard != null) 'keyboard: $keyboard', 'networkImages: $networkImages', 'semantics: $semantics', 'platform: ${platform.name}', 'pixelRatio: ${formatNumber(pixelRatio)}', if (safeArea != null) 'safeArea: $safeArea'].join(', ')})';
 }
 
 /// The outcome of [diff]: the two runs and each shot id across them.
@@ -295,6 +298,10 @@ ShotSetup _setup(ShellFile? shell, RunSetup setup) => ShotSetup(
   semantics: setup.semantics,
   platform: setup.platform,
   pixelRatio: setup.pixelRatio,
+  safeArea: switch (setup.safeArea) {
+    (final top, final bottom)? => SafeAreaInsets(top: top, bottom: bottom),
+    null => null,
+  },
 );
 
 ShotFile? _file(RecordedFile? file) => switch (file) {

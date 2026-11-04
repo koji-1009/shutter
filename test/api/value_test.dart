@@ -79,6 +79,10 @@ void main() {
       const Keyboard(300, tint: 0x809E9E9E),
     ], 'Keyboard(height: 336, tint: 0x809E9E9E)');
     expect('${Keyboard(336.5)}', 'Keyboard(height: 336.5)');
+    valueType(() => SafeAreaInsets(top: 59, bottom: 34.5), [
+      const SafeAreaInsets(top: 59),
+      const SafeAreaInsets(bottom: 34.5),
+    ], 'SafeAreaInsets(top: 59, bottom: 34.5)');
     valueType(() => LogicalSize(390, 844.5), [
       const LogicalSize(844.5, 390),
       WidgetSize.unbounded,
@@ -171,6 +175,7 @@ void main() {
       semantics: true,
       platform: ShotPlatform.ios,
       pixelRatio: 2.625,
+      safeArea: SafeAreaInsets(top: 59, bottom: 34),
     );
     valueType(
       () => setup(action: fresh()),
@@ -185,7 +190,8 @@ void main() {
       'keyboard: Keyboard(height: 336), '
       'networkImages: {https://example.com/a.png: '
       'ShotFile(path: a.png, sha256: b)}, '
-      'semantics: true, platform: ios, pixelRatio: 2.625)',
+      'semantics: true, platform: ios, pixelRatio: 2.625, '
+      'safeArea: SafeAreaInsets(top: 59, bottom: 34))',
     );
     expect(
       '${const ShotSetup()}',

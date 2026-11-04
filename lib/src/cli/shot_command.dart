@@ -131,6 +131,13 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
             'Device pixel ratio the app is drawn at: pixels of the PNG per '
             'logical pixel, e.g. 3.',
         defaultsTo: formatNumber(defaultPixelRatio),
+      )
+      ..addOption(
+        'safe-area',
+        help:
+            'Lay out as on a device with these safe area insets, as '
+            '<top>,<bottom> in logical pixels, e.g. 59,34; the status bar '
+            'and home indicator are not drawn.',
       );
   }
 
@@ -179,6 +186,10 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
     final networkImages = parseNetworkImages(args.multiOption('network-image'));
     final platform = ShotPlatform.values.byName(args.option('platform')!);
     final pixelRatio = parsePixelRatio(args.option('pixel-ratio')!);
+    final safeArea = switch (args.option('safe-area')) {
+      final raw? => parseSafeArea(raw),
+      null => null,
+    };
     final files = args.rest;
     if (source == null && (imports.isNotEmpty || rawSize != null)) {
       throw ShutterException.usage('--import and --size need --widget.');
@@ -213,6 +224,7 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
       networkImages: networkImages,
       platform: platform,
       pixelRatio: pixelRatio,
+      safeArea: safeArea,
       semantics: semantics,
     );
     reportShots(run.manifest, run.dir, ShutterIO.stdoutSink);

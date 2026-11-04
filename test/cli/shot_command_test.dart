@@ -286,11 +286,14 @@ void main() {
       'ios',
       '--pixel-ratio',
       '2.625',
+      '--safe-area',
+      '59,34.5',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
     final request = engine.requests.single;
     expect(request.platform, ShotPlatform.ios);
     expect(request.pixelRatio, 2.625);
+    expect(request.safeArea, (59.0, 34.5));
     expect(
       [
         for (final action in request.actions)
@@ -322,6 +325,7 @@ void main() {
     expect(report['keyboard_tint'], '#FF9E9E9E');
     expect(report['platform'], 'ios');
     expect(report['pixel_ratio'], 2.625);
+    expect(report['safe_area'], [59, 34.5]);
     final manifest = RunManifest.read(report['run'] as String);
     final setup = manifest.setup;
     expect(setup.actions, labels);
@@ -330,6 +334,7 @@ void main() {
     expect(setup.keyboardTint, 0xFF9E9E9E);
     expect(setup.platform, ShotPlatform.ios);
     expect(setup.pixelRatio, 2.625);
+    expect(setup.safeArea, (59.0, 34.5));
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),
@@ -350,6 +355,7 @@ void main() {
       expect(request.keyboardTint, isNull);
       expect(request.platform, ShotPlatform.android);
       expect(request.pixelRatio, defaultPixelRatio);
+      expect(request.safeArea, isNull);
     }
   });
 
@@ -499,6 +505,17 @@ void main() {
       expect(bad.exitCode, 64, reason: ratio);
       expect(bad.stderr, contains('pixel ratio must be > 0 and finite'));
     }
+    for (final safeArea in ['59', '59,34,0', 'top,34', '59x34']) {
+      final bad = await run(['--widget', 'x', '--safe-area', safeArea]);
+      expect(bad.exitCode, 64, reason: safeArea);
+      expect(bad.stderr, contains('--safe-area must be <top>,<bottom>'));
+    }
+    final negative = await run(['--widget', 'x', '--safe-area', '59,-1']);
+    expect(negative.exitCode, 64);
+    expect(
+      negative.stderr,
+      contains('safe area insets must be logical sizes ≥ 0'),
+    );
     for (final (option, target) in [
       ('--tap', 'Save'),
       ('--tap', 'name:Save'),

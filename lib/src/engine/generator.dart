@@ -196,6 +196,9 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
   if (request.pixelRatio != defaultPixelRatio) {
     buffer.writeln('      pixelRatio: ${request.pixelRatio},');
   }
+  if (request.safeArea case (final top, final bottom)?) {
+    buffer.writeln('      safeArea: ($top, $bottom),');
+  }
   if (config.fallbackFonts.isNotEmpty) {
     buffer.writeln('      fallbackFonts: {');
     for (final MapEntry(:key, :value) in config.fallbackFonts.entries) {

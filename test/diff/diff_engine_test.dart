@@ -52,6 +52,7 @@ void main() {
           semantics: false,
           platform: ShotPlatform.android,
           pixelRatio: defaultPixelRatio,
+          safeArea: null,
         ),
       )..write(dir),
     );

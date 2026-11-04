@@ -5,6 +5,7 @@
 The device a shot is drawn as.
 
 * `shutter shot --pixel-ratio <ratio>` (and `semantics`, and `shot(pixelRatio:)`) draws every preview at that device pixel ratio instead of 2: the PNG is the shot's logical size times the ratio, and what reads the ratio, such as `MediaQuery.devicePixelRatioOf` and an `AssetImage` picking its variant, follows it as on the device. `shot` prints it, `manifest.json` records it, `diff` prints both runs' when they differ and returns it as `ShotSetup.pixelRatio`. It is not part of shot ids.
+* `shutter shot --safe-area <top>,<bottom>` (and `semantics`, and `shot(safeArea: SafeAreaInsets(...))`) lays every preview out with those safe area insets in logical pixels, which `flutter test` reports as none: the view reports them as its padding and view padding, so an `AppBar` grows by the top inset and a `SafeArea` keeps out of them as on the device; with `--keyboard`, the keyboard absorbs the bottom inset from the padding. The status bar and home indicator are not drawn. `shot` prints the insets, `manifest.json` records them, `diff` prints both runs' when they differ and returns them as `ShotSetup.safeArea`. They are not part of shot ids.
 
 ## 1.3.0
 

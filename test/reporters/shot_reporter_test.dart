@@ -96,6 +96,7 @@ shots:
           semantics: true,
           platform: ShotPlatform.ios,
           pixelRatio: 3,
+          safeArea: (59, 34.5),
         ),
       ),
     );
@@ -106,6 +107,7 @@ shots:
         'image: semantics\n'
         'platform: ios\n'
         'pixel_ratio: 3\n'
+        'safe_area: [59, 34.5]\n'
         'actions: ["tap text:Open", "press key:save"]\n'
         'capture: screen\n'
         'viewport: [390, 844]\n'
@@ -131,6 +133,7 @@ shots:
           semantics: false,
           platform: ShotPlatform.android,
           pixelRatio: defaultPixelRatio,
+          safeArea: null,
         ),
       ),
     );

@@ -39,6 +39,11 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
       formatNumber(before.pixelRatio),
       formatNumber(after.pixelRatio),
     ),
+    (
+      'safe_area',
+      formatSafeArea(before.safeArea),
+      formatSafeArea(after.safeArea),
+    ),
     ('actions', formatActions(before.actions), formatActions(after.actions)),
     ('capture', formatCapture(before.screen), formatCapture(after.screen)),
     (

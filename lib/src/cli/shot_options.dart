@@ -51,6 +51,19 @@ double parsePixelRatio(String raw) {
   );
 }
 
+/// Parses `--safe-area` as `<top>,<bottom>` in logical pixels; `shoot`
+/// checks the insets.
+SafeAreaInsets parseSafeArea(String raw) {
+  final values = [for (final part in raw.split(',')) double.tryParse(part)];
+  if (values case [final top?, final bottom?]) {
+    return SafeAreaInsets(top: top, bottom: bottom);
+  }
+  throw ShutterException.usage(
+    '--safe-area must be <top>,<bottom> in logical pixels, e.g. 59,34 '
+    '(got "$raw").',
+  );
+}
+
 final _hexColor = RegExp(r'^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$');
 
 /// Parses `--keyboard-tint` as `RRGGBB` or `AARRGGBB`, `#` optional, into

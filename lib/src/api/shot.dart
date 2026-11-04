@@ -157,6 +157,29 @@ final class const Keyboard(
       'Keyboard(${['height: ${formatNumber(height)}', if (tint case final tint?) 'tint: ${colorLiteral(tint)}'].join(', ')})';
 }
 
+/// The safe area of the device the app is laid out for, as `--safe-area`:
+/// the insets of its status bar or notch and of its home indicator, in
+/// logical pixels. They are reported to the app as the view padding and
+/// not drawn.
+final class const SafeAreaInsets({
+  /// The inset at the top, such as the status bar's.
+  final double top = 0,
+
+  /// The inset at the bottom, such as the home indicator's.
+  final double bottom = 0,
+}) {
+  @override
+  bool operator ==(Object other) =>
+      other is SafeAreaInsets && other.top == top && other.bottom == bottom;
+
+  @override
+  int get hashCode => Object.hash(top, bottom);
+
+  @override
+  String toString() =>
+      'SafeAreaInsets(top: ${formatNumber(top)}, bottom: ${formatNumber(bottom)})';
+}
+
 /// The outcome of [shot]: the run directory and each shot in it.
 final class const ShotRun({
   /// Run id, e.g. `20260919T143503Z`; `shutter diff` names the run by it.
@@ -275,6 +298,8 @@ final class const ShotResult({
 /// - [platform]: the platform the app is drawn as.
 /// - [pixelRatio]: the device pixel ratio the app is drawn at, > 0: pixels
 ///   of the PNG per logical pixel.
+/// - [safeArea]: the safe area the app is laid out with; none lays it out
+///   without one.
 /// - [onProgress]: told of what the run is doing as it does it.
 Future<ShotRun> shot(
   String projectDir,
@@ -287,6 +312,7 @@ Future<ShotRun> shot(
   Map<String, String> networkImages = const {},
   ShotPlatform platform = ShotPlatform.android,
   double pixelRatio = 2,
+  SafeAreaInsets? safeArea,
   bool semantics = false,
   void Function(ShotProgress event)? onProgress,
 }) => shoot(
@@ -300,6 +326,7 @@ Future<ShotRun> shot(
   networkImages: networkImages,
   platform: platform,
   pixelRatio: pixelRatio,
+  safeArea: safeArea,
   semantics: semantics,
   onProgress: onProgress,
 ).then(shotRun);

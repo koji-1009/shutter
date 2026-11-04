@@ -50,6 +50,7 @@ Widget settingsSignedOut() => const SettingsPage(user: null);
 * Top-level functions, static methods, and constructors without required arguments are all valid targets; `MultiPreview` and `Preview` subclasses work too.
 * Shots are drawn as Android, the platform `flutter test` runs as. For an app that ships on iOS, or a change to iOS-only code, pass `--platform ios` to the before and after shots alike: the theme, the back button, page transitions, adaptive widgets, and the app's own `defaultTargetPlatform` checks then draw as on an iPhone. `diff` prints `platform:` when the two runs differ in it.
 * Shots are drawn at a device pixel ratio of 2. For the device a screen is laid out for, pass its ratio to the before and after shots alike, `--pixel-ratio 3` for an iPhone: an `AssetImage` then picks that ratio's variant. The PNG is the shot's `size` times the ratio; when you post it, show it at `size`'s width. `diff` prints `pixel_ratio:` when the two runs differ in it.
+* Shots are laid out without a safe area, as no phone is. For a screen, pass the device's insets, top and bottom in logical pixels, to the before and after shots alike, `--safe-area 59,34` for example (the device's `MediaQuery.viewPaddingOf(context)`): the `AppBar` then grows under the status bar and a `SafeArea` keeps out of the insets as on the device. The status bar and the home indicator are not drawn; say so when you post the image.
 
 ## Shell
 

@@ -54,6 +54,10 @@ class const CaptureRequest({
   /// logical pixel.
   final double pixelRatio = defaultPixelRatio,
 
+  /// Logical safe area insets, top and bottom, reported to the app as the
+  /// view padding.
+  final (double, double)? safeArea,
+
   /// Told of each render as it starts, each shot as it finishes, and each
   /// font download.
   final void Function(ShotProgress event)? onProgress,

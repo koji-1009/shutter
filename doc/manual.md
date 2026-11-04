@@ -104,6 +104,17 @@ The semantics tree is drawn at the same ratio.
 The run records `pixel_ratio` in `manifest.json` when it is not 2; `shot` prints it, and `diff` prints both runs' when they differ, since the ratio changes the size of every PNG without any widget changing.
 It is not part of shot ids, so a run at 3 pairs shot for shot with one at 2.
 
+## Safe area
+
+`flutter test` lays the app out without a safe area: the view reports no padding, as no phone does.
+`--safe-area <top>,<bottom>` lays every preview of the run out as a phone with those insets, in logical pixels, does: the view reports them as its padding and view padding (`MediaQuery.paddingOf`, `MediaQuery.viewPaddingOf`), so an `AppBar` grows by the top inset, and a `SafeArea`, or a layout of the app's own that pads itself by the padding, keeps out of them.
+The status bar, the notch, and the home indicator are not drawn: the insets show what the app paints there, such as an `AppBar`'s background.
+Insets differ by device, so there is no default: give those of the device the screen is laid out for, which the app reads there as `MediaQuery.viewPaddingOf(context)`, top and bottom.
+With `--keyboard`, the keyboard absorbs the bottom inset from the padding, as on a device; the view padding keeps it.
+
+The run records `safe_area` in `manifest.json`; `shot` prints it, and `diff` prints both runs' when they differ, since the insets change the layout without any widget changing.
+They are not part of shot ids, so a run with `--safe-area` pairs shot for shot with one without.
+
 ## The semantics tree
 
 `shutter semantics` takes the same preview files, `--widget`, and options as `shot`, except `--keyboard-tint`, and shoots the same way, actions included.
@@ -277,7 +288,7 @@ When Flutter ships a capture command in the previewer itself, it replaces v1 wit
 
 ## Runs
 
-`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `image` for a `semantics` run, `shell` when a shell file was used, `platform` for a run as iOS, `pixel_ratio` for a ratio other than 2, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` when given, `shots`).
+`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `image` for a `semantics` run, `shell` when a shell file was used, `platform` for a run as iOS, `pixel_ratio` for a ratio other than 2, `safe_area`, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` when given, `shots`).
 `<run-id>` is the UTC time of the shot (`20260918T101530Z`), suffixed `-2`, `-3`, ... when taken; a hidden `.<run-id>` file claims the name, so runs started in the same second get distinct ids.
 `shot` prints the run directory as `run:`; `diff` accepts a run's directory, its id, `latest` for the newest run, or `latest~N` for the run N before it.
 `latest` counts runs in id order (time, then suffix) and skips a run still being shot, whose `manifest.json` is not written yet.
@@ -323,9 +334,9 @@ When the two runs were shot with different shells (path or sha256), `shell` show
 ## Output
 
 `shot`, `semantics`, and `diff` print YAML starting with the comment `# shutter ai-report v1`, with absolute paths to open.
-`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `platform` (as iOS), `pixel_ratio` (other than 2), `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (when given), `summary`, and `shots`, errors first.
+`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `platform` (as iOS), `pixel_ratio` (other than 2), `safe_area`, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (when given), `summary`, and `shots`, errors first.
 `semantics` gives the same, with `image: semantics` after `shell`.
-`diff` gives `diff` (with `--images` or `--composite`), `before`, `after`, `shell`, `image`, `platform`, `pixel_ratio`, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (each when the two runs differ in it; `image` is `paint` for a `shot` run), `summary`, and `entries` in the order changed → added → removed → unchanged.
+`diff` gives `diff` (with `--images` or `--composite`), `before`, `after`, `shell`, `image`, `platform`, `pixel_ratio`, `safe_area`, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (each when the two runs differ in it; `image` is `paint` for a `shot` run), `summary`, and `entries` in the order changed → added → removed → unchanged.
 
 ## Exit codes
 
@@ -340,13 +351,13 @@ Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter 
 
 ## Commands
 
-| command     | purpose                                                                                                                                                                                                                                                                                |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent`     | the step-by-step playbook                                                                                                                                                                                                                                                              |
-| `manual`    | this document                                                                                                                                                                                                                                                                          |
-| `doctor`    | SDK version, font cache, shell (`--shell`)                                                                                                                                                                                                                                             |
-| `init`      | write `shell.dart` (`--shell`)                                                                                                                                                                                                                                                         |
-| `shot`      | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`, `--platform`, `--pixel-ratio`) |
-| `semantics` | draw the semantics tree of the same subjects into a new run, with the options of `shot` except `--keyboard-tint`                                                                                                                                                                       |
-| `diff`      | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                                                                                                   |
-| `prune`     | delete every run but the newest (`--keep`)                                                                                                                                                                                                                                             |
+| command     | purpose                                                                                                                                                                                                                                                                                               |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`     | the step-by-step playbook                                                                                                                                                                                                                                                                             |
+| `manual`    | this document                                                                                                                                                                                                                                                                                         |
+| `doctor`    | SDK version, font cache, shell (`--shell`)                                                                                                                                                                                                                                                            |
+| `init`      | write `shell.dart` (`--shell`)                                                                                                                                                                                                                                                                        |
+| `shot`      | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`, `--platform`, `--pixel-ratio`, `--safe-area`) |
+| `semantics` | draw the semantics tree of the same subjects into a new run, with the options of `shot` except `--keyboard-tint`                                                                                                                                                                                      |
+| `diff`      | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                                                                                                                  |
+| `prune`     | delete every run but the newest (`--keep`)                                                                                                                                                                                                                                                            |

@@ -70,6 +70,10 @@ class const ShutterConfig({
   /// Device pixel ratio every shot is rendered at.
   final double pixelRatio = 2,
 
+  /// Logical safe area insets, top and bottom, reported to the app as the
+  /// view padding.
+  final (double, double)? safeArea,
+
   /// Host font files by family, in fallback order, chosen by the CLI.
   final Map<String, List<String>> fallbackFonts = const {},
 });
@@ -329,6 +333,19 @@ Future<void> _capture(
     final tint = config.keyboardTint;
     if (keyboard != null) {
       tester.view.viewInsets = FakeViewPadding(bottom: keyboard * ratio);
+    }
+    // The insets of a status bar, a notch, and a home indicator, none of
+    // them drawn. As on a device, the keyboard absorbs the bottom one from
+    // the padding, but not from the view padding.
+    if (config.safeArea case (final top, final bottom)?) {
+      tester.view.viewPadding = FakeViewPadding(
+        top: top * ratio,
+        bottom: bottom * ratio,
+      );
+      tester.view.padding = FakeViewPadding(
+        top: top * ratio,
+        bottom: math.max(0, bottom - (keyboard ?? 0)) * ratio,
+      );
     }
     if (preview.brightness != null) {
       tester.platformDispatcher.platformBrightnessTestValue =

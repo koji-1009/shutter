@@ -62,6 +62,7 @@ void main() {
         networkImages: {'https://example.com/a.png': 'test/images/a.png'},
         platform: ShotPlatform.ios,
         pixelRatio: 3,
+        safeArea: const SafeAreaInsets(top: 59, bottom: 34),
       );
       final run = shotRun(stored);
       final dir = p.join(root, '.dart_tool', 'shutter', 'runs', run.id);
@@ -121,8 +122,10 @@ void main() {
       });
       expect((request.platform, request.semantics), (ShotPlatform.ios, false));
       expect(request.pixelRatio, 3);
+      expect(request.safeArea, (59.0, 34.0));
       final setup = RunManifest.read(dir).setup;
       expect((setup.platform, setup.pixelRatio), (ShotPlatform.ios, 3));
+      expect(setup.safeArea, (59.0, 34.0));
     },
   );
 
@@ -173,6 +176,7 @@ void main() {
     expect((request.keyboard, request.keyboardTint), (300.0, null));
     expect(request.semantics, isTrue);
     expect(request.pixelRatio, defaultPixelRatio);
+    expect(request.safeArea, isNull);
 
     final unbounded = FakeEngine(const []);
     await shoot(
@@ -194,6 +198,7 @@ void main() {
       ShotCapture capture = const PreviewCapture(),
       Keyboard? keyboard,
       double pixelRatio = defaultPixelRatio,
+      SafeAreaInsets? safeArea,
       bool semantics = false,
     }) => shoot(
       fakeContext(root),
@@ -203,6 +208,7 @@ void main() {
       capture: capture,
       keyboard: keyboard,
       pixelRatio: pixelRatio,
+      safeArea: safeArea,
       semantics: semantics,
     );
     await expectLater(
@@ -213,6 +219,17 @@ void main() {
       await expectLater(
         run(pixelRatio: ratio),
         throwsA(usageError('pixel ratio must be > 0 and finite')),
+      );
+    }
+    for (final safeArea in const [
+      SafeAreaInsets(top: -1),
+      SafeAreaInsets(bottom: -1),
+      SafeAreaInsets(top: double.infinity),
+      SafeAreaInsets(bottom: double.nan),
+    ]) {
+      await expectLater(
+        run(safeArea: safeArea),
+        throwsA(usageError('safe area insets must be logical sizes ≥ 0')),
       );
     }
     await expectLater(

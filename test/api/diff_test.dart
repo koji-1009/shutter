@@ -91,6 +91,7 @@ void main() {
         semantics: true,
         platform: ShotPlatform.ios,
         pixelRatio: 3,
+        safeArea: (59, 34),
       ),
     );
 
@@ -115,6 +116,7 @@ void main() {
           semantics: true,
           platform: ShotPlatform.ios,
           pixelRatio: 3,
+          safeArea: SafeAreaInsets(top: 59, bottom: 34),
         ),
         entries: [
           ShotDiffEntry(

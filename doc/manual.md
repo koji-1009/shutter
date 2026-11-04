@@ -118,7 +118,8 @@ They are not part of shot ids, so a run with `--safe-area` pairs shot for shot w
 ## Brightness and text scale
 
 `flutter test` reports a light platform brightness and a text scale of 1, as a device's settings would by default.
-`--brightness dark` and `--text-scale <scale>` (any number above 0, such as 1.3) report the device's settings instead, so the shell's app widget picks them up as on a device: a dark theme, text laid out larger.
+`--brightness dark` and `--text-scale <scale>` (any number above 0, such as 1.3) report the device's settings instead, so the shell's app widget picks them up as on a device: its `darkTheme` when it sets one (the default shell sets none), text laid out larger.
+The scale multiplies every font size, as iOS does; Android 14 and later convert each size through the system's own font scaling instead, which is not a plain multiplication, so text shot with `--platform android` at a scale other than 1 can differ in size from that device's.
 They reach every preview that sets none of its own: a preview's `brightness` or `textScaleFactor` wins, as it describes that preview, so a preview made for light stays light under `--brightness dark`.
 A `--widget` shot has no `Preview` of its own to set them, so these options are how it is shot dark or with larger text.
 
@@ -287,6 +288,7 @@ These come from rendering through `flutter test`.
 * No on-screen keyboard: text entered with `--enter` reaches the field, but the keyboard a device would show is not drawn, even with `--capture screen`, and the layout does not make room for it unless `--keyboard` is given (see Experimental); `--keyboard-tint` marks its area with a color.
 * HTTP is blocked, so network images fail to load unless `--network-image` serves them.
 * `flutter test` runs the engine with test fonts, which has no system font fallback. Shutter's host fonts reach paragraphs, text fields, the default text style, and the text themes of the shell and the preview's `theme`. Text a widget paints with its own `TextPainter`, such as a `Slider`'s value indicator, gets them only through those: under a `Theme` built in a `wrapper`, in the preview function, or in the widget itself, glyphs outside its fonts render as boxes, where a device would fall back to a system font. Give the app's theme through the shell or the preview's `theme` instead. Shutter does not see that text, so its characters add no host font.
+* `--text-scale` multiplies every font size. Android 14 and later scale font sizes through the system's own conversion, which `flutter test` does not run, so text at a scale other than 1 can differ in size from such a device's.
 
 ## Engine
 

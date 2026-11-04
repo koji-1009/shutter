@@ -74,6 +74,8 @@ final class const ShotSetup({
 
   /// The device pixel ratio the app was drawn at.
   final double pixelRatio = 2,
+
+  /// The safe area the app was laid out with; none for a run without one.
   final SafeAreaInsets? safeArea,
 }) {
   @override

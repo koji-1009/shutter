@@ -300,6 +300,8 @@ final class const ShotResult({
 ///   of the PNG per logical pixel.
 /// - [safeArea]: the safe area the app is laid out with; none lays it out
 ///   without one.
+/// - [brightness], [textScale]: the platform brightness and text scale
+///   (> 0) reported to every preview that sets none of its own.
 /// - [onProgress]: told of what the run is doing as it does it.
 Future<ShotRun> shot(
   String projectDir,
@@ -313,6 +315,8 @@ Future<ShotRun> shot(
   ShotPlatform platform = ShotPlatform.android,
   double pixelRatio = 2,
   SafeAreaInsets? safeArea,
+  ShotBrightness brightness = ShotBrightness.light,
+  double textScale = 1,
   bool semantics = false,
   void Function(ShotProgress event)? onProgress,
 }) => shoot(
@@ -327,6 +331,8 @@ Future<ShotRun> shot(
   platform: platform,
   pixelRatio: pixelRatio,
   safeArea: safeArea,
+  brightness: brightness,
+  textScale: textScale,
   semantics: semantics,
   onProgress: onProgress,
 ).then(shotRun);

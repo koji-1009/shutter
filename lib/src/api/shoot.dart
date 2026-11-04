@@ -35,6 +35,8 @@ Future<StoredRun> shoot(
   ShotPlatform platform = ShotPlatform.android,
   double pixelRatio = defaultPixelRatio,
   SafeAreaInsets? safeArea,
+  ShotBrightness brightness = ShotBrightness.light,
+  double textScale = 1,
   bool semantics = false,
   void Function(ShotProgress event)? onProgress,
 }) async {
@@ -55,6 +57,11 @@ Future<StoredRun> shoot(
     ),
     null => null,
   };
+  if (!(textScale > 0 && textScale.isFinite)) {
+    throw ShutterException.usage(
+      'text scale must be > 0 and finite (got ${formatNumber(textScale)}).',
+    );
+  }
   _checkActions(actions);
   final viewport = switch (capture) {
     ScreenCapture(:final viewport?) => _size(viewport, 'viewport'),
@@ -149,6 +156,8 @@ Future<StoredRun> shoot(
       platform: platform,
       pixelRatio: pixelRatio,
       safeArea: insets,
+      brightness: brightness,
+      textScale: textScale,
       onProgress: onProgress,
     ),
   );
@@ -167,6 +176,8 @@ Future<StoredRun> shoot(
       platform: platform,
       pixelRatio: pixelRatio,
       safeArea: insets,
+      brightness: brightness,
+      textScale: textScale,
     ),
   )..write(runDir);
   return StoredRun(runDir, manifest);

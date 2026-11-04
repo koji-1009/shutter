@@ -199,6 +199,12 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
   if (request.safeArea case (final top, final bottom)?) {
     buffer.writeln('      safeArea: ($top, $bottom),');
   }
+  if (request.brightness != ShotBrightness.light) {
+    buffer.writeln('      brightness: .${request.brightness.name},');
+  }
+  if (request.textScale != 1) {
+    buffer.writeln('      textScale: ${request.textScale},');
+  }
   if (config.fallbackFonts.isNotEmpty) {
     buffer.writeln('      fallbackFonts: {');
     for (final MapEntry(:key, :value) in config.fallbackFonts.entries) {

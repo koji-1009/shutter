@@ -53,6 +53,8 @@ void main() {
           platform: ShotPlatform.android,
           pixelRatio: defaultPixelRatio,
           safeArea: null,
+          brightness: ShotBrightness.light,
+          textScale: 1,
         ),
       )..write(dir),
     );

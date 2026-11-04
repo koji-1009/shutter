@@ -63,6 +63,8 @@ void main() {
         platform: ShotPlatform.ios,
         pixelRatio: 3,
         safeArea: const SafeAreaInsets(top: 59, bottom: 34),
+        brightness: ShotBrightness.dark,
+        textScale: 1.3,
       );
       final run = shotRun(stored);
       final dir = p.join(root, '.dart_tool', 'shutter', 'runs', run.id);
@@ -126,6 +128,11 @@ void main() {
       final setup = RunManifest.read(dir).setup;
       expect((setup.platform, setup.pixelRatio), (ShotPlatform.ios, 3));
       expect(setup.safeArea, (59.0, 34.0));
+      expect(
+        (request.brightness, request.textScale),
+        (ShotBrightness.dark, 1.3),
+      );
+      expect((setup.brightness, setup.textScale), (ShotBrightness.dark, 1.3));
     },
   );
 
@@ -177,6 +184,7 @@ void main() {
     expect(request.semantics, isTrue);
     expect(request.pixelRatio, defaultPixelRatio);
     expect(request.safeArea, isNull);
+    expect((request.brightness, request.textScale), (ShotBrightness.light, 1));
 
     final unbounded = FakeEngine(const []);
     await shoot(
@@ -199,6 +207,7 @@ void main() {
       Keyboard? keyboard,
       double pixelRatio = defaultPixelRatio,
       SafeAreaInsets? safeArea,
+      double textScale = 1,
       bool semantics = false,
     }) => shoot(
       fakeContext(root),
@@ -209,6 +218,7 @@ void main() {
       keyboard: keyboard,
       pixelRatio: pixelRatio,
       safeArea: safeArea,
+      textScale: textScale,
       semantics: semantics,
     );
     await expectLater(
@@ -230,6 +240,12 @@ void main() {
       await expectLater(
         run(safeArea: safeArea),
         throwsA(usageError('safe area insets must be logical sizes ≥ 0')),
+      );
+    }
+    for (final scale in [0.0, -1.0, double.infinity, double.nan]) {
+      await expectLater(
+        run(textScale: scale),
+        throwsA(usageError('text scale must be > 0 and finite')),
       );
     }
     await expectLater(

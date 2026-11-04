@@ -74,6 +74,11 @@ class const ShutterConfig({
   /// view padding.
   final (double, double)? safeArea,
 
+  /// The platform brightness and text scale reported to every preview
+  /// that sets none; flutter_test's light and 1 when null.
+  final Brightness? brightness,
+  final double? textScale,
+
   /// Host font files by family, in fallback order, chosen by the CLI.
   final Map<String, List<String>> fallbackFonts = const {},
 });
@@ -347,13 +352,12 @@ Future<void> _capture(
         bottom: math.max(0, bottom - (keyboard ?? 0)) * ratio,
       );
     }
-    if (preview.brightness != null) {
-      tester.platformDispatcher.platformBrightnessTestValue =
-          preview.brightness!;
+    // The run's, as the device's settings; a preview's own wins.
+    if (preview.brightness ?? config.brightness case final brightness?) {
+      tester.platformDispatcher.platformBrightnessTestValue = brightness;
     }
-    if (preview.textScaleFactor != null) {
-      tester.platformDispatcher.textScaleFactorTestValue =
-          preview.textScaleFactor!;
+    if (preview.textScaleFactor ?? config.textScale case final scale?) {
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
     }
 
     Widget child = _subject(entry);

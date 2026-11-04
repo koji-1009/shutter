@@ -44,6 +44,12 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
       formatSafeArea(before.safeArea),
       formatSafeArea(after.safeArea),
     ),
+    ('brightness', before.brightness.name, after.brightness.name),
+    (
+      'text_scale',
+      formatNumber(before.textScale),
+      formatNumber(after.textScale),
+    ),
     ('actions', formatActions(before.actions), formatActions(after.actions)),
     ('capture', formatCapture(before.screen), formatCapture(after.screen)),
     (

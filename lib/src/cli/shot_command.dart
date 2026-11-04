@@ -138,6 +138,23 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
             'Lay out as on a device with these safe area insets, as '
             '<top>,<bottom> in logical pixels, e.g. 59,34; the status bar '
             'and home indicator are not drawn.',
+      )
+      ..addOption(
+        'brightness',
+        help:
+            'Platform brightness reported to every preview that sets none '
+            'of its own.',
+        allowed: [
+          for (final brightness in ShotBrightness.values) brightness.name,
+        ],
+        defaultsTo: ShotBrightness.light.name,
+      )
+      ..addOption(
+        'text-scale',
+        help:
+            'Platform text scale reported to every preview that sets none '
+            'of its own, e.g. 1.3.',
+        defaultsTo: '1',
       );
   }
 
@@ -190,6 +207,8 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
       final raw? => parseSafeArea(raw),
       null => null,
     };
+    final brightness = ShotBrightness.values.byName(args.option('brightness')!);
+    final textScale = parseTextScale(args.option('text-scale')!);
     final files = args.rest;
     if (source == null && (imports.isNotEmpty || rawSize != null)) {
       throw ShutterException.usage('--import and --size need --widget.');
@@ -225,6 +244,8 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
       platform: platform,
       pixelRatio: pixelRatio,
       safeArea: safeArea,
+      brightness: brightness,
+      textScale: textScale,
       semantics: semantics,
     );
     reportShots(run.manifest, run.dir, ShutterIO.stdoutSink);

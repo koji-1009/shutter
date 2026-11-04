@@ -127,6 +127,10 @@ enum ShotPlatform {
 /// (`--pixel-ratio`).
 const double defaultPixelRatio = 2;
 
+/// The platform brightness a run reports to the app (`--brightness`);
+/// a preview's own `brightness` wins. `flutter test` reports light.
+enum ShotBrightness { light, dark }
+
 /// What a run did to every preview besides rendering it: the actions
 /// performed before the capture, whether the whole viewport was
 /// captured, the `--viewport`, the `--keyboard` height and its
@@ -134,7 +138,8 @@ const double defaultPixelRatio = 2;
 /// URL, whether the images are of the semantics tree
 /// (`shutter semantics`) rather than of what the app paints, the
 /// `--platform` the app was drawn as, the `--pixel-ratio` it was drawn
-/// at, and the `--safe-area` insets, top and bottom.
+/// at, the `--safe-area` insets, top and bottom, and the `--brightness`
+/// and `--text-scale` reported to every preview that sets none.
 typedef RunSetup = ({
   List<String> actions,
   bool screen,
@@ -146,6 +151,8 @@ typedef RunSetup = ({
   ShotPlatform platform,
   double pixelRatio,
   (double, double)? safeArea,
+  ShotBrightness brightness,
+  double textScale,
 });
 
 /// [argb] as `#AARRGGBB`.
@@ -167,6 +174,8 @@ const RunSetup plainSetup = (
   platform: ShotPlatform.android,
   pixelRatio: defaultPixelRatio,
   safeArea: null,
+  brightness: ShotBrightness.light,
+  textScale: 1,
 );
 
 RecordedFile? _recordedFile(Object? json) => switch (json) {
@@ -233,6 +242,11 @@ class const RunManifest({
         ),
         _ => null,
       },
+      brightness: switch (json['brightness']) {
+        final String name => ShotBrightness.values.byName(name),
+        _ => ShotBrightness.light,
+      },
+      textScale: (json['text_scale'] as num?)?.toDouble() ?? 1,
     ),
   );
 
@@ -257,6 +271,8 @@ class const RunManifest({
       :platform,
       :pixelRatio,
       :safeArea,
+      :brightness,
+      :textScale,
     ) = setup;
     return {
       'run': run,
@@ -267,6 +283,8 @@ class const RunManifest({
         'pixel_ratio': jsonNumber(pixelRatio),
       if (safeArea case (final top, final bottom)?)
         'safe_area': [jsonNumber(top), jsonNumber(bottom)],
+      if (brightness != ShotBrightness.light) 'brightness': brightness.name,
+      if (textScale != 1) 'text_scale': jsonNumber(textScale),
       if (actions.isNotEmpty) 'actions': actions,
       if (screen) 'capture': 'screen',
       if (viewport case (final w, final h)?)

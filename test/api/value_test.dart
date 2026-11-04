@@ -176,6 +176,8 @@ void main() {
       platform: ShotPlatform.ios,
       pixelRatio: 2.625,
       safeArea: SafeAreaInsets(top: 59, bottom: 34),
+      brightness: ShotBrightness.dark,
+      textScale: 1.3,
     );
     valueType(
       () => setup(action: fresh()),
@@ -191,14 +193,21 @@ void main() {
       'networkImages: {https://example.com/a.png: '
       'ShotFile(path: a.png, sha256: b)}, '
       'semantics: true, platform: ios, pixelRatio: 2.625, '
-      'safeArea: SafeAreaInsets(top: 59, bottom: 34))',
+      'safeArea: SafeAreaInsets(top: 59, bottom: 34), brightness: dark, '
+      'textScale: 1.3)',
     );
     expect(
       '${const ShotSetup()}',
       'ShotSetup(actions: [], capture: PreviewCapture(), networkImages: {}, '
-          'semantics: false, platform: android, pixelRatio: 2)',
+          'semantics: false, platform: android, pixelRatio: 2, '
+          'brightness: light, textScale: 1)',
     );
     expect(const ShotSetup(pixelRatio: 3), isNot(const ShotSetup()));
+    expect(
+      const ShotSetup(brightness: ShotBrightness.dark),
+      isNot(const ShotSetup()),
+    );
+    expect(const ShotSetup(textScale: 2), isNot(const ShotSetup()));
     title = '/app/runs/r2/a.0.png';
     const shot = ShotResult(id: 'a.0', status: ShotStatus.ok, name: 'a');
     ShotDiffEntry entry(String png) => ShotDiffEntry(

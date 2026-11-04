@@ -97,6 +97,8 @@ shots:
           platform: ShotPlatform.ios,
           pixelRatio: 3,
           safeArea: (59, 34.5),
+          brightness: ShotBrightness.dark,
+          textScale: 1.3,
         ),
       ),
     );
@@ -108,6 +110,8 @@ shots:
         'platform: ios\n'
         'pixel_ratio: 3\n'
         'safe_area: [59, 34.5]\n'
+        'brightness: dark\n'
+        'text_scale: 1.3\n'
         'actions: ["tap text:Open", "press key:save"]\n'
         'capture: screen\n'
         'viewport: [390, 844]\n'
@@ -134,6 +138,8 @@ shots:
           platform: ShotPlatform.android,
           pixelRatio: defaultPixelRatio,
           safeArea: null,
+          brightness: ShotBrightness.light,
+          textScale: 1,
         ),
       ),
     );

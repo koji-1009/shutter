@@ -66,10 +66,11 @@ String formatSafeArea((double, double)? safeArea) => switch (safeArea) {
 /// `semantics` for a run of `shutter semantics`, else `paint`.
 String formatImage(bool semantics) => semantics ? 'semantics' : 'paint';
 
-/// The `image`, `platform`, `pixel_ratio`, `safe_area`, `actions`,
-/// `capture`, `viewport`, `keyboard`, `keyboard_tint`, and
-/// `network_images` lines of a run's [setup], each only when set
-/// (`platform` when not Android, `pixel_ratio` when not the default).
+/// The `image`, `platform`, `pixel_ratio`, `safe_area`, `brightness`,
+/// `text_scale`, `actions`, `capture`, `viewport`, `keyboard`,
+/// `keyboard_tint`, and `network_images` lines of a run's [setup], each
+/// only when set (`platform` when not Android, `pixel_ratio`,
+/// `brightness`, and `text_scale` when not the default).
 void writeSetup(StringBuffer body, RunSetup setup) {
   if (setup.semantics) body.writeln('image: ${formatImage(true)}');
   if (setup.platform != ShotPlatform.android) {
@@ -80,6 +81,12 @@ void writeSetup(StringBuffer body, RunSetup setup) {
   }
   if (setup.safeArea case final safeArea?) {
     body.writeln('safe_area: ${formatSafeArea(safeArea)}');
+  }
+  if (setup.brightness != ShotBrightness.light) {
+    body.writeln('brightness: ${setup.brightness.name}');
+  }
+  if (setup.textScale != 1) {
+    body.writeln('text_scale: ${formatNumber(setup.textScale)}');
   }
   if (setup.actions.isNotEmpty) {
     body.writeln('actions: ${formatActions(setup.actions)}');

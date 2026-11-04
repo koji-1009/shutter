@@ -288,9 +288,14 @@ void main() {
       '2.625',
       '--safe-area',
       '59,34.5',
+      '--brightness',
+      'dark',
+      '--text-scale',
+      '1.3',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
     final request = engine.requests.single;
+    expect((request.brightness, request.textScale), (ShotBrightness.dark, 1.3));
     expect(request.platform, ShotPlatform.ios);
     expect(request.pixelRatio, 2.625);
     expect(request.safeArea, (59.0, 34.5));
@@ -326,6 +331,7 @@ void main() {
     expect(report['platform'], 'ios');
     expect(report['pixel_ratio'], 2.625);
     expect(report['safe_area'], [59, 34.5]);
+    expect((report['brightness'], report['text_scale']), ('dark', 1.3));
     final manifest = RunManifest.read(report['run'] as String);
     final setup = manifest.setup;
     expect(setup.actions, labels);
@@ -335,6 +341,7 @@ void main() {
     expect(setup.platform, ShotPlatform.ios);
     expect(setup.pixelRatio, 2.625);
     expect(setup.safeArea, (59.0, 34.5));
+    expect((setup.brightness, setup.textScale), (ShotBrightness.dark, 1.3));
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),
@@ -356,6 +363,10 @@ void main() {
       expect(request.platform, ShotPlatform.android);
       expect(request.pixelRatio, defaultPixelRatio);
       expect(request.safeArea, isNull);
+      expect(
+        (request.brightness, request.textScale),
+        (ShotBrightness.light, 1),
+      );
     }
   });
 
@@ -510,6 +521,17 @@ void main() {
       expect(bad.exitCode, 64, reason: safeArea);
       expect(bad.stderr, contains('--safe-area must be <top>,<bottom>'));
     }
+    final large = await run(['--widget', 'x', '--text-scale', 'large']);
+    expect(large.exitCode, 64);
+    expect(large.stderr, contains('--text-scale must be a number, e.g. 1.3'));
+    for (final scale in ['0', '-1', 'Infinity', 'NaN']) {
+      final bad = await run(['--widget', 'x', '--text-scale', scale]);
+      expect(bad.exitCode, 64, reason: scale);
+      expect(bad.stderr, contains('text scale must be > 0 and finite'));
+    }
+    final dim = await run(['--widget', 'x', '--brightness', 'dim']);
+    expect(dim.exitCode, 64);
+    expect(dim.stderr, contains('"dim" is not an allowed value'));
     final negative = await run(['--widget', 'x', '--safe-area', '59,-1']);
     expect(negative.exitCode, 64);
     expect(

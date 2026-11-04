@@ -209,4 +209,88 @@ Widget viewPadding() => Builder(
       'after': [10, 5],
     });
   });
+
+  test('--brightness and --text-scale reach every preview that sets none; '
+      "a preview's own win", () async {
+    final root = await shared();
+    File(p.join(root, 'lib/preview/appearance_preview.dart'))
+        .writeAsStringSync('''
+import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+
+Widget _box(bool on) => ColoredBox(
+  color: on ? const Color(0xFF0000FF) : const Color(0xFF00FF00),
+  child: const SizedBox(width: 10, height: 10),
+);
+
+Widget _appearance() => Builder(
+  builder: (context) => Row(
+    children: [
+      _box(MediaQuery.platformBrightnessOf(context) == Brightness.dark),
+      _box(MediaQuery.textScalerOf(context).scale(10) == 13),
+    ],
+  ),
+);
+
+@Preview(name: 'Device', size: Size(20, 10))
+Widget device() => _appearance();
+
+@Preview(
+  name: 'Own',
+  size: Size(20, 10),
+  brightness: Brightness.light,
+  textScaleFactor: 1,
+)
+Widget own() => _appearance();
+''');
+    const file = 'lib/preview/appearance_preview.dart';
+    const on = (0, 0, 255);
+    const off = (0, 255, 0);
+    final (plain, plainShots) = await shootIn(root, [file]);
+    final (set, setShots) = await shootIn(root, [
+      file,
+      '--brightness',
+      'dark',
+      '--text-scale',
+      '1.3',
+    ]);
+    for (final shots in [plainShots, setShots]) {
+      for (final shot in shots.values) {
+        expect(shot.status, ShotStatus.ok, reason: shot.error);
+      }
+    }
+    (int, int, int) color(String run, Shot shot, int x) =>
+        _color(_png(run, shot), x, 10);
+    expect(
+      [
+        color(plain, plainShots['Device']!, 10),
+        color(plain, plainShots['Device']!, 30),
+      ],
+      [off, off],
+    );
+    expect(
+      [
+        color(set, setShots['Device']!, 10),
+        color(set, setShots['Device']!, 30),
+      ],
+      [on, on],
+    );
+    expect(
+      [color(set, setShots['Own']!, 10), color(set, setShots['Own']!, 30)],
+      [off, off],
+    );
+    final setup = RunManifest.read(set).setup;
+    expect((setup.brightness, setup.textScale), (ShotBrightness.dark, 1.3));
+
+    final diff = await shutter(root, ['diff', plain, set]);
+    expect(diff.exitCode, 1, reason: diff.stdout + diff.stderr);
+    final report = loadYaml(diff.stdout) as YamlMap;
+    expect(report['brightness'], {'before': 'light', 'after': 'dark'});
+    expect(report['text_scale'], {'before': 1, 'after': 1.3});
+    final entries = {
+      for (final entry in (report['entries'] as YamlList).cast<YamlMap>())
+        entry['name']: entry['status'],
+    };
+    expect(entries, {'Device': 'changed', 'Own': 'unchanged'});
+  });
 }

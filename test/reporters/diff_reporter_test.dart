@@ -180,6 +180,8 @@ entries:
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
         safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
       );
       const screen = (
         actions: ['press text:OK'],
@@ -192,6 +194,8 @@ entries:
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
         safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
       );
       final same = await report(pressed, pressed);
       for (final key in [
@@ -199,6 +203,8 @@ entries:
         'platform',
         'pixel_ratio',
         'safe_area',
+        'brightness',
+        'text_scale',
         'actions',
         'capture',
         'viewport',
@@ -233,6 +239,8 @@ entries:
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
         safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
       );
       final keyboard = await report(plainSetup, typing);
       expect(keyboard['keyboard'], {'before': 'none', 'after': 336});
@@ -249,6 +257,8 @@ entries:
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
         safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
       );
       final tint = await report(typing, tinted);
       expect(tint.containsKey('keyboard'), isFalse);
@@ -266,6 +276,8 @@ entries:
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
         safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
       );
       final images = await report(plainSetup, served);
       expect(images['network_images'], {
@@ -285,6 +297,8 @@ entries:
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
         safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
       );
       final image = await report(plainSetup, tree);
       expect(image['image'], {'before': 'paint', 'after': 'semantics'});
@@ -300,6 +314,8 @@ entries:
         platform: ShotPlatform.ios,
         pixelRatio: defaultPixelRatio,
         safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
       );
       final platform = await report(plainSetup, ios);
       expect(platform['platform'], {'before': 'android', 'after': 'ios'});
@@ -316,6 +332,8 @@ entries:
         platform: ShotPlatform.android,
         pixelRatio: 2.625,
         safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
       );
       final ratio = await report(plainSetup, dense);
       expect(ratio['pixel_ratio'], {'before': 2, 'after': 2.625});
@@ -332,6 +350,8 @@ entries:
         platform: ShotPlatform.android,
         pixelRatio: defaultPixelRatio,
         safeArea: (59.0, 34.0),
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
       );
       final safeArea = await report(plainSetup, notched);
       expect(safeArea['safe_area'], {
@@ -339,6 +359,26 @@ entries:
         'after': [59, 34],
       });
       expect(safeArea.containsKey('pixel_ratio'), isFalse);
+      expect(safeArea.containsKey('brightness'), isFalse);
+      expect(safeArea.containsKey('text_scale'), isFalse);
+      const darkLarge = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: null,
+        brightness: ShotBrightness.dark,
+        textScale: 1.3,
+      );
+      final appearance = await report(plainSetup, darkLarge);
+      expect(appearance['brightness'], {'before': 'light', 'after': 'dark'});
+      expect(appearance['text_scale'], {'before': 1, 'after': 1.3});
+      expect(appearance.containsKey('safe_area'), isFalse);
     },
   );
 

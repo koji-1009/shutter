@@ -77,6 +77,11 @@ final class const ShotSetup({
 
   /// The safe area the app was laid out with; none for a run without one.
   final SafeAreaInsets? safeArea,
+
+  /// The platform brightness and text scale reported to every preview
+  /// that set none of its own.
+  final ShotBrightness brightness = ShotBrightness.light,
+  final double textScale = 1,
 }) {
   @override
   bool operator ==(Object other) =>
@@ -92,7 +97,9 @@ final class const ShotSetup({
       other.semantics == semantics &&
       other.platform == platform &&
       other.pixelRatio == pixelRatio &&
-      other.safeArea == safeArea;
+      other.safeArea == safeArea &&
+      other.brightness == brightness &&
+      other.textScale == textScale;
 
   @override
   int get hashCode => Object.hash(
@@ -105,11 +112,13 @@ final class const ShotSetup({
     platform,
     pixelRatio,
     safeArea,
+    brightness,
+    textScale,
   );
 
   @override
   String toString() =>
-      'ShotSetup(${[if (shell != null) 'shell: $shell', 'actions: $actions', 'capture: $capture', if (keyboard != null) 'keyboard: $keyboard', 'networkImages: $networkImages', 'semantics: $semantics', 'platform: ${platform.name}', 'pixelRatio: ${formatNumber(pixelRatio)}', if (safeArea != null) 'safeArea: $safeArea'].join(', ')})';
+      'ShotSetup(${[if (shell != null) 'shell: $shell', 'actions: $actions', 'capture: $capture', if (keyboard != null) 'keyboard: $keyboard', 'networkImages: $networkImages', 'semantics: $semantics', 'platform: ${platform.name}', 'pixelRatio: ${formatNumber(pixelRatio)}', if (safeArea != null) 'safeArea: $safeArea', 'brightness: ${brightness.name}', 'textScale: ${formatNumber(textScale)}'].join(', ')})';
 }
 
 /// The outcome of [diff]: the two runs and each shot id across them.
@@ -304,6 +313,8 @@ ShotSetup _setup(ShellFile? shell, RunSetup setup) => ShotSetup(
     (final top, final bottom)? => SafeAreaInsets(top: top, bottom: bottom),
     null => null,
   },
+  brightness: setup.brightness,
+  textScale: setup.textScale,
 );
 
 ShotFile? _file(RecordedFile? file) => switch (file) {

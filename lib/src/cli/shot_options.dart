@@ -51,6 +51,14 @@ double parsePixelRatio(String raw) {
   );
 }
 
+/// Parses `--text-scale` as a number; `shoot` checks the scale.
+double parseTextScale(String raw) {
+  if (double.tryParse(raw) case final scale?) return scale;
+  throw ShutterException.usage(
+    '--text-scale must be a number, e.g. 1.3 (got "$raw").',
+  );
+}
+
 /// Parses `--safe-area` as `<top>,<bottom>` in logical pixels; `shoot`
 /// checks the insets.
 SafeAreaInsets parseSafeArea(String raw) {

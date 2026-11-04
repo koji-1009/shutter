@@ -58,6 +58,11 @@ class const CaptureRequest({
   /// view padding.
   final (double, double)? safeArea,
 
+  /// The platform brightness and text scale reported to every preview
+  /// that sets none.
+  final ShotBrightness brightness = ShotBrightness.light,
+  final double textScale = 1,
+
   /// Told of each render as it starts, each shot as it finishes, and each
   /// font download.
   final void Function(ShotProgress event)? onProgress,

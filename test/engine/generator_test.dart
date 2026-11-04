@@ -144,6 +144,8 @@ void main() {
           platform: ShotPlatform.ios,
           pixelRatio: 3,
           safeArea: (59, 34.5),
+          brightness: ShotBrightness.dark,
+          textScale: 1.3,
         ),
         materialFontsDir: '/sdk/fonts',
         design: const DesignSupport(available: [], shell: null),
@@ -170,7 +172,9 @@ void main() {
         '      semantics: true,\n'
         '      platform: .iOS,\n'
         '      pixelRatio: 3.0,\n'
-        '      safeArea: (59.0, 34.5),\n',
+        '      safeArea: (59.0, 34.5),\n'
+        '      brightness: .dark,\n'
+        '      textScale: 1.3,\n',
       ),
     );
     final plain = mainSource(const [], config(project));
@@ -183,6 +187,8 @@ void main() {
     expect(plain, isNot(contains('platform:')));
     expect(plain, isNot(contains('pixelRatio:')));
     expect(plain, isNot(contains('safeArea:')));
+    expect(plain, isNot(contains('brightness:')));
+    expect(plain, isNot(contains('textScale:')));
   });
 
   test('a --widget helper imports unprefixed, escapes the expression in the '

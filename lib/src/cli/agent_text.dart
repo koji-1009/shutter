@@ -76,7 +76,7 @@ shutter shot --widget 'PrimaryButton(label: "OK")' --import lib/ui/button.dart -
 * `--widget` is any Dart expression of type `Widget`; `--import` is a file under `lib/` (or a `package:` URI) it needs imported, repeatable. `package:flutter/widgets.dart` is always imported, so Material widgets need the Material library the project uses as an `--import` (`package:material_ui/material_ui.dart` or `package:flutter/material.dart`).
 * Only that widget is shot, wrapped in the shell; nothing is written to the project outside `.dart_tool/shutter/`.
 * The generated test is compiled inside the project, so `--import` reaches only what the project's `pubspec.yaml` already resolves: add the package first, then shoot it.
-* Without `--size` the widget is shot at its own height and its own width up to 800; `--size` fixes both dimensions and stretches the widget to them. `--size unbounded` shoots it at its own size with neither dimension bounded, so the image is exactly as large as the widget, however wide; text then wraps only at its own line breaks.
+* Without `--size` the widget is shot at its own height and its own width up to 800; `--size` fixes both dimensions and stretches the widget to them. `--size 360x`, a width alone, shoots it at the width of the list it sits in and its own height, so wrapped text grows the image as in the app. `--size unbounded` shoots it at its own size with neither dimension bounded, so the image is exactly as large as the widget, however wide; text then wraps only at its own line breaks.
 * The same `--widget` and `--import` give the same shot id in every run, so before and after line up in `diff`.
 
 ## Pressed, hovered, focused, opened, typed

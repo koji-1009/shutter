@@ -32,9 +32,10 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
       ..addOption(
         'size',
         help:
-            'Logical size of the --widget shot, e.g. 390x844, or '
-            '$unboundedSize to shoot it at its own size with neither '
-            'dimension bounded.',
+            'Logical size of the --widget shot, e.g. 390x844; a width '
+            'alone, e.g. 390x, to shoot it at that width and its own '
+            'height; or $unboundedSize to shoot it at its own size with '
+            'neither dimension bounded.',
       )
       ..addOption(
         'settle',
@@ -186,14 +187,13 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
     final imports = args.multiOption('import');
     final rawSize = args.option('size');
     final size = switch (rawSize) {
-      unboundedSize => WidgetSize.unbounded,
-      final raw? => parseSize(raw),
+      final raw? => parseWidgetSize(raw),
       null => null,
     };
     final actions = parseActions(args);
     final screen = args.option('capture') == 'screen';
     final viewport = switch (args.option('viewport')) {
-      final raw? => parseSize(raw, name: 'viewport'),
+      final raw? => parseViewport(raw),
       null => null,
     };
     final keyboard = switch (args.option('keyboard')) {

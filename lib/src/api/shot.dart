@@ -44,7 +44,8 @@ final class const WidgetExpression(
   /// `package:flutter/widgets.dart` is always imported.
   final List<String> imports = const [],
 
-  /// The size to lay it out at; none stops its width at the viewport's.
+  /// The size to lay it out at; none stops its width at the viewport's
+  /// and leaves its height its own.
   final WidgetSize? size,
 }) extends ShotSubject {
   @override
@@ -63,7 +64,7 @@ final class const WidgetExpression(
       'WidgetExpression(${['expression: $expression', 'imports: $imports', if (size != null) 'size: $size'].join(', ')})';
 }
 
-/// The size of a [WidgetExpression]: a [LogicalSize], or
+/// The size of a [WidgetExpression]: a [LogicalSize], a [WidgetWidth], or
 /// [WidgetSize.unbounded].
 sealed class WidgetSize {
   const WidgetSize();
@@ -86,6 +87,22 @@ final class const LogicalSize(final double width, final double height)
   /// `390x844`, as on the command line.
   @override
   String toString() => '${formatNumber(width)}x${formatNumber(height)}';
+}
+
+/// A width in logical pixels, the height left unbounded: the widget is
+/// shot at that width and its own height, as in a scrolling list, as
+/// `--size <width>x`.
+final class const WidgetWidth(final double width) extends WidgetSize {
+  @override
+  bool operator ==(Object other) =>
+      other is WidgetWidth && other.width == width;
+
+  @override
+  int get hashCode => Object.hash(WidgetWidth, width);
+
+  /// `390x`, as on the command line.
+  @override
+  String toString() => '${formatNumber(width)}x';
 }
 
 /// [WidgetSize.unbounded].

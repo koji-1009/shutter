@@ -162,8 +162,8 @@ void main() {
     expect(fromLib.staticId, fromRoot.staticId);
   });
 
-  test('--size unbounded leaves both dimensions unbounded and the id as '
-      'without it', () async {
+  test('--size unbounded leaves both dimensions unbounded, --size <width>x '
+      'the height, and the id as without it', () async {
     final root = createProject();
     Future<WidgetShot> widget(List<String> size) async {
       final engine = FakeEngine(const []);
@@ -182,6 +182,9 @@ void main() {
     final own = await widget([]);
     expect((own.size, own.unbounded), (null, false));
     expect(unbounded.staticId, own.staticId);
+    final width = await widget(['--size', '390.5x']);
+    expect((width.size, width.unbounded), ((390.5, double.infinity), false));
+    expect(width.staticId, own.staticId);
   });
 
   test('--import is repeatable; package: URIs pass through', () async {
@@ -496,13 +499,21 @@ void main() {
     }
     expect((await run(['outside.dart'])).exitCode, 64);
     expect((await run(['lib/nope.dart'])).exitCode, 66);
-    for (final size in ['1', 'axb', '1x2x3', 'Unbounded']) {
+    for (final size in ['1', 'axb', '1x2x3', 'Unbounded', 'x1', 'ax', '1xb']) {
       final bad = await run(['--widget', 'x', '--size', size]);
       expect(bad.exitCode, 64, reason: size);
       expect(
         bad.stderr,
-        contains('--size must be <width>x<height>, e.g. 390x844, or unbounded'),
+        contains(
+          '--size must be <width>x<height>, <width>x for its own height, or '
+          'unbounded',
+        ),
       );
+    }
+    for (final size in ['0x', '-1x', 'Infinityx']) {
+      final bad = await run(['--widget', 'x', '--size', size]);
+      expect(bad.exitCode, 64, reason: size);
+      expect(bad.stderr, contains('widget width must be > 0 and finite'));
     }
     for (final size in ['0x1', '1x-1', 'Infinityx1']) {
       final bad = await run(['--widget', 'x', '--size', size]);
@@ -589,6 +600,17 @@ void main() {
     final viewport = await run(['--widget', 'x', '--viewport', '390x844']);
     expect(viewport.exitCode, 64);
     expect(viewport.stderr, contains('--viewport needs --capture screen.'));
+    // A viewport has both dimensions: `390x` is a --size only.
+    final widthOnly = await run([
+      '--widget',
+      'x',
+      '--capture',
+      'screen',
+      '--viewport',
+      '390x',
+    ]);
+    expect(widthOnly.exitCode, 64);
+    expect(widthOnly.stderr, contains('--viewport must be <width>x<height>'));
     final badViewport = await run([
       '--widget',
       'x',

@@ -78,6 +78,13 @@ Future<StoredRun> shoot(
       size,
       'widget size',
     ),
+    WidgetExpression(size: WidgetWidth(:final width))
+        when width > 0 && width.isFinite =>
+      (width, double.infinity),
+    WidgetExpression(size: final WidgetWidth size) =>
+      throw ShutterException.usage(
+        'widget width must be > 0 and finite (got $size).',
+      ),
     _ => null,
   };
   final workingDirectory = context.workingDirectory;

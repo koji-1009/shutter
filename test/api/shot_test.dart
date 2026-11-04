@@ -212,6 +212,17 @@ void main() {
     final widget = unbounded.requests.single.widget!;
     expect((widget.size, widget.unbounded), (null, true));
     expect(unbounded.requests.single.screen, isFalse);
+
+    final width = FakeEngine(const []);
+    await shoot(
+      fakeContext(root, engine: width),
+      const WidgetExpression('B()', size: WidgetWidth(390)),
+    );
+    final listItem = width.requests.single.widget!;
+    expect(
+      (listItem.size, listItem.unbounded),
+      ((390.0, double.infinity), false),
+    );
   });
 
   test('arguments that do not fit together throw before the project is '
@@ -304,6 +315,12 @@ void main() {
       await expectLater(
         run(subject: WidgetExpression('A()', size: size)),
         throwsA(usageError('widget size must be > 0 and finite')),
+      );
+    }
+    for (final width in [0.0, -1.0, double.infinity, double.nan]) {
+      await expectLater(
+        run(subject: WidgetExpression('A()', size: WidgetWidth(width))),
+        throwsA(usageError('widget width must be > 0 and finite')),
       );
     }
     for (final height in [0.0, -1.0, double.infinity, double.nan]) {

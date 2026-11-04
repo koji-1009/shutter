@@ -86,5 +86,46 @@ Widget ratio() => Builder(
     expect(diff.exitCode, 1, reason: diff.stdout + diff.stderr);
     final report = loadYaml(diff.stdout) as YamlMap;
     expect(report['pixel_ratio'], {'before': 2, 'after': 3});
+
+    // 25 at 2.2 is 55.00000000000001 in binary; the PNG is still 55 wide.
+    File(p.join(root, 'lib/preview/odd_ratio_preview.dart'))
+        .writeAsStringSync('''
+import 'package:flutter/widgets.dart';
+import 'package:flutter/widget_previews.dart';
+
+@Preview(name: 'Odd', size: Size(25, 10))
+Widget odd() => const ColoredBox(color: Color(0xFF00FF00));
+''');
+    const odd = 'lib/preview/odd_ratio_preview.dart';
+    final (oddRun, oddShots) = await shootIn(root, [
+      odd,
+      '--pixel-ratio',
+      '2.2',
+    ]);
+    final (oddScreen, oddScreenShots) = await shootIn(root, [
+      odd,
+      '--pixel-ratio',
+      '2.2',
+      '--capture',
+      'screen',
+      '--viewport',
+      '50x20',
+    ]);
+    final oddTree = await shutter(root, [
+      'semantics',
+      odd,
+      '--pixel-ratio',
+      '2.2',
+    ]);
+    expect(oddTree.exitCode, 0, reason: oddTree.stdout + oddTree.stderr);
+    final oddTreeRun = (loadYaml(oddTree.stdout) as YamlMap)['run'] as String;
+    for (final (png, size) in [
+      (_png(oddRun, oddShots['Odd']!), (55, 22)),
+      (_png(oddScreen, oddScreenShots['Odd']!), (110, 44)),
+      (_png(oddTreeRun, RunManifest.read(oddTreeRun).shots.single), (55, 22)),
+    ]) {
+      expect((png.width, png.height), size);
+    }
+    expect(_color(_png(oddRun, oddShots['Odd']!), 54, 21), (0, 255, 0));
   });
 }

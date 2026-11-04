@@ -322,7 +322,7 @@ Future<void> _capture(
     };
     final ratio = config.pixelRatio;
     tester.view.devicePixelRatio = ratio;
-    tester.view.physicalSize = viewport * ratio;
+    tester.view.physicalSize = _physical(viewport, ratio);
     // The inset a device reports while its keyboard is up; the keyboard
     // itself is drawn only as its tint.
     final keyboard = config.keyboard;
@@ -450,10 +450,13 @@ Future<void> _capture(
               size,
               ratio,
             )
-          : screen == null
-          ? boundary!.toImageSync(pixelRatio: ratio)
-          : (screen.debugLayer! as OffsetLayer).toImageSync(
-              screen.paintBounds,
+          : _fitted(
+              screen == null
+                  ? boundary!.toImageSync(pixelRatio: ratio)
+                  : (screen.debugLayer! as OffsetLayer).toImageSync(
+                      screen.paintBounds,
+                    ),
+              _physical(size, ratio),
             );
       final bytes = await tester.runAsync(
         () => image.toByteData(format: ui.ImageByteFormat.png),
@@ -566,7 +569,7 @@ ui.Image _semanticsImage(
 ) {
   final root = tester.binding.renderViews.first.owner!.semanticsOwner!
       .rootSemanticsNode!;
-  final physical = size * ratio;
+  final physical = _physical(size, ratio);
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
   canvas.drawRect(
@@ -586,6 +589,33 @@ ui.Image _semanticsImage(
   );
   picture.dispose();
   return image;
+}
+
+/// [logical] at the device pixel [ratio], without the noise of the
+/// product in binary: 25 at 2.2 is 55, not the 55.00000000000001 the
+/// product is, which rounds up to a 56th pixel.
+Size _physical(Size logical, double ratio) {
+  double clean(double value) => (value * ratio * 1e6).round() / 1e6;
+  return Size(clean(logical.width), clean(logical.height));
+}
+
+/// [image] cut to [physical], rounded up: a layer's image rounds up the
+/// product of its bounds and the ratio, noise included, which can add a
+/// column or row past the shot.
+ui.Image _fitted(ui.Image image, Size physical) {
+  final width = physical.width.ceil();
+  final height = physical.height.ceil();
+  if (image.width <= width && image.height <= height) return image;
+  final recorder = ui.PictureRecorder();
+  Canvas(recorder).drawImage(image, Offset.zero, Paint());
+  final picture = recorder.endRecording();
+  final fitted = picture.toImageSync(
+    math.min(image.width, width),
+    math.min(image.height, height),
+  );
+  picture.dispose();
+  image.dispose();
+  return fitted;
 }
 
 int _semanticsDepth(SemanticsNode node) {

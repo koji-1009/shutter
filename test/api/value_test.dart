@@ -170,6 +170,7 @@ void main() {
       networkImages: {url: ShotFile(path: 'a.png', sha256: 'b')},
       semantics: true,
       platform: ShotPlatform.ios,
+      pixelRatio: 2.625,
     );
     valueType(
       () => setup(action: fresh()),
@@ -184,13 +185,14 @@ void main() {
       'keyboard: Keyboard(height: 336), '
       'networkImages: {https://example.com/a.png: '
       'ShotFile(path: a.png, sha256: b)}, '
-      'semantics: true, platform: ios)',
+      'semantics: true, platform: ios, pixelRatio: 2.625)',
     );
     expect(
       '${const ShotSetup()}',
       'ShotSetup(actions: [], capture: PreviewCapture(), networkImages: {}, '
-          'semantics: false, platform: android)',
+          'semantics: false, platform: android, pixelRatio: 2)',
     );
+    expect(const ShotSetup(pixelRatio: 3), isNot(const ShotSetup()));
     title = '/app/runs/r2/a.0.png';
     const shot = ShotResult(id: 'a.0', status: ShotStatus.ok, name: 'a');
     ShotDiffEntry entry(String png) => ShotDiffEntry(

@@ -59,13 +59,17 @@ String formatKeyboard(double? keyboard) => switch (keyboard) {
 /// `semantics` for a run of `shutter semantics`, else `paint`.
 String formatImage(bool semantics) => semantics ? 'semantics' : 'paint';
 
-/// The `image`, `platform`, `actions`, `capture`, `viewport`, `keyboard`,
-/// `keyboard_tint`, and `network_images` lines of a run's [setup], each
-/// only when set (`platform` when not Android).
+/// The `image`, `platform`, `pixel_ratio`, `actions`, `capture`,
+/// `viewport`, `keyboard`, `keyboard_tint`, and `network_images` lines of
+/// a run's [setup], each only when set (`platform` when not Android,
+/// `pixel_ratio` when not the default).
 void writeSetup(StringBuffer body, RunSetup setup) {
   if (setup.semantics) body.writeln('image: ${formatImage(true)}');
   if (setup.platform != ShotPlatform.android) {
     body.writeln('platform: ${setup.platform.name}');
+  }
+  if (setup.pixelRatio != defaultPixelRatio) {
+    body.writeln('pixel_ratio: ${formatNumber(setup.pixelRatio)}');
   }
   if (setup.actions.isNotEmpty) {
     body.writeln('actions: ${formatActions(setup.actions)}');

@@ -90,6 +90,7 @@ void main() {
         },
         semantics: true,
         platform: ShotPlatform.ios,
+        pixelRatio: 3,
       ),
     );
 
@@ -113,6 +114,7 @@ void main() {
           },
           semantics: true,
           platform: ShotPlatform.ios,
+          pixelRatio: 3,
         ),
         entries: [
           ShotDiffEntry(

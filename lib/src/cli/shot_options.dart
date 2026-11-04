@@ -43,6 +43,14 @@ double parseKeyboard(String raw) {
   );
 }
 
+/// Parses `--pixel-ratio` as a number; `shoot` checks the ratio.
+double parsePixelRatio(String raw) {
+  if (double.tryParse(raw) case final ratio?) return ratio;
+  throw ShutterException.usage(
+    '--pixel-ratio must be a number, e.g. 3 (got "$raw").',
+  );
+}
+
 final _hexColor = RegExp(r'^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$');
 
 /// Parses `--keyboard-tint` as `RRGGBB` or `AARRGGBB`, `#` optional, into

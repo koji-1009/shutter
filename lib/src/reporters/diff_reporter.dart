@@ -34,6 +34,11 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
   for (final (key, a, b) in [
     ('image', formatImage(before.semantics), formatImage(after.semantics)),
     ('platform', before.platform.name, after.platform.name),
+    (
+      'pixel_ratio',
+      formatNumber(before.pixelRatio),
+      formatNumber(after.pixelRatio),
+    ),
     ('actions', formatActions(before.actions), formatActions(after.actions)),
     ('capture', formatCapture(before.screen), formatCapture(after.screen)),
     (

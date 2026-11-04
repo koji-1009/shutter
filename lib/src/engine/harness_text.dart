@@ -67,6 +67,9 @@ class const ShutterConfig({
   /// The platform the app is drawn as; flutter_test's Android when null.
   final TargetPlatform? platform,
 
+  /// Device pixel ratio every shot is rendered at.
+  final double pixelRatio = 2,
+
   /// Host font files by family, in fallback order, chosen by the CLI.
   final Map<String, List<String>> fallbackFonts = const {},
 });
@@ -144,9 +147,6 @@ final _missingFont = RegExp(r'fonts\.gstatic\.com/s/a/([0-9a-f]{64})\.ttf');
 final _missingAsset = RegExp(
   r'font (\S+) was not found in the application assets',
 );
-
-/// Device pixel ratio every shot is rendered at.
-const double _pixelRatio = 2;
 
 /// Logical viewport used when a preview does not fix a dimension.
 const Size _fallbackViewport = Size(800, 600);
@@ -320,14 +320,15 @@ Future<void> _capture(
         height ?? _fallbackViewport.height,
       ),
     };
-    tester.view.devicePixelRatio = _pixelRatio;
-    tester.view.physicalSize = viewport * _pixelRatio;
+    final ratio = config.pixelRatio;
+    tester.view.devicePixelRatio = ratio;
+    tester.view.physicalSize = viewport * ratio;
     // The inset a device reports while its keyboard is up; the keyboard
     // itself is drawn only as its tint.
     final keyboard = config.keyboard;
     final tint = config.keyboardTint;
     if (keyboard != null) {
-      tester.view.viewInsets = FakeViewPadding(bottom: keyboard * _pixelRatio);
+      tester.view.viewInsets = FakeViewPadding(bottom: keyboard * ratio);
     }
     if (preview.brightness != null) {
       tester.platformDispatcher.platformBrightnessTestValue =
@@ -447,9 +448,10 @@ Future<void> _capture(
               tester,
               screen == null ? boundary!.localToGlobal(Offset.zero) : .zero,
               size,
+              ratio,
             )
           : screen == null
-          ? boundary!.toImageSync(pixelRatio: _pixelRatio)
+          ? boundary!.toImageSync(pixelRatio: ratio)
           : (screen.debugLayer! as OffsetLayer).toImageSync(
               screen.paintBounds,
             );
@@ -549,16 +551,22 @@ class _RenderKeyboardTint(
 }
 
 /// The view's semantics tree over [size] at [origin], logical in the view,
-/// drawn as Flutter's `SemanticsDebugger` draws it: a white box per node,
-/// framed thicker the higher it is in the tree, in a color of its place
-/// there, with its label and what it does. The whole tree is drawn and
+/// at the device pixel [ratio], drawn as Flutter's `SemanticsDebugger`
+/// draws it: a white box per node, framed thicker the higher it is in the
+/// tree, in a color of its place there, with its label and what it does.
+/// The whole tree is drawn and
 /// cut to that region, so the preview's nodes are those the app has,
 /// merged as it merges them. The debugger's painter is private, so this
 /// is its drawing.
-ui.Image _semanticsImage(WidgetTester tester, Offset origin, Size size) {
+ui.Image _semanticsImage(
+  WidgetTester tester,
+  Offset origin,
+  Size size,
+  double ratio,
+) {
   final root = tester.binding.renderViews.first.owner!.semanticsOwner!
       .rootSemanticsNode!;
-  final physical = size * _pixelRatio;
+  final physical = size * ratio;
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
   canvas.drawRect(
@@ -567,7 +575,7 @@ ui.Image _semanticsImage(WidgetTester tester, Offset origin, Size size) {
   );
   // Node rects are in physical pixels from the root node down, each in
   // its parent's space through its transform.
-  final shift = origin * _pixelRatio;
+  final shift = origin * ratio;
   canvas.translate(-shift.dx, -shift.dy);
   _paintSemantics(canvas, root, _semanticsDepth(root), 0, 0);
   final picture = recorder.endRecording();

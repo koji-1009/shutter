@@ -2,6 +2,7 @@ import 'package:args/command_runner.dart';
 
 import '../api/shoot.dart';
 import '../api/shot.dart';
+import '../reporters/format.dart';
 import '../reporters/shot_reporter.dart';
 import '../run/manifest.dart';
 import '../shutter_exception.dart';
@@ -123,6 +124,13 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
             'and adaptive widgets.',
         allowed: [for (final platform in ShotPlatform.values) platform.name],
         defaultsTo: ShotPlatform.android.name,
+      )
+      ..addOption(
+        'pixel-ratio',
+        help:
+            'Device pixel ratio the app is drawn at: pixels of the PNG per '
+            'logical pixel, e.g. 3.',
+        defaultsTo: formatNumber(defaultPixelRatio),
       );
   }
 
@@ -170,6 +178,7 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
     };
     final networkImages = parseNetworkImages(args.multiOption('network-image'));
     final platform = ShotPlatform.values.byName(args.option('platform')!);
+    final pixelRatio = parsePixelRatio(args.option('pixel-ratio')!);
     final files = args.rest;
     if (source == null && (imports.isNotEmpty || rawSize != null)) {
       throw ShutterException.usage('--import and --size need --widget.');
@@ -203,6 +212,7 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
       },
       networkImages: networkImages,
       platform: platform,
+      pixelRatio: pixelRatio,
       semantics: semantics,
     );
     reportShots(run.manifest, run.dir, ShutterIO.stdoutSink);

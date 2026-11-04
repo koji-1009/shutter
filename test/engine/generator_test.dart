@@ -142,6 +142,7 @@ void main() {
           networkImages: const {r'https://example.com/$a.png': '/p/a.png'},
           semantics: true,
           platform: ShotPlatform.ios,
+          pixelRatio: 3,
         ),
         materialFontsDir: '/sdk/fonts',
         design: const DesignSupport(available: [], shell: null),
@@ -166,7 +167,8 @@ void main() {
         "        'https://example.com/\\\$a.png': '/p/a.png',\n"
         '      },\n'
         '      semantics: true,\n'
-        '      platform: .iOS,\n',
+        '      platform: .iOS,\n'
+        '      pixelRatio: 3.0,\n',
       ),
     );
     final plain = mainSource(const [], config(project));
@@ -177,6 +179,7 @@ void main() {
     expect(plain, isNot(contains('networkImages:')));
     expect(plain, isNot(contains('semantics:')));
     expect(plain, isNot(contains('platform:')));
+    expect(plain, isNot(contains('pixelRatio:')));
   });
 
   test('a --widget helper imports unprefixed, escapes the expression in the '

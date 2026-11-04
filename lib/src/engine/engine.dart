@@ -50,6 +50,10 @@ class const CaptureRequest({
   /// The platform the app is drawn as.
   final ShotPlatform platform = ShotPlatform.android,
 
+  /// The device pixel ratio the app is drawn at: pixels of the PNG per
+  /// logical pixel.
+  final double pixelRatio = defaultPixelRatio,
+
   /// Told of each render as it starts, each shot as it finishes, and each
   /// font download.
   final void Function(ShotProgress event)? onProgress,

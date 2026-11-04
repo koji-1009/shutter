@@ -61,6 +61,7 @@ void main() {
         keyboard: const Keyboard(336, tint: 0xFF9E9E9E),
         networkImages: {'https://example.com/a.png': 'test/images/a.png'},
         platform: ShotPlatform.ios,
+        pixelRatio: 3,
       );
       final run = shotRun(stored);
       final dir = p.join(root, '.dart_tool', 'shutter', 'runs', run.id);
@@ -119,7 +120,9 @@ void main() {
         'https://example.com/a.png': p.join(root, 'test', 'images', 'a.png'),
       });
       expect((request.platform, request.semantics), (ShotPlatform.ios, false));
-      expect(RunManifest.read(dir).setup.platform, ShotPlatform.ios);
+      expect(request.pixelRatio, 3);
+      final setup = RunManifest.read(dir).setup;
+      expect((setup.platform, setup.pixelRatio), (ShotPlatform.ios, 3));
     },
   );
 
@@ -169,6 +172,7 @@ void main() {
     expect((request.screen, request.viewport), (true, null));
     expect((request.keyboard, request.keyboardTint), (300.0, null));
     expect(request.semantics, isTrue);
+    expect(request.pixelRatio, defaultPixelRatio);
 
     final unbounded = FakeEngine(const []);
     await shoot(
@@ -189,6 +193,7 @@ void main() {
       List<ShotAction> actions = const [],
       ShotCapture capture = const PreviewCapture(),
       Keyboard? keyboard,
+      double pixelRatio = defaultPixelRatio,
       bool semantics = false,
     }) => shoot(
       fakeContext(root),
@@ -197,12 +202,19 @@ void main() {
       actions: actions,
       capture: capture,
       keyboard: keyboard,
+      pixelRatio: pixelRatio,
       semantics: semantics,
     );
     await expectLater(
       run(settle: const Duration(milliseconds: -1)),
       throwsA(usageError('settle must not be negative')),
     );
+    for (final ratio in [0.0, -1.0, double.infinity, double.nan]) {
+      await expectLater(
+        run(pixelRatio: ratio),
+        throwsA(usageError('pixel ratio must be > 0 and finite')),
+      );
+    }
     await expectLater(
       run(subject: const PreviewFiles([])),
       throwsA(usageError('PreviewFiles names no file.')),

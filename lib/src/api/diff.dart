@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import '../cli/context.dart';
 import '../diff/composite.dart';
 import '../diff/run_diff.dart';
+import '../reporters/format.dart';
 import '../run/manifest.dart';
 import '../shutter_exception.dart';
 import 'compare.dart';
@@ -70,6 +71,9 @@ final class const ShotSetup({
   /// Whether the images are of the semantics tree.
   final bool semantics = false,
   final ShotPlatform platform = ShotPlatform.android,
+
+  /// The device pixel ratio the app was drawn at.
+  final double pixelRatio = 2,
 }) {
   @override
   bool operator ==(Object other) =>
@@ -83,7 +87,8 @@ final class const ShotSetup({
         networkImages,
       ) &&
       other.semantics == semantics &&
-      other.platform == platform;
+      other.platform == platform &&
+      other.pixelRatio == pixelRatio;
 
   @override
   int get hashCode => Object.hash(
@@ -94,11 +99,12 @@ final class const ShotSetup({
     const MapEquality<String, ShotFile>().hash(networkImages),
     semantics,
     platform,
+    pixelRatio,
   );
 
   @override
   String toString() =>
-      'ShotSetup(${[if (shell != null) 'shell: $shell', 'actions: $actions', 'capture: $capture', if (keyboard != null) 'keyboard: $keyboard', 'networkImages: $networkImages', 'semantics: $semantics', 'platform: ${platform.name}'].join(', ')})';
+      'ShotSetup(${[if (shell != null) 'shell: $shell', 'actions: $actions', 'capture: $capture', if (keyboard != null) 'keyboard: $keyboard', 'networkImages: $networkImages', 'semantics: $semantics', 'platform: ${platform.name}', 'pixelRatio: ${formatNumber(pixelRatio)}'].join(', ')})';
 }
 
 /// The outcome of [diff]: the two runs and each shot id across them.
@@ -288,6 +294,7 @@ ShotSetup _setup(ShellFile? shell, RunSetup setup) => ShotSetup(
   },
   semantics: setup.semantics,
   platform: setup.platform,
+  pixelRatio: setup.pixelRatio,
 );
 
 ShotFile? _file(RecordedFile? file) => switch (file) {

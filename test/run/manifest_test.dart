@@ -87,6 +87,7 @@ void main() {
         },
         semantics: true,
         platform: ShotPlatform.ios,
+        pixelRatio: 2.625,
       ),
     ).write(dir);
     final back = RunManifest.read(dir);
@@ -100,10 +101,12 @@ void main() {
     });
     expect(setup.semantics, isTrue);
     expect(setup.platform, ShotPlatform.ios);
+    expect(setup.pixelRatio, 2.625);
     expect(back.toJson().keys, [
       'run',
       'image',
       'platform',
+      'pixel_ratio',
       'actions',
       'capture',
       'viewport',
@@ -117,6 +120,7 @@ void main() {
     expect(jsonEncode(back.toJson()['keyboard']), '336');
     expect(back.toJson()['image'], 'semantics');
     expect(back.toJson()['platform'], 'ios');
+    expect(back.toJson()['pixel_ratio'], 2.625);
     final plain = RunManifest.fromJson(const {'run': 'r', 'shots': []});
     expect(plain.toJson().keys, ['run', 'shots']);
     expect(plain.setup.actions, isEmpty);
@@ -126,5 +130,6 @@ void main() {
     expect(plain.setup.networkImages, isEmpty);
     expect(plain.setup.semantics, isFalse);
     expect(plain.setup.platform, ShotPlatform.android);
+    expect(plain.setup.pixelRatio, defaultPixelRatio);
   });
 }

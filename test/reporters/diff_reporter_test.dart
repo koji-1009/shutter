@@ -178,6 +178,7 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: false,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
       );
       const screen = (
         actions: ['press text:OK'],
@@ -188,11 +189,13 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: false,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
       );
       final same = await report(pressed, pressed);
       for (final key in [
         'image',
         'platform',
+        'pixel_ratio',
         'actions',
         'capture',
         'viewport',
@@ -225,6 +228,7 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: false,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
       );
       final keyboard = await report(plainSetup, typing);
       expect(keyboard['keyboard'], {'before': 'none', 'after': 336});
@@ -239,6 +243,7 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: false,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
       );
       final tint = await report(typing, tinted);
       expect(tint.containsKey('keyboard'), isFalse);
@@ -254,6 +259,7 @@ entries:
         },
         semantics: false,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
       );
       final images = await report(plainSetup, served);
       expect(images['network_images'], {
@@ -271,6 +277,7 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: true,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
       );
       final image = await report(plainSetup, tree);
       expect(image['image'], {'before': 'paint', 'after': 'semantics'});
@@ -284,10 +291,26 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: false,
         platform: ShotPlatform.ios,
+        pixelRatio: defaultPixelRatio,
       );
       final platform = await report(plainSetup, ios);
       expect(platform['platform'], {'before': 'android', 'after': 'ios'});
       expect(platform.containsKey('image'), isFalse);
+      expect(platform.containsKey('pixel_ratio'), isFalse);
+      const dense = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+        pixelRatio: 2.625,
+      );
+      final ratio = await report(plainSetup, dense);
+      expect(ratio['pixel_ratio'], {'before': 2, 'after': 2.625});
+      expect(ratio.containsKey('platform'), isFalse);
     },
   );
 

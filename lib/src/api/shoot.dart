@@ -9,6 +9,7 @@ import '../engine/interaction.dart';
 import '../engine/progress.dart';
 import '../engine/widget_shot.dart';
 import '../project/project.dart';
+import '../reporters/format.dart';
 import '../run/manifest.dart';
 import '../run/run_store.dart';
 import '../run/timestamp_id.dart';
@@ -32,11 +33,17 @@ Future<StoredRun> shoot(
   Keyboard? keyboard,
   Map<String, String> networkImages = const {},
   ShotPlatform platform = ShotPlatform.android,
+  double pixelRatio = defaultPixelRatio,
   bool semantics = false,
   void Function(ShotProgress event)? onProgress,
 }) async {
   if (settle.isNegative) {
     throw ShutterException.usage('settle must not be negative ($settle).');
+  }
+  if (!(pixelRatio > 0 && pixelRatio.isFinite)) {
+    throw ShutterException.usage(
+      'pixel ratio must be > 0 and finite (got ${formatNumber(pixelRatio)}).',
+    );
   }
   _checkActions(actions);
   final viewport = switch (capture) {
@@ -130,6 +137,7 @@ Future<StoredRun> shoot(
       networkImages: imagePaths,
       semantics: semantics,
       platform: platform,
+      pixelRatio: pixelRatio,
       onProgress: onProgress,
     ),
   );
@@ -146,6 +154,7 @@ Future<StoredRun> shoot(
       networkImages: imageRecords,
       semantics: semantics,
       platform: platform,
+      pixelRatio: pixelRatio,
     ),
   )..write(runDir);
   return StoredRun(runDir, manifest);

@@ -193,6 +193,9 @@ String mainSource(List<String> helpers, GeneratorConfig config) {
   if (request.platform != ShotPlatform.android) {
     buffer.writeln('      platform: .${request.platform.targetPlatform},');
   }
+  if (request.pixelRatio != defaultPixelRatio) {
+    buffer.writeln('      pixelRatio: ${request.pixelRatio},');
+  }
   if (config.fallbackFonts.isNotEmpty) {
     buffer.writeln('      fallbackFonts: {');
     for (final MapEntry(:key, :value) in config.fallbackFonts.entries) {

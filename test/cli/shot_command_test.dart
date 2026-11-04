@@ -284,10 +284,13 @@ void main() {
       '#9e9e9e',
       '--platform',
       'ios',
+      '--pixel-ratio',
+      '2.625',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
     final request = engine.requests.single;
     expect(request.platform, ShotPlatform.ios);
+    expect(request.pixelRatio, 2.625);
     expect(
       [
         for (final action in request.actions)
@@ -318,6 +321,7 @@ void main() {
     expect(report['keyboard'], 336.5);
     expect(report['keyboard_tint'], '#FF9E9E9E');
     expect(report['platform'], 'ios');
+    expect(report['pixel_ratio'], 2.625);
     final manifest = RunManifest.read(report['run'] as String);
     final setup = manifest.setup;
     expect(setup.actions, labels);
@@ -325,6 +329,7 @@ void main() {
     expect(setup.keyboard, 336.5);
     expect(setup.keyboardTint, 0xFF9E9E9E);
     expect(setup.platform, ShotPlatform.ios);
+    expect(setup.pixelRatio, 2.625);
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),
@@ -344,6 +349,7 @@ void main() {
       expect(request.keyboard, isNull);
       expect(request.keyboardTint, isNull);
       expect(request.platform, ShotPlatform.android);
+      expect(request.pixelRatio, defaultPixelRatio);
     }
   });
 
@@ -484,6 +490,14 @@ void main() {
       final bad = await run(['--widget', 'x', '--settle', settle]);
       expect(bad.exitCode, 64, reason: settle);
       expect(bad.stderr, contains('--settle must be a whole number'));
+    }
+    final dense = await run(['--widget', 'x', '--pixel-ratio', '3x']);
+    expect(dense.exitCode, 64);
+    expect(dense.stderr, contains('--pixel-ratio must be a number, e.g. 3'));
+    for (final ratio in ['0', '-1', 'Infinity', 'NaN']) {
+      final bad = await run(['--widget', 'x', '--pixel-ratio', ratio]);
+      expect(bad.exitCode, 64, reason: ratio);
+      expect(bad.stderr, contains('pixel ratio must be > 0 and finite'));
     }
     for (final (option, target) in [
       ('--tap', 'Save'),

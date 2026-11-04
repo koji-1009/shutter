@@ -95,6 +95,7 @@ shots:
           },
           semantics: true,
           platform: ShotPlatform.ios,
+          pixelRatio: 3,
         ),
       ),
     );
@@ -104,6 +105,7 @@ shots:
         'shell: default\n'
         'image: semantics\n'
         'platform: ios\n'
+        'pixel_ratio: 3\n'
         'actions: ["tap text:Open", "press key:save"]\n'
         'capture: screen\n'
         'viewport: [390, 844]\n'
@@ -128,6 +130,7 @@ shots:
           networkImages: {},
           semantics: false,
           platform: ShotPlatform.android,
+          pixelRatio: defaultPixelRatio,
         ),
       ),
     );

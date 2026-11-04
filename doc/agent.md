@@ -46,6 +46,7 @@ Widget settingsSignedOut() => const SettingsPage(user: null);
 * `shutter shot` shoots only the files it is given: `shutter shot lib/preview/settings_page_preview.dart`.
 * Top-level functions, static methods, and constructors without required arguments are all valid targets; `MultiPreview` and `Preview` subclasses work too.
 * Shots are drawn as Android, the platform `flutter test` runs as. For an app that ships on iOS, or a change to iOS-only code, pass `--platform ios` to the before and after shots alike: the theme, the back button, page transitions, adaptive widgets, and the app's own `defaultTargetPlatform` checks then draw as on an iPhone. `diff` prints `platform:` when the two runs differ in it.
+* Shots are drawn at a device pixel ratio of 2. For the device a screen is laid out for, pass its ratio to the before and after shots alike, `--pixel-ratio 3` for an iPhone: an `AssetImage` then picks that ratio's variant. The PNG is the shot's `size` times the ratio; when you post it, show it at `size`'s width. `diff` prints `pixel_ratio:` when the two runs differ in it.
 
 ## Shell
 

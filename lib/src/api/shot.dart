@@ -273,6 +273,8 @@ final class const ShotResult({
 ///   at most one press, hover, or focus, which comes last.
 /// - [networkImages]: the file served to `Image.network` for each URL.
 /// - [platform]: the platform the app is drawn as.
+/// - [pixelRatio]: the device pixel ratio the app is drawn at, > 0: pixels
+///   of the PNG per logical pixel.
 /// - [onProgress]: told of what the run is doing as it does it.
 Future<ShotRun> shot(
   String projectDir,
@@ -284,6 +286,7 @@ Future<ShotRun> shot(
   Keyboard? keyboard,
   Map<String, String> networkImages = const {},
   ShotPlatform platform = ShotPlatform.android,
+  double pixelRatio = 2,
   bool semantics = false,
   void Function(ShotProgress event)? onProgress,
 }) => shoot(
@@ -296,6 +299,7 @@ Future<ShotRun> shot(
   keyboard: keyboard,
   networkImages: networkImages,
   platform: platform,
+  pixelRatio: pixelRatio,
   semantics: semantics,
   onProgress: onProgress,
 ).then(shotRun);

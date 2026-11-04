@@ -123,13 +123,18 @@ enum ShotPlatform {
   final String targetPlatform;
 }
 
+/// The device pixel ratio a run draws the app at unless told otherwise
+/// (`--pixel-ratio`).
+const double defaultPixelRatio = 2;
+
 /// What a run did to every preview besides rendering it: the actions
 /// performed before the capture, whether the whole viewport was
 /// captured, the `--viewport`, the `--keyboard` height and its
 /// `--keyboard-tint` (ARGB), the file served for each `--network-image`
 /// URL, whether the images are of the semantics tree
-/// (`shutter semantics`) rather than of what the app paints, and the
-/// `--platform` the app was drawn as.
+/// (`shutter semantics`) rather than of what the app paints, the
+/// `--platform` the app was drawn as, and the `--pixel-ratio` it was
+/// drawn at.
 typedef RunSetup = ({
   List<String> actions,
   bool screen,
@@ -139,6 +144,7 @@ typedef RunSetup = ({
   Map<String, RecordedFile> networkImages,
   bool semantics,
   ShotPlatform platform,
+  double pixelRatio,
 });
 
 /// [argb] as `#AARRGGBB`.
@@ -158,6 +164,7 @@ const RunSetup plainSetup = (
   networkImages: {},
   semantics: false,
   platform: ShotPlatform.android,
+  pixelRatio: defaultPixelRatio,
 );
 
 RecordedFile? _recordedFile(Object? json) => switch (json) {
@@ -215,6 +222,8 @@ class const RunManifest({
         final String name => ShotPlatform.values.byName(name),
         _ => ShotPlatform.android,
       },
+      pixelRatio:
+          (json['pixel_ratio'] as num?)?.toDouble() ?? defaultPixelRatio,
     ),
   );
 
@@ -237,12 +246,15 @@ class const RunManifest({
       :networkImages,
       :semantics,
       :platform,
+      :pixelRatio,
     ) = setup;
     return {
       'run': run,
       if (semantics) 'image': 'semantics',
       if (shell case final shell?) 'shell': _recordedFileJson(shell),
       if (platform != ShotPlatform.android) 'platform': platform.name,
+      if (pixelRatio != defaultPixelRatio)
+        'pixel_ratio': jsonNumber(pixelRatio),
       if (actions.isNotEmpty) 'actions': actions,
       if (screen) 'capture': 'screen',
       if (viewport case (final w, final h)?)

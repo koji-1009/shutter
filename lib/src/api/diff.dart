@@ -82,6 +82,10 @@ final class const ShotSetup({
   /// that set none of its own.
   final ShotBrightness brightness = ShotBrightness.light,
   final double textScale = 1,
+
+  /// The locale reported as the device's, as a language tag (`ja-JP`);
+  /// none for `flutter test`'s en-US.
+  final String? locale,
 }) {
   @override
   bool operator ==(Object other) =>
@@ -99,7 +103,8 @@ final class const ShotSetup({
       other.pixelRatio == pixelRatio &&
       other.safeArea == safeArea &&
       other.brightness == brightness &&
-      other.textScale == textScale;
+      other.textScale == textScale &&
+      other.locale == locale;
 
   @override
   int get hashCode => Object.hash(
@@ -114,11 +119,12 @@ final class const ShotSetup({
     safeArea,
     brightness,
     textScale,
+    locale,
   );
 
   @override
   String toString() =>
-      'ShotSetup(${[if (shell != null) 'shell: $shell', 'actions: $actions', 'capture: $capture', if (keyboard != null) 'keyboard: $keyboard', 'networkImages: $networkImages', 'semantics: $semantics', 'platform: ${platform.name}', 'pixelRatio: ${formatNumber(pixelRatio)}', if (safeArea != null) 'safeArea: $safeArea', 'brightness: ${brightness.name}', 'textScale: ${formatNumber(textScale)}'].join(', ')})';
+      'ShotSetup(${[if (shell != null) 'shell: $shell', 'actions: $actions', 'capture: $capture', if (keyboard != null) 'keyboard: $keyboard', 'networkImages: $networkImages', 'semantics: $semantics', 'platform: ${platform.name}', 'pixelRatio: ${formatNumber(pixelRatio)}', if (safeArea != null) 'safeArea: $safeArea', 'brightness: ${brightness.name}', 'textScale: ${formatNumber(textScale)}', if (locale != null) 'locale: $locale'].join(', ')})';
 }
 
 /// The outcome of [diff]: the two runs and each shot id across them.
@@ -315,6 +321,7 @@ ShotSetup _setup(ShellFile? shell, RunSetup setup) => ShotSetup(
   },
   brightness: setup.brightness,
   textScale: setup.textScale,
+  locale: setup.locale,
 );
 
 ShotFile? _file(RecordedFile? file) => switch (file) {

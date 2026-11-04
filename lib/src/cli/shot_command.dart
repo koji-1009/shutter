@@ -155,6 +155,12 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
             'Platform text scale reported to every preview that sets none '
             'of its own, e.g. 1.3.',
         defaultsTo: '1',
+      )
+      ..addOption(
+        'locale',
+        help:
+            'Locale reported as the device\'s, as a language, an optional '
+            'script, and an optional region, e.g. ja-JP or zh-Hant-TW.',
       );
   }
 
@@ -246,6 +252,7 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
       safeArea: safeArea,
       brightness: brightness,
       textScale: textScale,
+      locale: args.option('locale'),
       semantics: semantics,
     );
     reportShots(run.manifest, run.dir, ShutterIO.stdoutSink);

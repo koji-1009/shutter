@@ -182,6 +182,7 @@ entries:
         safeArea: null,
         brightness: ShotBrightness.light,
         textScale: 1.0,
+        locale: null,
       );
       const screen = (
         actions: ['press text:OK'],
@@ -196,6 +197,7 @@ entries:
         safeArea: null,
         brightness: ShotBrightness.light,
         textScale: 1.0,
+        locale: null,
       );
       final same = await report(pressed, pressed);
       for (final key in [
@@ -205,6 +207,7 @@ entries:
         'safe_area',
         'brightness',
         'text_scale',
+        'locale',
         'actions',
         'capture',
         'viewport',
@@ -241,6 +244,7 @@ entries:
         safeArea: null,
         brightness: ShotBrightness.light,
         textScale: 1.0,
+        locale: null,
       );
       final keyboard = await report(plainSetup, typing);
       expect(keyboard['keyboard'], {'before': 'none', 'after': 336});
@@ -259,6 +263,7 @@ entries:
         safeArea: null,
         brightness: ShotBrightness.light,
         textScale: 1.0,
+        locale: null,
       );
       final tint = await report(typing, tinted);
       expect(tint.containsKey('keyboard'), isFalse);
@@ -278,6 +283,7 @@ entries:
         safeArea: null,
         brightness: ShotBrightness.light,
         textScale: 1.0,
+        locale: null,
       );
       final images = await report(plainSetup, served);
       expect(images['network_images'], {
@@ -299,6 +305,7 @@ entries:
         safeArea: null,
         brightness: ShotBrightness.light,
         textScale: 1.0,
+        locale: null,
       );
       final image = await report(plainSetup, tree);
       expect(image['image'], {'before': 'paint', 'after': 'semantics'});
@@ -316,6 +323,7 @@ entries:
         safeArea: null,
         brightness: ShotBrightness.light,
         textScale: 1.0,
+        locale: null,
       );
       final platform = await report(plainSetup, ios);
       expect(platform['platform'], {'before': 'android', 'after': 'ios'});
@@ -334,6 +342,7 @@ entries:
         safeArea: null,
         brightness: ShotBrightness.light,
         textScale: 1.0,
+        locale: null,
       );
       final ratio = await report(plainSetup, dense);
       expect(ratio['pixel_ratio'], {'before': 2, 'after': 2.625});
@@ -352,6 +361,7 @@ entries:
         safeArea: (59.0, 34.0),
         brightness: ShotBrightness.light,
         textScale: 1.0,
+        locale: null,
       );
       final safeArea = await report(plainSetup, notched);
       expect(safeArea['safe_area'], {
@@ -374,11 +384,31 @@ entries:
         safeArea: null,
         brightness: ShotBrightness.dark,
         textScale: 1.3,
+        locale: null,
       );
       final appearance = await report(plainSetup, darkLarge);
       expect(appearance['brightness'], {'before': 'light', 'after': 'dark'});
       expect(appearance['text_scale'], {'before': 1, 'after': 1.3});
       expect(appearance.containsKey('safe_area'), isFalse);
+      expect(appearance.containsKey('locale'), isFalse);
+      const japanese = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
+        locale: 'ja-JP',
+      );
+      final locale = await report(plainSetup, japanese);
+      expect(locale['locale'], {'before': 'default', 'after': 'ja-JP'});
+      expect(locale.containsKey('brightness'), isFalse);
     },
   );
 

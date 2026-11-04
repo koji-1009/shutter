@@ -79,6 +79,10 @@ class const ShutterConfig({
   final Brightness? brightness,
   final double? textScale,
 
+  /// The locale reported as the device's, by language, script, and
+  /// country code; flutter_test's en-US when null.
+  final (String, String?, String?)? locale,
+
   /// Host font files by family, in fallback order, chosen by the CLI.
   final Map<String, List<String>> fallbackFonts = const {},
 });
@@ -358,6 +362,17 @@ Future<void> _capture(
     }
     if (preview.textScaleFactor ?? config.textScale case final scale?) {
       tester.platformDispatcher.textScaleFactorTestValue = scale;
+    }
+    // The device's locale, which an app widget, or a preview's own
+    // localizations without a locale, resolves its locale from.
+    if (config.locale case (final language, final script, final country)?) {
+      final locale = Locale.fromSubtags(
+        languageCode: language,
+        scriptCode: script,
+        countryCode: country,
+      );
+      tester.platformDispatcher.localesTestValue = [locale];
+      tester.platformDispatcher.localeTestValue = locale;
     }
 
     Widget child = _subject(entry);

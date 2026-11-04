@@ -65,6 +65,7 @@ void main() {
         safeArea: const SafeAreaInsets(top: 59, bottom: 34),
         brightness: ShotBrightness.dark,
         textScale: 1.3,
+        locale: 'zh_hant_tw',
       );
       final run = shotRun(stored);
       final dir = p.join(root, '.dart_tool', 'shutter', 'runs', run.id);
@@ -133,6 +134,9 @@ void main() {
         (ShotBrightness.dark, 1.3),
       );
       expect((setup.brightness, setup.textScale), (ShotBrightness.dark, 1.3));
+      // Each code in its usual case, joined as a language tag.
+      expect(request.locale, ('zh', 'Hant', 'TW'));
+      expect(setup.locale, 'zh-Hant-TW');
     },
   );
 
@@ -185,6 +189,7 @@ void main() {
     expect(request.pixelRatio, defaultPixelRatio);
     expect(request.safeArea, isNull);
     expect((request.brightness, request.textScale), (ShotBrightness.light, 1));
+    expect(request.locale, isNull);
 
     final unbounded = FakeEngine(const []);
     await shoot(
@@ -208,6 +213,7 @@ void main() {
       double pixelRatio = defaultPixelRatio,
       SafeAreaInsets? safeArea,
       double textScale = 1,
+      String? locale,
       bool semantics = false,
     }) => shoot(
       fakeContext(root),
@@ -219,6 +225,7 @@ void main() {
       pixelRatio: pixelRatio,
       safeArea: safeArea,
       textScale: textScale,
+      locale: locale,
       semantics: semantics,
     );
     await expectLater(
@@ -246,6 +253,12 @@ void main() {
       await expectLater(
         run(textScale: scale),
         throwsA(usageError('text scale must be > 0 and finite')),
+      );
+    }
+    for (final locale in ['', 'j', 'japanese', 'ja-JPN', 'ja-JP-x', 'ja JP']) {
+      await expectLater(
+        run(locale: locale),
+        throwsA(usageError('locale must be a language, then an optional')),
       );
     }
     await expectLater(

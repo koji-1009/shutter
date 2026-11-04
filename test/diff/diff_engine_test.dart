@@ -55,6 +55,7 @@ void main() {
           safeArea: null,
           brightness: ShotBrightness.light,
           textScale: 1,
+          locale: null,
         ),
       )..write(dir),
     );

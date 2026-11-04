@@ -63,11 +63,14 @@ String formatSafeArea((double, double)? safeArea) => switch (safeArea) {
   null => 'none',
 };
 
+/// `ja-JP`, or `default` for a run shot without `--locale`.
+String formatLocale(String? locale) => locale ?? 'default';
+
 /// `semantics` for a run of `shutter semantics`, else `paint`.
 String formatImage(bool semantics) => semantics ? 'semantics' : 'paint';
 
 /// The `image`, `platform`, `pixel_ratio`, `safe_area`, `brightness`,
-/// `text_scale`, `actions`, `capture`, `viewport`, `keyboard`,
+/// `text_scale`, `locale`, `actions`, `capture`, `viewport`, `keyboard`,
 /// `keyboard_tint`, and `network_images` lines of a run's [setup], each
 /// only when set (`platform` when not Android, `pixel_ratio`,
 /// `brightness`, and `text_scale` when not the default).
@@ -87,6 +90,9 @@ void writeSetup(StringBuffer body, RunSetup setup) {
   }
   if (setup.textScale != 1) {
     body.writeln('text_scale: ${formatNumber(setup.textScale)}');
+  }
+  if (setup.locale case final locale?) {
+    body.writeln('locale: ${yamlScalar(locale)}');
   }
   if (setup.actions.isNotEmpty) {
     body.writeln('actions: ${formatActions(setup.actions)}');

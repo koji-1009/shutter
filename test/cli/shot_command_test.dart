@@ -292,10 +292,13 @@ void main() {
       'dark',
       '--text-scale',
       '1.3',
+      '--locale',
+      'ja_jp',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
     final request = engine.requests.single;
     expect((request.brightness, request.textScale), (ShotBrightness.dark, 1.3));
+    expect(request.locale, ('ja', null, 'JP'));
     expect(request.platform, ShotPlatform.ios);
     expect(request.pixelRatio, 2.625);
     expect(request.safeArea, (59.0, 34.5));
@@ -332,6 +335,7 @@ void main() {
     expect(report['pixel_ratio'], 2.625);
     expect(report['safe_area'], [59, 34.5]);
     expect((report['brightness'], report['text_scale']), ('dark', 1.3));
+    expect(report['locale'], 'ja-JP');
     final manifest = RunManifest.read(report['run'] as String);
     final setup = manifest.setup;
     expect(setup.actions, labels);
@@ -342,6 +346,7 @@ void main() {
     expect(setup.pixelRatio, 2.625);
     expect(setup.safeArea, (59.0, 34.5));
     expect((setup.brightness, setup.textScale), (ShotBrightness.dark, 1.3));
+    expect(setup.locale, 'ja-JP');
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),
@@ -367,6 +372,7 @@ void main() {
         (request.brightness, request.textScale),
         (ShotBrightness.light, 1),
       );
+      expect(request.locale, isNull);
     }
   });
 
@@ -529,6 +535,12 @@ void main() {
       expect(bad.exitCode, 64, reason: scale);
       expect(bad.stderr, contains('text scale must be > 0 and finite'));
     }
+    final japanese = await run(['--widget', 'x', '--locale', 'Japanese']);
+    expect(japanese.exitCode, 64);
+    expect(
+      japanese.stderr,
+      contains('locale must be a language, then an optional script and region'),
+    );
     final dim = await run(['--widget', 'x', '--brightness', 'dim']);
     expect(dim.exitCode, 64);
     expect(dim.stderr, contains('"dim" is not an allowed value'));

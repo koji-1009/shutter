@@ -91,6 +91,7 @@ void main() {
         safeArea: (59, 34.5),
         brightness: ShotBrightness.dark,
         textScale: 1.3,
+        locale: 'ja-JP',
       ),
     ).write(dir);
     final back = RunManifest.read(dir);
@@ -107,6 +108,7 @@ void main() {
     expect(setup.pixelRatio, 2.625);
     expect(setup.safeArea, (59.0, 34.5));
     expect((setup.brightness, setup.textScale), (ShotBrightness.dark, 1.3));
+    expect(setup.locale, 'ja-JP');
     expect(back.toJson().keys, [
       'run',
       'image',
@@ -115,6 +117,7 @@ void main() {
       'safe_area',
       'brightness',
       'text_scale',
+      'locale',
       'actions',
       'capture',
       'viewport',
@@ -147,5 +150,6 @@ void main() {
       (plain.setup.brightness, plain.setup.textScale),
       (ShotBrightness.light, 1),
     );
+    expect(plain.setup.locale, isNull);
   });
 }

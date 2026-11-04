@@ -50,6 +50,7 @@ void reportDiff(RunDiff diff, String? dir, IOSink sink) {
       formatNumber(before.textScale),
       formatNumber(after.textScale),
     ),
+    ('locale', formatLocale(before.locale), formatLocale(after.locale)),
     ('actions', formatActions(before.actions), formatActions(after.actions)),
     ('capture', formatCapture(before.screen), formatCapture(after.screen)),
     (

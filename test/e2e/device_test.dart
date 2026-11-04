@@ -293,4 +293,58 @@ Widget own() => _appearance();
     };
     expect(entries, {'Device': 'changed', 'Own': 'unchanged'});
   });
+
+  test("--locale is the device's: the platform reports it, and a preview's "
+      'localizations without a locale resolve to it', () async {
+    final root = await shared();
+    File(p.join(root, 'lib/preview/locale_preview.dart')).writeAsStringSync('''
+import 'package:flutter/widget_previews.dart';
+import 'package:flutter/widgets.dart';
+
+Widget _box(bool on) => ColoredBox(
+  color: on ? const Color(0xFF0000FF) : const Color(0xFF00FF00),
+  child: const SizedBox(width: 10, height: 10),
+);
+
+PreviewLocalizationsData englishOrJapanese() => const PreviewLocalizationsData(
+  supportedLocales: [Locale('en'), Locale('ja')],
+  localizationsDelegates: [DefaultWidgetsLocalizations.delegate],
+);
+
+@Preview(name: 'Platform', size: Size(10, 10))
+Widget platform() => Builder(
+  builder: (context) => _box(
+    View.of(context).platformDispatcher.locale == const Locale('ja', 'JP'),
+  ),
+);
+
+@Preview(name: 'Resolved', size: Size(10, 10), localizations: englishOrJapanese)
+Widget resolved() => Builder(
+  builder: (context) =>
+      _box(Localizations.localeOf(context).languageCode == 'ja'),
+);
+''');
+    const file = 'lib/preview/locale_preview.dart';
+    final (plain, plainShots) = await shootIn(root, [file]);
+    final (japanese, japaneseShots) = await shootIn(root, [
+      file,
+      '--locale',
+      'ja-JP',
+    ]);
+    for (final shots in [plainShots, japaneseShots]) {
+      for (final shot in shots.values) {
+        expect(shot.status, ShotStatus.ok, reason: shot.error);
+      }
+    }
+    for (final name in ['Platform', 'Resolved']) {
+      expect(_color(_png(plain, plainShots[name]!), 10, 10), (0, 255, 0));
+      expect(_color(_png(japanese, japaneseShots[name]!), 10, 10), (0, 0, 255));
+    }
+    expect(RunManifest.read(japanese).setup.locale, 'ja-JP');
+
+    final diff = await shutter(root, ['diff', plain, japanese]);
+    expect(diff.exitCode, 1, reason: diff.stdout + diff.stderr);
+    final report = loadYaml(diff.stdout) as YamlMap;
+    expect(report['locale'], {'before': 'default', 'after': 'ja-JP'});
+  });
 }

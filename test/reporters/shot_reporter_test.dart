@@ -99,6 +99,7 @@ shots:
           safeArea: (59, 34.5),
           brightness: ShotBrightness.dark,
           textScale: 1.3,
+          locale: 'zh-Hant-TW',
         ),
       ),
     );
@@ -112,6 +113,7 @@ shots:
         'safe_area: [59, 34.5]\n'
         'brightness: dark\n'
         'text_scale: 1.3\n'
+        'locale: zh-Hant-TW\n'
         'actions: ["tap text:Open", "press key:save"]\n'
         'capture: screen\n'
         'viewport: [390, 844]\n'
@@ -140,6 +142,7 @@ shots:
           safeArea: null,
           brightness: ShotBrightness.light,
           textScale: 1,
+          locale: null,
         ),
       ),
     );

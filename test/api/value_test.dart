@@ -178,6 +178,7 @@ void main() {
       safeArea: SafeAreaInsets(top: 59, bottom: 34),
       brightness: ShotBrightness.dark,
       textScale: 1.3,
+      locale: 'ja-JP',
     );
     valueType(
       () => setup(action: fresh()),
@@ -194,7 +195,7 @@ void main() {
       'ShotFile(path: a.png, sha256: b)}, '
       'semantics: true, platform: ios, pixelRatio: 2.625, '
       'safeArea: SafeAreaInsets(top: 59, bottom: 34), brightness: dark, '
-      'textScale: 1.3)',
+      'textScale: 1.3, locale: ja-JP)',
     );
     expect(
       '${const ShotSetup()}',
@@ -208,6 +209,7 @@ void main() {
       isNot(const ShotSetup()),
     );
     expect(const ShotSetup(textScale: 2), isNot(const ShotSetup()));
+    expect(const ShotSetup(locale: 'ja-JP'), isNot(const ShotSetup()));
     title = '/app/runs/r2/a.0.png';
     const shot = ShotResult(id: 'a.0', status: ShotStatus.ok, name: 'a');
     ShotDiffEntry entry(String png) => ShotDiffEntry(

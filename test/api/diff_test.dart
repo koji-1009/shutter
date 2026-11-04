@@ -94,6 +94,7 @@ void main() {
         safeArea: (59, 34),
         brightness: ShotBrightness.dark,
         textScale: 1.3,
+        locale: 'ja-JP',
       ),
     );
 
@@ -121,6 +122,7 @@ void main() {
           safeArea: SafeAreaInsets(top: 59, bottom: 34),
           brightness: ShotBrightness.dark,
           textScale: 1.3,
+          locale: 'ja-JP',
         ),
         entries: [
           ShotDiffEntry(

@@ -63,6 +63,10 @@ class const CaptureRequest({
   final ShotBrightness brightness = ShotBrightness.light,
   final double textScale = 1,
 
+  /// The locale reported as the device's: language, script, and country
+  /// codes.
+  final (String, String?, String?)? locale,
+
   /// Told of each render as it starts, each shot as it finishes, and each
   /// font download.
   final void Function(ShotProgress event)? onProgress,

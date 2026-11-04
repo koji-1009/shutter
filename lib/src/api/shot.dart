@@ -302,6 +302,9 @@ final class const ShotResult({
 ///   without one.
 /// - [brightness], [textScale]: the platform brightness and text scale
 ///   (> 0) reported to every preview that sets none of its own.
+/// - [locale]: the locale reported as the device's, a language tag of a
+///   language, an optional script, and an optional region, e.g. `ja-JP`
+///   or `zh-Hant-TW`; none keeps `flutter test`'s en-US.
 /// - [onProgress]: told of what the run is doing as it does it.
 Future<ShotRun> shot(
   String projectDir,
@@ -317,6 +320,7 @@ Future<ShotRun> shot(
   SafeAreaInsets? safeArea,
   ShotBrightness brightness = ShotBrightness.light,
   double textScale = 1,
+  String? locale,
   bool semantics = false,
   void Function(ShotProgress event)? onProgress,
 }) => shoot(
@@ -333,6 +337,7 @@ Future<ShotRun> shot(
   safeArea: safeArea,
   brightness: brightness,
   textScale: textScale,
+  locale: locale,
   semantics: semantics,
   onProgress: onProgress,
 ).then(shotRun);

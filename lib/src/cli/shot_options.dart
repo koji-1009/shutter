@@ -39,7 +39,7 @@ WidgetSize parseWidgetSize(String raw) {
   if (raw == unboundedSize) return WidgetSize.unbounded;
   return switch (_dimensions(raw)) {
     (final width, final height?) => LogicalSize(width, height),
-    (final width, null) => WidgetWidth(width),
+    (final width, null) => LogicalSize(width, double.infinity),
     null => throw ShutterException.usage(
       '--size must be <width>x<height>, <width>x for its own height, or '
       '$unboundedSize, e.g. 390x844 or 390x (got "$raw").',

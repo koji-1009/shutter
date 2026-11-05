@@ -89,11 +89,7 @@ void main() {
     ], '390x844.5');
     expect('${const LogicalSize(double.infinity, 1)}', 'Infinityx1');
     expect('${WidgetSize.unbounded}', 'unbounded');
-    valueType(() => WidgetWidth(390.5), [
-      const WidgetWidth(390),
-      const LogicalSize(390.5, 844),
-      WidgetSize.unbounded,
-    ], '390.5x');
+    expect('${const LogicalSize(390.5, double.infinity)}', '390.5x');
   });
 
   test('results compare by value and print what they hold', () {

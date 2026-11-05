@@ -216,7 +216,7 @@ void main() {
     final width = FakeEngine(const []);
     await shoot(
       fakeContext(root, engine: width),
-      const WidgetExpression('B()', size: WidgetWidth(390)),
+      const WidgetExpression('B()', size: LogicalSize(390, double.infinity)),
     );
     final listItem = width.requests.single.widget!;
     expect(
@@ -319,7 +319,12 @@ void main() {
     }
     for (final width in [0.0, -1.0, double.infinity, double.nan]) {
       await expectLater(
-        run(subject: WidgetExpression('A()', size: WidgetWidth(width))),
+        run(
+          subject: WidgetExpression(
+            'A()',
+            size: LogicalSize(width, double.infinity),
+          ),
+        ),
         throwsA(usageError('widget width must be > 0 and finite')),
       );
     }

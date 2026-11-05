@@ -64,7 +64,7 @@ final class const WidgetExpression(
       'WidgetExpression(${['expression: $expression', 'imports: $imports', if (size != null) 'size: $size'].join(', ')})';
 }
 
-/// The size of a [WidgetExpression]: a [LogicalSize], a [WidgetWidth], or
+/// The size of a [WidgetExpression]: a [LogicalSize], or
 /// [WidgetSize.unbounded].
 sealed class WidgetSize {
   const WidgetSize();
@@ -74,7 +74,10 @@ sealed class WidgetSize {
   static const WidgetSize unbounded = UnboundedSize._();
 }
 
-/// A size in logical pixels.
+/// A size in logical pixels. As the size of a [WidgetExpression], the
+/// height may be `double.infinity`, as in a preview's
+/// `Size(360, double.infinity)`: the widget is then shot at that width
+/// and its own height, as `--size <width>x`.
 final class const LogicalSize(final double width, final double height)
     extends WidgetSize {
   @override
@@ -84,25 +87,12 @@ final class const LogicalSize(final double width, final double height)
   @override
   int get hashCode => Object.hash(width, height);
 
-  /// `390x844`, as on the command line.
+  /// `390x844`, or `390x` for an unbounded height, as on the command
+  /// line.
   @override
-  String toString() => '${formatNumber(width)}x${formatNumber(height)}';
-}
-
-/// A width in logical pixels, the height left unbounded: the widget is
-/// shot at that width and its own height, as in a scrolling list, as
-/// `--size <width>x`.
-final class const WidgetWidth(final double width) extends WidgetSize {
-  @override
-  bool operator ==(Object other) =>
-      other is WidgetWidth && other.width == width;
-
-  @override
-  int get hashCode => Object.hash(WidgetWidth, width);
-
-  /// `390x`, as on the command line.
-  @override
-  String toString() => '${formatNumber(width)}x';
+  String toString() => height == double.infinity
+      ? '${formatNumber(width)}x'
+      : '${formatNumber(width)}x${formatNumber(height)}';
 }
 
 /// [WidgetSize.unbounded].

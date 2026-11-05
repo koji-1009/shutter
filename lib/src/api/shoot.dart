@@ -74,17 +74,20 @@ Future<StoredRun> shoot(
   final widgetSize = switch (subject) {
     PreviewFiles(:final files) when files.isEmpty =>
       throw ShutterException.usage('PreviewFiles names no file.'),
+    // A width alone: the height the widget's own, as in a list.
+    WidgetExpression(size: LogicalSize(:final width, height: double.infinity))
+        when width > 0 && width.isFinite =>
+      (width, double.infinity),
+    WidgetExpression(
+      size: final LogicalSize size && LogicalSize(height: double.infinity),
+    ) =>
+      throw ShutterException.usage(
+        'widget width must be > 0 and finite (got $size).',
+      ),
     WidgetExpression(size: final LogicalSize size) => _size(
       size,
       'widget size',
     ),
-    WidgetExpression(size: WidgetWidth(:final width))
-        when width > 0 && width.isFinite =>
-      (width, double.infinity),
-    WidgetExpression(size: final WidgetWidth size) =>
-      throw ShutterException.usage(
-        'widget width must be > 0 and finite (got $size).',
-      ),
     _ => null,
   };
   final workingDirectory = context.workingDirectory;

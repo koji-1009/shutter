@@ -50,6 +50,23 @@ class const CaptureRequest({
   /// The platform the app is drawn as.
   final ShotPlatform platform = ShotPlatform.android,
 
+  /// The device pixel ratio the app is drawn at: pixels of the PNG per
+  /// logical pixel.
+  final double pixelRatio = defaultPixelRatio,
+
+  /// Logical safe area insets, top and bottom, reported to the app as the
+  /// view padding.
+  final (double, double)? safeArea,
+
+  /// The platform brightness and text scale reported to every preview
+  /// that sets none.
+  final ShotBrightness brightness = ShotBrightness.light,
+  final double textScale = 1,
+
+  /// The locale reported as the device's: language, script, and country
+  /// codes.
+  final (String, String?, String?)? locale,
+
   /// Told of each render as it starts, each shot as it finishes, and each
   /// font download.
   final void Function(ShotProgress event)? onProgress,

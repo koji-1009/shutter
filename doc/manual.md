@@ -39,8 +39,9 @@ A path is relative to the working directory (or absolute); a named file without 
 The generated test imports `package:flutter/widgets.dart` and every `--import`, and shoots the expression as a `Preview` named after it, sized by `--size`.
 Without `--size` the widget is shot at its own height and at its own width up to the viewport's (see Drawing model).
 `--size unbounded` lifts that limit too: the widget is laid out with neither dimension bounded and shot at its own size, past the viewport when it is larger (with `--capture screen`, the PNG stops at the viewport). Text then wraps only at its own line breaks, and a widget that needs a bounded width (an `Expanded` in a `Row`) fails there.
+`--size <width>x`, a width without a height, shoots it at that width and its own height, as `Size(360, double.infinity)` does in a preview: the width of the list or column it sits in, with text wrapping there and the height growing to fit.
 An `--import` path is relative to the working directory (or absolute) and must be under `lib/`; `package:` URIs pass through.
-The shot id hashes the expression and the resolved imports, so the same `--widget` and `--import` give the same id in every run, from any working directory; `--size`, `unbounded` included, does not change the id.
+The shot id hashes the expression and the resolved imports, so the same `--widget` and `--import` give the same id in every run, from any working directory; `--size`, a width alone or `unbounded` included, does not change the id.
 A widget expression that does not compile is an `error` shot carrying the compiler message; it has no `file` or `at`.
 `--widget` and preview files cannot be combined in one shot.
 
@@ -93,6 +94,49 @@ The view, its pixel ratio, and the fonts loaded are the same for either platform
 The run records `platform: ios` in `manifest.json`; `shot` prints it, and `diff` prints both runs' when they differ, since the platform changes the image without any widget changing.
 It is not part of shot ids, so a run as iOS pairs shot for shot with one as Android.
 
+## Pixel ratio
+
+Every shot is drawn at a device pixel ratio of 2: each logical pixel is 2×2 pixels of the PNG.
+`--pixel-ratio <ratio>` draws every preview of the run at another ratio, any number above 0: 3 for the iPhone a screen is laid out for, or the 2.625 an Android phone reports.
+The view reports the ratio as a device does (`MediaQuery.devicePixelRatioOf`), so what follows it draws as on that device: an `AssetImage` picks the variant for the ratio, `3.0x/` over `2.0x/`.
+Layout is in logical pixels and does not change: the PNG is the shot's `size` times the ratio, rounded up, and `size` stays logical, the width to show the image at.
+The semantics tree is drawn at the same ratio.
+
+The run records `pixel_ratio` in `manifest.json` when it is not 2; `shot` prints it, and `diff` prints both runs' when they differ, since the ratio changes the size of every PNG without any widget changing.
+It is not part of shot ids, so a run at 3 pairs shot for shot with one at 2.
+
+## Safe area
+
+`flutter test` lays the app out without a safe area: the view reports no padding, as no phone does.
+`--safe-area <top>,<bottom>` lays every preview of the run out as a phone with those insets, in logical pixels, does: the view reports them as its padding and view padding (`MediaQuery.paddingOf`, `MediaQuery.viewPaddingOf`), so an `AppBar` grows by the top inset, and a `SafeArea`, or a layout of the app's own that pads itself by the padding, keeps out of them.
+The status bar, the notch, and the home indicator are not drawn: the insets show what the app paints there, such as an `AppBar`'s background.
+Insets differ by device, so there is no default: give those of the device the screen is laid out for, which the app reads there as `MediaQuery.viewPaddingOf(context)`, top and bottom.
+With `--keyboard`, the keyboard absorbs the bottom inset from the padding, as on a device; the view padding keeps it.
+
+The run records `safe_area` in `manifest.json`; `shot` prints it, and `diff` prints both runs' when they differ, since the insets change the layout without any widget changing.
+They are not part of shot ids, so a run with `--safe-area` pairs shot for shot with one without.
+
+## Brightness and text scale
+
+`flutter test` reports a light platform brightness and a text scale of 1, as a device's settings would by default.
+`--brightness dark` and `--text-scale <scale>` (any number above 0, such as 1.3) report the device's settings instead, so the shell's app widget picks them up as on a device: its `darkTheme` when it sets one (the default shell sets none), text laid out larger.
+The scale multiplies every font size, as iOS does; Android 14 and later convert each size through the system's own font scaling instead, which is not a plain multiplication, so text shot with `--platform android` at a scale other than 1 can differ in size from that device's.
+They reach every preview that sets none of its own: a preview's `brightness` or `textScaleFactor` wins, as it describes that preview, so a preview made for light stays light under `--brightness dark`.
+A `--widget` shot has no `Preview` of its own to set them, so these options are how it is shot dark or with larger text.
+
+The run records `brightness: dark` and `text_scale` in `manifest.json` when not the default; `shot` prints them, and `diff` prints both runs' when they differ, since they change the image without any widget changing.
+They are not part of shot ids, so a run with `--brightness dark` pairs shot for shot with one without.
+
+## Locale
+
+`flutter test` reports en-US as the device's locale.
+`--locale <tag>` reports another: a language, then an optional script and region, joined by `-` or `_`, such as `ja-JP` or `zh-Hant-TW`.
+What resolves its locale from the device's resolves it from this one, as on a device with that language set: the shell's app widget, against its `supportedLocales`, and a preview's `localizations` that set no `locale` of their own.
+An app widget that does not support the locale falls back as on a device: the default shell's `MaterialApp`, which supports only en-US, stays in English, so shoot through a shell that sets the app's `supportedLocales` and `localizationsDelegates`.
+
+The run records `locale` in `manifest.json` as the app receives it: each code in its usual case (`zh-Hant-TW`), and a deprecated language or region replaced as Flutter's `Locale` replaces it (`iw-IL` is `he-IL`); `shot` prints it, and `diff` prints both runs' when they differ, since the locale changes the text without any widget changing.
+It is not part of shot ids, so a run with `--locale` pairs shot for shot with one without.
+
 ## The semantics tree
 
 `shutter semantics` takes the same preview files, `--widget`, and options as `shot`, except `--keyboard-tint`, and shoots the same way, actions included.
@@ -142,8 +186,8 @@ The captured region takes a finite dimension of `size` as it is.
 Without a finite width, the preview takes its own width, up to the viewport's, as on a screen; a `--widget` shot with `--size unbounded` takes its own width past it.
 Without a finite height, the preview gets unbounded height, as in a scrolling list, and is shot at its own height, even past the viewport (with `--capture screen`, the PNG stops at the viewport): `Size(360, double.infinity)` shoots a widget 360 wide at the height it has in a list.
 A widget that needs a bounded height (a `Scaffold`, a `ListView`, an `Expanded` in a `Column`) fails there; give it a finite height.
-`brightness` sets the platform brightness and `textScaleFactor` the platform text scale, so the shell's app widget picks them up as on a device.
-Images render at a device pixel ratio of 2.
+`brightness` sets the platform brightness and `textScaleFactor` the platform text scale, so the shell's app widget picks them up as on a device; a preview that sets neither gets `--brightness` and `--text-scale` (see Brightness and text scale).
+Images render at a device pixel ratio of 2, unless `--pixel-ratio` gives another (see Pixel ratio).
 Elevation paints its shadow as on a device; `flutter_test` would draw a solid outline in its place.
 
 Fonts: every family in the project's `FontManifest.json` (pubspec `fonts:`, package fonts, MaterialIcons) plus Roboto from the Flutter SDK cache.
@@ -255,6 +299,7 @@ These come from rendering through `flutter test`.
 * No on-screen keyboard: text entered with `--enter` reaches the field, but the keyboard a device would show is not drawn, even with `--capture screen`, and the layout does not make room for it unless `--keyboard` is given (see Experimental); `--keyboard-tint` marks its area with a color.
 * HTTP is blocked, so network images fail to load unless `--network-image` serves them.
 * `flutter test` runs the engine with test fonts, which has no system font fallback. Shutter's host fonts reach paragraphs, text fields, the default text style, and the text themes of the shell and the preview's `theme`. Text a widget paints with its own `TextPainter`, such as a `Slider`'s value indicator, gets them only through those: under a `Theme` built in a `wrapper`, in the preview function, or in the widget itself, glyphs outside its fonts render as boxes, where a device would fall back to a system font. Give the app's theme through the shell or the preview's `theme` instead. Shutter does not see that text, so its characters add no host font.
+* `--text-scale` multiplies every font size. Android 14 and later scale font sizes through the system's own conversion, which `flutter test` does not run, so text at a scale other than 1 can differ in size from such a device's.
 
 ## Engine
 
@@ -266,7 +311,7 @@ When Flutter ships a capture command in the previewer itself, it replaces v1 wit
 
 ## Runs
 
-`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `image` for a `semantics` run, `shell` when a shell file was used, `platform` for a run as iOS, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` when given, `shots`).
+`.dart_tool/shutter/runs/<run-id>/` holds `<id>.png` per shot and `manifest.json` (`run`, `image` for a `semantics` run, `shell` when a shell file was used, `platform` for a run as iOS, `pixel_ratio` for a ratio other than 2, `safe_area`, `brightness` when dark, `text_scale` other than 1, `locale`, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` when given, `shots`).
 `<run-id>` is the UTC time of the shot (`20260918T101530Z`), suffixed `-2`, `-3`, ... when taken; a hidden `.<run-id>` file claims the name, so runs started in the same second get distinct ids.
 `shot` prints the run directory as `run:`; `diff` accepts a run's directory, its id, `latest` for the newest run, or `latest~N` for the run N before it.
 `latest` counts runs in id order (time, then suffix) and skips a run still being shot, whose `manifest.json` is not written yet.
@@ -312,9 +357,9 @@ When the two runs were shot with different shells (path or sha256), `shell` show
 ## Output
 
 `shot`, `semantics`, and `diff` print YAML starting with the comment `# shutter ai-report v1`, with absolute paths to open.
-`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `platform` (as iOS), `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (when given), `summary`, and `shots`, errors first.
+`shot` gives `run`, `shell` (the shell file with its sha256, or `default`), `platform` (as iOS), `pixel_ratio` (other than 2), `safe_area`, `brightness` (dark), `text_scale` (other than 1), `locale`, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (when given), `summary`, and `shots`, errors first.
 `semantics` gives the same, with `image: semantics` after `shell`.
-`diff` gives `diff` (with `--images` or `--composite`), `before`, `after`, `shell`, `image`, `platform`, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (each when the two runs differ in it; `image` is `paint` for a `shot` run), `summary`, and `entries` in the order changed → added → removed → unchanged.
+`diff` gives `diff` (with `--images` or `--composite`), `before`, `after`, `shell`, `image`, `platform`, `pixel_ratio`, `safe_area`, `brightness`, `text_scale`, `locale`, `actions`, `capture`, `viewport`, `keyboard`, `keyboard_tint`, and `network_images` (each when the two runs differ in it; `image` is `paint` for a `shot` run), `summary`, and `entries` in the order changed → added → removed → unchanged.
 
 ## Exit codes
 
@@ -329,13 +374,13 @@ Other failures follow sysexits: 64 usage, 66 missing run or file, 69 no Flutter 
 
 ## Commands
 
-| command     | purpose                                                                                                                                                                                                                                                               |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent`     | the step-by-step playbook                                                                                                                                                                                                                                             |
-| `manual`    | this document                                                                                                                                                                                                                                                         |
-| `doctor`    | SDK version, font cache, shell (`--shell`)                                                                                                                                                                                                                            |
-| `init`      | write `shell.dart` (`--shell`)                                                                                                                                                                                                                                        |
-| `shot`      | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`, `--platform`) |
-| `semantics` | draw the semantics tree of the same subjects into a new run, with the options of `shot` except `--keyboard-tint`                                                                                                                                                      |
-| `diff`      | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                                                                                  |
-| `prune`     | delete every run but the newest (`--keep`)                                                                                                                                                                                                                            |
+| command     | purpose                                                                                                                                                                                                                                                                                                                                          |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `agent`     | the step-by-step playbook                                                                                                                                                                                                                                                                                                                        |
+| `manual`    | this document                                                                                                                                                                                                                                                                                                                                    |
+| `doctor`    | SDK version, font cache, shell (`--shell`)                                                                                                                                                                                                                                                                                                       |
+| `init`      | write `shell.dart` (`--shell`)                                                                                                                                                                                                                                                                                                                   |
+| `shot`      | render the named preview files, or one `--widget`, into a new run (`--widget`/`--import`/`--size`, `--settle`, `--shell`, `--tap`/`--enter`/`--press`/`--hover`/`--focus`, `--capture`/`--viewport`, `--keyboard`/`--keyboard-tint`, `--network-image`, `--platform`, `--pixel-ratio`, `--safe-area`, `--brightness`/`--text-scale`, `--locale`) |
+| `semantics` | draw the semantics tree of the same subjects into a new run, with the options of `shot` except `--keyboard-tint`                                                                                                                                                                                                                                 |
+| `diff`      | compare two runs (`--images`, `--composite`/`--direction`/`--title`)                                                                                                                                                                                                                                                                             |
+| `prune`     | delete every run but the newest (`--keep`)                                                                                                                                                                                                                                                                                                       |

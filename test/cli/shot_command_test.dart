@@ -162,8 +162,8 @@ void main() {
     expect(fromLib.staticId, fromRoot.staticId);
   });
 
-  test('--size unbounded leaves both dimensions unbounded and the id as '
-      'without it', () async {
+  test('--size unbounded leaves both dimensions unbounded, --size <width>x '
+      'the height, and the id as without it', () async {
     final root = createProject();
     Future<WidgetShot> widget(List<String> size) async {
       final engine = FakeEngine(const []);
@@ -182,6 +182,9 @@ void main() {
     final own = await widget([]);
     expect((own.size, own.unbounded), (null, false));
     expect(unbounded.staticId, own.staticId);
+    final width = await widget(['--size', '390.5x']);
+    expect((width.size, width.unbounded), ((390.5, double.infinity), false));
+    expect(width.staticId, own.staticId);
   });
 
   test('--import is repeatable; package: URIs pass through', () async {
@@ -284,10 +287,24 @@ void main() {
       '#9e9e9e',
       '--platform',
       'ios',
+      '--pixel-ratio',
+      '2.625',
+      '--safe-area',
+      '59,34.5',
+      '--brightness',
+      'dark',
+      '--text-scale',
+      '1.3',
+      '--locale',
+      'ja_jp',
     ], fakeContext(root, engine: engine));
     expect(result.exitCode, 0, reason: result.stderr);
     final request = engine.requests.single;
+    expect((request.brightness, request.textScale), (ShotBrightness.dark, 1.3));
+    expect(request.locale, ('ja', null, 'JP'));
     expect(request.platform, ShotPlatform.ios);
+    expect(request.pixelRatio, 2.625);
+    expect(request.safeArea, (59.0, 34.5));
     expect(
       [
         for (final action in request.actions)
@@ -318,6 +335,10 @@ void main() {
     expect(report['keyboard'], 336.5);
     expect(report['keyboard_tint'], '#FF9E9E9E');
     expect(report['platform'], 'ios');
+    expect(report['pixel_ratio'], 2.625);
+    expect(report['safe_area'], [59, 34.5]);
+    expect((report['brightness'], report['text_scale']), ('dark', 1.3));
+    expect(report['locale'], 'ja-JP');
     final manifest = RunManifest.read(report['run'] as String);
     final setup = manifest.setup;
     expect(setup.actions, labels);
@@ -325,6 +346,10 @@ void main() {
     expect(setup.keyboard, 336.5);
     expect(setup.keyboardTint, 0xFF9E9E9E);
     expect(setup.platform, ShotPlatform.ios);
+    expect(setup.pixelRatio, 2.625);
+    expect(setup.safeArea, (59.0, 34.5));
+    expect((setup.brightness, setup.textScale), (ShotBrightness.dark, 1.3));
+    expect(setup.locale, 'ja-JP');
 
     for (final (flag, kind) in [
       ('--hover', ActionKind.hover),
@@ -344,6 +369,13 @@ void main() {
       expect(request.keyboard, isNull);
       expect(request.keyboardTint, isNull);
       expect(request.platform, ShotPlatform.android);
+      expect(request.pixelRatio, defaultPixelRatio);
+      expect(request.safeArea, isNull);
+      expect(
+        (request.brightness, request.textScale),
+        (ShotBrightness.light, 1),
+      );
+      expect(request.locale, isNull);
     }
   });
 
@@ -467,13 +499,21 @@ void main() {
     }
     expect((await run(['outside.dart'])).exitCode, 64);
     expect((await run(['lib/nope.dart'])).exitCode, 66);
-    for (final size in ['1', 'axb', '1x2x3', 'Unbounded']) {
+    for (final size in ['1', 'axb', '1x2x3', 'Unbounded', 'x1', 'ax', '1xb']) {
       final bad = await run(['--widget', 'x', '--size', size]);
       expect(bad.exitCode, 64, reason: size);
       expect(
         bad.stderr,
-        contains('--size must be <width>x<height>, e.g. 390x844, or unbounded'),
+        contains(
+          '--size must be <width>x<height>, <width>x for its own height, or '
+          'unbounded',
+        ),
       );
+    }
+    for (final size in ['0x', '-1x', 'Infinityx']) {
+      final bad = await run(['--widget', 'x', '--size', size]);
+      expect(bad.exitCode, 64, reason: size);
+      expect(bad.stderr, contains('widget width must be > 0 and finite'));
     }
     for (final size in ['0x1', '1x-1', 'Infinityx1']) {
       final bad = await run(['--widget', 'x', '--size', size]);
@@ -485,6 +525,42 @@ void main() {
       expect(bad.exitCode, 64, reason: settle);
       expect(bad.stderr, contains('--settle must be a whole number'));
     }
+    final dense = await run(['--widget', 'x', '--pixel-ratio', '3x']);
+    expect(dense.exitCode, 64);
+    expect(dense.stderr, contains('--pixel-ratio must be a number, e.g. 3'));
+    for (final ratio in ['0', '-1', 'Infinity', 'NaN']) {
+      final bad = await run(['--widget', 'x', '--pixel-ratio', ratio]);
+      expect(bad.exitCode, 64, reason: ratio);
+      expect(bad.stderr, contains('pixel ratio must be > 0 and finite'));
+    }
+    for (final safeArea in ['59', '59,34,0', 'top,34', '59x34']) {
+      final bad = await run(['--widget', 'x', '--safe-area', safeArea]);
+      expect(bad.exitCode, 64, reason: safeArea);
+      expect(bad.stderr, contains('--safe-area must be <top>,<bottom>'));
+    }
+    final large = await run(['--widget', 'x', '--text-scale', 'large']);
+    expect(large.exitCode, 64);
+    expect(large.stderr, contains('--text-scale must be a number, e.g. 1.3'));
+    for (final scale in ['0', '-1', 'Infinity', 'NaN']) {
+      final bad = await run(['--widget', 'x', '--text-scale', scale]);
+      expect(bad.exitCode, 64, reason: scale);
+      expect(bad.stderr, contains('text scale must be > 0 and finite'));
+    }
+    final japanese = await run(['--widget', 'x', '--locale', 'Japanese']);
+    expect(japanese.exitCode, 64);
+    expect(
+      japanese.stderr,
+      contains('locale must be a language, then an optional script and region'),
+    );
+    final dim = await run(['--widget', 'x', '--brightness', 'dim']);
+    expect(dim.exitCode, 64);
+    expect(dim.stderr, contains('"dim" is not an allowed value'));
+    final negative = await run(['--widget', 'x', '--safe-area', '59,-1']);
+    expect(negative.exitCode, 64);
+    expect(
+      negative.stderr,
+      contains('safe area insets must be logical sizes ≥ 0'),
+    );
     for (final (option, target) in [
       ('--tap', 'Save'),
       ('--tap', 'name:Save'),
@@ -524,6 +600,17 @@ void main() {
     final viewport = await run(['--widget', 'x', '--viewport', '390x844']);
     expect(viewport.exitCode, 64);
     expect(viewport.stderr, contains('--viewport needs --capture screen.'));
+    // A viewport has both dimensions: `390x` is a --size only.
+    final widthOnly = await run([
+      '--widget',
+      'x',
+      '--capture',
+      'screen',
+      '--viewport',
+      '390x',
+    ]);
+    expect(widthOnly.exitCode, 64);
+    expect(widthOnly.stderr, contains('--viewport must be <width>x<height>'));
     final badViewport = await run([
       '--widget',
       'x',

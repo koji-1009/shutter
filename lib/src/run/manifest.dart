@@ -123,13 +123,24 @@ enum ShotPlatform {
   final String targetPlatform;
 }
 
+/// The device pixel ratio a run draws the app at unless told otherwise
+/// (`--pixel-ratio`).
+const double defaultPixelRatio = 2;
+
+/// The platform brightness a run reports to the app (`--brightness`);
+/// a preview's own `brightness` wins. `flutter test` reports light.
+enum ShotBrightness { light, dark }
+
 /// What a run did to every preview besides rendering it: the actions
 /// performed before the capture, whether the whole viewport was
 /// captured, the `--viewport`, the `--keyboard` height and its
 /// `--keyboard-tint` (ARGB), the file served for each `--network-image`
 /// URL, whether the images are of the semantics tree
-/// (`shutter semantics`) rather than of what the app paints, and the
-/// `--platform` the app was drawn as.
+/// (`shutter semantics`) rather than of what the app paints, the
+/// `--platform` the app was drawn as, the `--pixel-ratio` it was drawn
+/// at, the `--safe-area` insets, top and bottom, the `--brightness` and
+/// `--text-scale` reported to every preview that sets none, and the
+/// `--locale` reported as the device's, as a language tag (`ja-JP`).
 typedef RunSetup = ({
   List<String> actions,
   bool screen,
@@ -139,6 +150,11 @@ typedef RunSetup = ({
   Map<String, RecordedFile> networkImages,
   bool semantics,
   ShotPlatform platform,
+  double pixelRatio,
+  (double, double)? safeArea,
+  ShotBrightness brightness,
+  double textScale,
+  String? locale,
 });
 
 /// [argb] as `#AARRGGBB`.
@@ -158,6 +174,11 @@ const RunSetup plainSetup = (
   networkImages: {},
   semantics: false,
   platform: ShotPlatform.android,
+  pixelRatio: defaultPixelRatio,
+  safeArea: null,
+  brightness: ShotBrightness.light,
+  textScale: 1,
+  locale: null,
 );
 
 RecordedFile? _recordedFile(Object? json) => switch (json) {
@@ -215,6 +236,21 @@ class const RunManifest({
         final String name => ShotPlatform.values.byName(name),
         _ => ShotPlatform.android,
       },
+      pixelRatio:
+          (json['pixel_ratio'] as num?)?.toDouble() ?? defaultPixelRatio,
+      safeArea: switch (json['safe_area']) {
+        [final num top, final num bottom] => (
+          top.toDouble(),
+          bottom.toDouble(),
+        ),
+        _ => null,
+      },
+      brightness: switch (json['brightness']) {
+        final String name => ShotBrightness.values.byName(name),
+        _ => ShotBrightness.light,
+      },
+      textScale: (json['text_scale'] as num?)?.toDouble() ?? 1,
+      locale: json['locale'] as String?,
     ),
   );
 
@@ -237,12 +273,24 @@ class const RunManifest({
       :networkImages,
       :semantics,
       :platform,
+      :pixelRatio,
+      :safeArea,
+      :brightness,
+      :textScale,
+      :locale,
     ) = setup;
     return {
       'run': run,
       if (semantics) 'image': 'semantics',
       if (shell case final shell?) 'shell': _recordedFileJson(shell),
       if (platform != ShotPlatform.android) 'platform': platform.name,
+      if (pixelRatio != defaultPixelRatio)
+        'pixel_ratio': jsonNumber(pixelRatio),
+      if (safeArea case (final top, final bottom)?)
+        'safe_area': [jsonNumber(top), jsonNumber(bottom)],
+      if (brightness != ShotBrightness.light) 'brightness': brightness.name,
+      if (textScale != 1) 'text_scale': jsonNumber(textScale),
+      'locale': ?locale,
       if (actions.isNotEmpty) 'actions': actions,
       if (screen) 'capture': 'screen',
       if (viewport case (final w, final h)?)

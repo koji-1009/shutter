@@ -95,6 +95,11 @@ shots:
           },
           semantics: true,
           platform: ShotPlatform.ios,
+          pixelRatio: 3,
+          safeArea: (59, 34.5),
+          brightness: ShotBrightness.dark,
+          textScale: 1.3,
+          locale: 'zh-Hant-TW',
         ),
       ),
     );
@@ -104,6 +109,11 @@ shots:
         'shell: default\n'
         'image: semantics\n'
         'platform: ios\n'
+        'pixel_ratio: 3\n'
+        'safe_area: [59, 34.5]\n'
+        'brightness: dark\n'
+        'text_scale: 1.3\n'
+        'locale: zh-Hant-TW\n'
         'actions: ["tap text:Open", "press key:save"]\n'
         'capture: screen\n'
         'viewport: [390, 844]\n'
@@ -128,6 +138,11 @@ shots:
           networkImages: {},
           semantics: false,
           platform: ShotPlatform.android,
+          pixelRatio: defaultPixelRatio,
+          safeArea: null,
+          brightness: ShotBrightness.light,
+          textScale: 1,
+          locale: null,
         ),
       ),
     );

@@ -178,6 +178,11 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: false,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
+        locale: null,
       );
       const screen = (
         actions: ['press text:OK'],
@@ -188,11 +193,21 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: false,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
+        locale: null,
       );
       final same = await report(pressed, pressed);
       for (final key in [
         'image',
         'platform',
+        'pixel_ratio',
+        'safe_area',
+        'brightness',
+        'text_scale',
+        'locale',
         'actions',
         'capture',
         'viewport',
@@ -225,6 +240,11 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: false,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
+        locale: null,
       );
       final keyboard = await report(plainSetup, typing);
       expect(keyboard['keyboard'], {'before': 'none', 'after': 336});
@@ -239,6 +259,11 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: false,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
+        locale: null,
       );
       final tint = await report(typing, tinted);
       expect(tint.containsKey('keyboard'), isFalse);
@@ -254,6 +279,11 @@ entries:
         },
         semantics: false,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
+        locale: null,
       );
       final images = await report(plainSetup, served);
       expect(images['network_images'], {
@@ -271,6 +301,11 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: true,
         platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
+        locale: null,
       );
       final image = await report(plainSetup, tree);
       expect(image['image'], {'before': 'paint', 'after': 'semantics'});
@@ -284,10 +319,127 @@ entries:
         networkImages: <String, RecordedFile>{},
         semantics: false,
         platform: ShotPlatform.ios,
+        pixelRatio: defaultPixelRatio,
+        safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
+        locale: null,
       );
       final platform = await report(plainSetup, ios);
       expect(platform['platform'], {'before': 'android', 'after': 'ios'});
       expect(platform.containsKey('image'), isFalse);
+      expect(platform.containsKey('pixel_ratio'), isFalse);
+      const dense = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+        pixelRatio: 2.625,
+        safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
+        locale: null,
+      );
+      final ratio = await report(plainSetup, dense);
+      expect(ratio['pixel_ratio'], {'before': 2, 'after': 2.625});
+      expect(ratio.containsKey('platform'), isFalse);
+      expect(ratio.containsKey('safe_area'), isFalse);
+      const notched = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: (59.0, 34.0),
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
+        locale: null,
+      );
+      final safeArea = await report(plainSetup, notched);
+      expect(safeArea['safe_area'], {
+        'before': 'none',
+        'after': [59, 34],
+      });
+      expect(safeArea.containsKey('pixel_ratio'), isFalse);
+      expect(safeArea.containsKey('brightness'), isFalse);
+      expect(safeArea.containsKey('text_scale'), isFalse);
+      const darkLarge = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: null,
+        brightness: ShotBrightness.dark,
+        textScale: 1.3,
+        locale: null,
+      );
+      final appearance = await report(plainSetup, darkLarge);
+      expect(appearance['brightness'], {'before': 'light', 'after': 'dark'});
+      expect(appearance['text_scale'], {'before': 1, 'after': 1.3});
+      expect(appearance.containsKey('safe_area'), isFalse);
+      expect(appearance.containsKey('locale'), isFalse);
+      const japanese = (
+        actions: <String>[],
+        screen: false,
+        viewport: null,
+        keyboard: null,
+        keyboardTint: null,
+        networkImages: <String, RecordedFile>{},
+        semantics: false,
+        platform: ShotPlatform.android,
+        pixelRatio: defaultPixelRatio,
+        safeArea: null,
+        brightness: ShotBrightness.light,
+        textScale: 1.0,
+        locale: 'ja-JP',
+      );
+      final locale = await report(plainSetup, japanese);
+      expect(locale['locale'], {'before': 'default', 'after': 'ja-JP'});
+      expect(locale.containsKey('brightness'), isFalse);
+      // Norwegian's `no` is quoted: a YAML 1.1 reader takes `no` for false.
+      final norwegian = await collect(
+        (sink) => reportDiff(
+          const RunDiff(
+            before: 'a',
+            after: 'b',
+            entries: [],
+            afterSetup: (
+              actions: [],
+              screen: false,
+              viewport: null,
+              keyboard: null,
+              keyboardTint: null,
+              networkImages: {},
+              semantics: false,
+              platform: ShotPlatform.android,
+              pixelRatio: defaultPixelRatio,
+              safeArea: null,
+              brightness: ShotBrightness.light,
+              textScale: 1,
+              locale: 'no',
+            ),
+          ),
+          null,
+          sink,
+        ),
+      );
+      expect(
+        norwegian,
+        contains('locale:\n  before: default\n  after: "no"\n'),
+      );
     },
   );
 

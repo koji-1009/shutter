@@ -51,6 +51,11 @@ void main() {
           networkImages: {},
           semantics: false,
           platform: ShotPlatform.android,
+          pixelRatio: defaultPixelRatio,
+          safeArea: null,
+          brightness: ShotBrightness.light,
+          textScale: 1,
+          locale: null,
         ),
       )..write(dir),
     );

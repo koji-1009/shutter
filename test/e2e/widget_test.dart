@@ -70,6 +70,24 @@ void main() {
     )!;
     expect((freeImage.width, freeImage.height), (2400, 60));
 
+    // --size <width>x fixes the width and leaves the height the widget's
+    // own, as in a scrolling list: wrapped text grows down.
+    const text = 'Text("word word word word word word word word word word")';
+    final line = await shutter(root, ['shot', '--widget', text]);
+    expect(line.exitCode, 0, reason: line.stdout + line.stderr);
+    final oneLine = RunManifest.read(lastRun(root)).shots.single.size!;
+    final narrow = await shutter(root, [
+      'shot',
+      '--widget',
+      text,
+      '--size',
+      '120x',
+    ]);
+    expect(narrow.exitCode, 0, reason: narrow.stdout + narrow.stderr);
+    final wrapped = RunManifest.read(lastRun(root)).shots.single.size!;
+    expect(wrapped.$1, 120);
+    expect(wrapped.$2, greaterThan(oneLine.$2 * 2));
+
     final broken = await shutter(root, ['shot', '--widget', 'Missing()']);
     expect(broken.exitCode, 2, reason: broken.stdout + broken.stderr);
     final brokenRun = (loadYaml(broken.stdout) as YamlMap)['run'] as String;

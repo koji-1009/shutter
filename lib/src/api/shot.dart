@@ -44,7 +44,8 @@ final class const WidgetExpression(
   /// `package:flutter/widgets.dart` is always imported.
   final List<String> imports = const [],
 
-  /// The size to lay it out at; none stops its width at the viewport's.
+  /// The size to lay it out at; none stops its width at the viewport's
+  /// and leaves its height its own.
   final WidgetSize? size,
 }) extends ShotSubject {
   @override
@@ -73,7 +74,10 @@ sealed class WidgetSize {
   static const WidgetSize unbounded = UnboundedSize._();
 }
 
-/// A size in logical pixels.
+/// A size in logical pixels. As the size of a [WidgetExpression], the
+/// height may be `double.infinity`, as in a preview's
+/// `Size(360, double.infinity)`: the widget is then shot at that width
+/// and its own height, as `--size <width>x`.
 final class const LogicalSize(final double width, final double height)
     extends WidgetSize {
   @override
@@ -83,9 +87,12 @@ final class const LogicalSize(final double width, final double height)
   @override
   int get hashCode => Object.hash(width, height);
 
-  /// `390x844`, as on the command line.
+  /// `390x844`, or `390x` for an unbounded height, as on the command
+  /// line.
   @override
-  String toString() => '${formatNumber(width)}x${formatNumber(height)}';
+  String toString() => height == double.infinity
+      ? '${formatNumber(width)}x'
+      : '${formatNumber(width)}x${formatNumber(height)}';
 }
 
 /// [WidgetSize.unbounded].
@@ -155,6 +162,29 @@ final class const Keyboard(
   @override
   String toString() =>
       'Keyboard(${['height: ${formatNumber(height)}', if (tint case final tint?) 'tint: ${colorLiteral(tint)}'].join(', ')})';
+}
+
+/// The safe area of the device the app is laid out for, as `--safe-area`:
+/// the insets of its status bar or notch and of its home indicator, in
+/// logical pixels. They are reported to the app as the view padding and
+/// not drawn.
+final class const SafeAreaInsets({
+  /// The inset at the top, such as the status bar's.
+  final double top = 0,
+
+  /// The inset at the bottom, such as the home indicator's.
+  final double bottom = 0,
+}) {
+  @override
+  bool operator ==(Object other) =>
+      other is SafeAreaInsets && other.top == top && other.bottom == bottom;
+
+  @override
+  int get hashCode => Object.hash(top, bottom);
+
+  @override
+  String toString() =>
+      'SafeAreaInsets(top: ${formatNumber(top)}, bottom: ${formatNumber(bottom)})';
 }
 
 /// The outcome of [shot]: the run directory and each shot in it.
@@ -273,6 +303,15 @@ final class const ShotResult({
 ///   at most one press, hover, or focus, which comes last.
 /// - [networkImages]: the file served to `Image.network` for each URL.
 /// - [platform]: the platform the app is drawn as.
+/// - [pixelRatio]: the device pixel ratio the app is drawn at, > 0: pixels
+///   of the PNG per logical pixel.
+/// - [safeArea]: the safe area the app is laid out with; none lays it out
+///   without one.
+/// - [brightness], [textScale]: the platform brightness and text scale
+///   (> 0) reported to every preview that sets none of its own.
+/// - [locale]: the locale reported as the device's, a language tag of a
+///   language, an optional script, and an optional region, e.g. `ja-JP`
+///   or `zh-Hant-TW`; none keeps `flutter test`'s en-US.
 /// - [onProgress]: told of what the run is doing as it does it.
 Future<ShotRun> shot(
   String projectDir,
@@ -284,6 +323,11 @@ Future<ShotRun> shot(
   Keyboard? keyboard,
   Map<String, String> networkImages = const {},
   ShotPlatform platform = ShotPlatform.android,
+  double pixelRatio = 2,
+  SafeAreaInsets? safeArea,
+  ShotBrightness brightness = ShotBrightness.light,
+  double textScale = 1,
+  String? locale,
   bool semantics = false,
   void Function(ShotProgress event)? onProgress,
 }) => shoot(
@@ -296,6 +340,11 @@ Future<ShotRun> shot(
   keyboard: keyboard,
   networkImages: networkImages,
   platform: platform,
+  pixelRatio: pixelRatio,
+  safeArea: safeArea,
+  brightness: brightness,
+  textScale: textScale,
+  locale: locale,
   semantics: semantics,
   onProgress: onProgress,
 ).then(shotRun);

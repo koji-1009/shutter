@@ -87,6 +87,11 @@ void main() {
         },
         semantics: true,
         platform: ShotPlatform.ios,
+        pixelRatio: 2.625,
+        safeArea: (59, 34.5),
+        brightness: ShotBrightness.dark,
+        textScale: 1.3,
+        locale: 'ja-JP',
       ),
     ).write(dir);
     final back = RunManifest.read(dir);
@@ -100,10 +105,19 @@ void main() {
     });
     expect(setup.semantics, isTrue);
     expect(setup.platform, ShotPlatform.ios);
+    expect(setup.pixelRatio, 2.625);
+    expect(setup.safeArea, (59.0, 34.5));
+    expect((setup.brightness, setup.textScale), (ShotBrightness.dark, 1.3));
+    expect(setup.locale, 'ja-JP');
     expect(back.toJson().keys, [
       'run',
       'image',
       'platform',
+      'pixel_ratio',
+      'safe_area',
+      'brightness',
+      'text_scale',
+      'locale',
       'actions',
       'capture',
       'viewport',
@@ -117,6 +131,10 @@ void main() {
     expect(jsonEncode(back.toJson()['keyboard']), '336');
     expect(back.toJson()['image'], 'semantics');
     expect(back.toJson()['platform'], 'ios');
+    expect(back.toJson()['pixel_ratio'], 2.625);
+    expect(jsonEncode(back.toJson()['safe_area']), '[59,34.5]');
+    expect(back.toJson()['brightness'], 'dark');
+    expect(back.toJson()['text_scale'], 1.3);
     final plain = RunManifest.fromJson(const {'run': 'r', 'shots': []});
     expect(plain.toJson().keys, ['run', 'shots']);
     expect(plain.setup.actions, isEmpty);
@@ -126,5 +144,12 @@ void main() {
     expect(plain.setup.networkImages, isEmpty);
     expect(plain.setup.semantics, isFalse);
     expect(plain.setup.platform, ShotPlatform.android);
+    expect(plain.setup.pixelRatio, defaultPixelRatio);
+    expect(plain.setup.safeArea, isNull);
+    expect(
+      (plain.setup.brightness, plain.setup.textScale),
+      (ShotBrightness.light, 1),
+    );
+    expect(plain.setup.locale, isNull);
   });
 }

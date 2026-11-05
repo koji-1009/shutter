@@ -9,11 +9,13 @@ import '../engine/interaction.dart';
 import '../engine/progress.dart';
 import '../engine/widget_shot.dart';
 import '../project/project.dart';
+import '../reporters/format.dart';
 import '../run/manifest.dart';
 import '../run/run_store.dart';
 import '../run/timestamp_id.dart';
 import '../scan/scanner.dart';
 import '../shutter_exception.dart';
+import 'locale_codes.dart';
 import 'shot.dart';
 
 /// Shoots [subject] as [shot] does, in the project at or above the
@@ -32,12 +34,37 @@ Future<StoredRun> shoot(
   Keyboard? keyboard,
   Map<String, String> networkImages = const {},
   ShotPlatform platform = ShotPlatform.android,
+  double pixelRatio = defaultPixelRatio,
+  SafeAreaInsets? safeArea,
+  ShotBrightness brightness = ShotBrightness.light,
+  double textScale = 1,
+  String? locale,
   bool semantics = false,
   void Function(ShotProgress event)? onProgress,
 }) async {
   if (settle.isNegative) {
     throw ShutterException.usage('settle must not be negative ($settle).');
   }
+  if (!(pixelRatio > 0 && pixelRatio.isFinite)) {
+    throw ShutterException.usage(
+      'pixel ratio must be > 0 and finite (got ${formatNumber(pixelRatio)}).',
+    );
+  }
+  final insets = switch (safeArea) {
+    SafeAreaInsets(:final top, :final bottom)
+        when top >= 0 && bottom >= 0 && top.isFinite && bottom.isFinite =>
+      (top, bottom),
+    final safeArea? => throw ShutterException.usage(
+      'safe area insets must be logical sizes ≥ 0 (got $safeArea).',
+    ),
+    null => null,
+  };
+  if (!(textScale > 0 && textScale.isFinite)) {
+    throw ShutterException.usage(
+      'text scale must be > 0 and finite (got ${formatNumber(textScale)}).',
+    );
+  }
+  final codes = locale == null ? null : localeCodes(locale);
   _checkActions(actions);
   final viewport = switch (capture) {
     ScreenCapture(:final viewport?) => _size(viewport, 'viewport'),
@@ -47,6 +74,16 @@ Future<StoredRun> shoot(
   final widgetSize = switch (subject) {
     PreviewFiles(:final files) when files.isEmpty =>
       throw ShutterException.usage('PreviewFiles names no file.'),
+    // A width alone: the height the widget's own, as in a list.
+    WidgetExpression(size: LogicalSize(:final width, height: double.infinity))
+        when width > 0 && width.isFinite =>
+      (width, double.infinity),
+    WidgetExpression(
+      size: final LogicalSize size && LogicalSize(height: double.infinity),
+    ) =>
+      throw ShutterException.usage(
+        'widget width must be > 0 and finite (got $size).',
+      ),
     WidgetExpression(size: final LogicalSize size) => _size(
       size,
       'widget size',
@@ -130,6 +167,11 @@ Future<StoredRun> shoot(
       networkImages: imagePaths,
       semantics: semantics,
       platform: platform,
+      pixelRatio: pixelRatio,
+      safeArea: insets,
+      brightness: brightness,
+      textScale: textScale,
+      locale: codes,
       onProgress: onProgress,
     ),
   );
@@ -146,6 +188,11 @@ Future<StoredRun> shoot(
       networkImages: imageRecords,
       semantics: semantics,
       platform: platform,
+      pixelRatio: pixelRatio,
+      safeArea: insets,
+      brightness: brightness,
+      textScale: textScale,
+      locale: codes == null ? null : languageTag(codes),
     ),
   )..write(runDir);
   return StoredRun(runDir, manifest);

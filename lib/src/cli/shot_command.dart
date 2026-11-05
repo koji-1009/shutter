@@ -2,6 +2,7 @@ import 'package:args/command_runner.dart';
 
 import '../api/shoot.dart';
 import '../api/shot.dart';
+import '../reporters/format.dart';
 import '../reporters/shot_reporter.dart';
 import '../run/manifest.dart';
 import '../shutter_exception.dart';
@@ -31,9 +32,10 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
       ..addOption(
         'size',
         help:
-            'Logical size of the --widget shot, e.g. 390x844, or '
-            '$unboundedSize to shoot it at its own size with neither '
-            'dimension bounded.',
+            'Logical size of the --widget shot, e.g. 390x844; a width '
+            'alone, e.g. 390x, to shoot it at that width and its own '
+            'height; or $unboundedSize to shoot it at its own size with '
+            'neither dimension bounded.',
       )
       ..addOption(
         'settle',
@@ -123,6 +125,43 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
             'and adaptive widgets.',
         allowed: [for (final platform in ShotPlatform.values) platform.name],
         defaultsTo: ShotPlatform.android.name,
+      )
+      ..addOption(
+        'pixel-ratio',
+        help:
+            'Device pixel ratio the app is drawn at: pixels of the PNG per '
+            'logical pixel, e.g. 3.',
+        defaultsTo: formatNumber(defaultPixelRatio),
+      )
+      ..addOption(
+        'safe-area',
+        help:
+            'Lay out as on a device with these safe area insets, as '
+            '<top>,<bottom> in logical pixels, e.g. 59,34; the status bar '
+            'and home indicator are not drawn.',
+      )
+      ..addOption(
+        'brightness',
+        help:
+            'Platform brightness reported to every preview that sets none '
+            'of its own.',
+        allowed: [
+          for (final brightness in ShotBrightness.values) brightness.name,
+        ],
+        defaultsTo: ShotBrightness.light.name,
+      )
+      ..addOption(
+        'text-scale',
+        help:
+            'Platform text scale reported to every preview that sets none '
+            'of its own, e.g. 1.3.',
+        defaultsTo: '1',
+      )
+      ..addOption(
+        'locale',
+        help:
+            'Locale reported as the device\'s, as a language, an optional '
+            'script, and an optional region, e.g. ja-JP or zh-Hant-TW.',
       );
   }
 
@@ -148,14 +187,13 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
     final imports = args.multiOption('import');
     final rawSize = args.option('size');
     final size = switch (rawSize) {
-      unboundedSize => WidgetSize.unbounded,
-      final raw? => parseSize(raw),
+      final raw? => parseWidgetSize(raw),
       null => null,
     };
     final actions = parseActions(args);
     final screen = args.option('capture') == 'screen';
     final viewport = switch (args.option('viewport')) {
-      final raw? => parseSize(raw, name: 'viewport'),
+      final raw? => parseViewport(raw),
       null => null,
     };
     final keyboard = switch (args.option('keyboard')) {
@@ -170,6 +208,13 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
     };
     final networkImages = parseNetworkImages(args.multiOption('network-image'));
     final platform = ShotPlatform.values.byName(args.option('platform')!);
+    final pixelRatio = parsePixelRatio(args.option('pixel-ratio')!);
+    final safeArea = switch (args.option('safe-area')) {
+      final raw? => parseSafeArea(raw),
+      null => null,
+    };
+    final brightness = ShotBrightness.values.byName(args.option('brightness')!);
+    final textScale = parseTextScale(args.option('text-scale')!);
     final files = args.rest;
     if (source == null && (imports.isNotEmpty || rawSize != null)) {
       throw ShutterException.usage('--import and --size need --widget.');
@@ -203,6 +248,11 @@ class ShotCommand(final ShutterContext context, {final bool semantics = false})
       },
       networkImages: networkImages,
       platform: platform,
+      pixelRatio: pixelRatio,
+      safeArea: safeArea,
+      brightness: brightness,
+      textScale: textScale,
+      locale: args.option('locale'),
       semantics: semantics,
     );
     reportShots(run.manifest, run.dir, ShutterIO.stdoutSink);

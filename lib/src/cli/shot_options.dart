@@ -21,17 +21,44 @@ int parseCount(ArgResults results, String name) {
   return value;
 }
 
-/// Parses option [name] (`--size`, `--viewport`) as `<width>x<height>`
-/// in logical pixels; `shoot` checks the size.
-LogicalSize parseSize(String raw, {String name = 'size'}) {
-  final values = [for (final part in raw.split('x')) double.tryParse(part)];
-  if (values case [final width?, final height?]) {
+/// Parses `--viewport` as `<width>x<height>` in logical pixels; `shoot`
+/// checks the size.
+LogicalSize parseViewport(String raw) {
+  if (_dimensions(raw) case (final width, final height?)) {
     return LogicalSize(width, height);
   }
-  final unbounded = name == 'size' ? ', or $unboundedSize' : '';
   throw ShutterException.usage(
-    '--$name must be <width>x<height>, e.g. 390x844$unbounded (got "$raw").',
+    '--viewport must be <width>x<height>, e.g. 390x844 (got "$raw").',
   );
+}
+
+/// Parses `--size`: `<width>x<height>` in logical pixels, `<width>x` for
+/// a width with the height left unbounded, or [unboundedSize]; `shoot`
+/// checks the size.
+WidgetSize parseWidgetSize(String raw) {
+  if (raw == unboundedSize) return WidgetSize.unbounded;
+  return switch (_dimensions(raw)) {
+    (final width, final height?) => LogicalSize(width, height),
+    (final width, null) => LogicalSize(width, double.infinity),
+    null => throw ShutterException.usage(
+      '--size must be <width>x<height>, <width>x for its own height, or '
+      '$unboundedSize, e.g. 390x844 or 390x (got "$raw").',
+    ),
+  };
+}
+
+/// The width and height of `<width>x<height>`, or the width alone of
+/// `<width>x`; null for anything else.
+(double, double?)? _dimensions(String raw) {
+  final parts = raw.split('x');
+  if (parts.length != 2) return null;
+  final width = double.tryParse(parts[0]);
+  if (width == null) return null;
+  if (parts[1].isEmpty) return (width, null);
+  return switch (double.tryParse(parts[1])) {
+    final height? => (width, height),
+    null => null,
+  };
 }
 
 /// Parses `--keyboard` as a height in logical pixels; `shoot` checks the
@@ -40,6 +67,35 @@ double parseKeyboard(String raw) {
   if (double.tryParse(raw) case final height?) return height;
   throw ShutterException.usage(
     '--keyboard must be a height in logical pixels, e.g. 336 (got "$raw").',
+  );
+}
+
+/// Parses `--pixel-ratio` as a number; `shoot` checks the ratio.
+double parsePixelRatio(String raw) {
+  if (double.tryParse(raw) case final ratio?) return ratio;
+  throw ShutterException.usage(
+    '--pixel-ratio must be a number, e.g. 3 (got "$raw").',
+  );
+}
+
+/// Parses `--text-scale` as a number; `shoot` checks the scale.
+double parseTextScale(String raw) {
+  if (double.tryParse(raw) case final scale?) return scale;
+  throw ShutterException.usage(
+    '--text-scale must be a number, e.g. 1.3 (got "$raw").',
+  );
+}
+
+/// Parses `--safe-area` as `<top>,<bottom>` in logical pixels; `shoot`
+/// checks the insets.
+SafeAreaInsets parseSafeArea(String raw) {
+  final values = [for (final part in raw.split(',')) double.tryParse(part)];
+  if (values case [final top?, final bottom?]) {
+    return SafeAreaInsets(top: top, bottom: bottom);
+  }
+  throw ShutterException.usage(
+    '--safe-area must be <top>,<bottom> in logical pixels, e.g. 59,34 '
+    '(got "$raw").',
   );
 }
 

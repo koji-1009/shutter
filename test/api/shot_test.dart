@@ -61,6 +61,11 @@ void main() {
         keyboard: const Keyboard(336, tint: 0xFF9E9E9E),
         networkImages: {'https://example.com/a.png': 'test/images/a.png'},
         platform: ShotPlatform.ios,
+        pixelRatio: 3,
+        safeArea: const SafeAreaInsets(top: 59, bottom: 34),
+        brightness: ShotBrightness.dark,
+        textScale: 1.3,
+        locale: 'zh_hant_tw',
       );
       final run = shotRun(stored);
       final dir = p.join(root, '.dart_tool', 'shutter', 'runs', run.id);
@@ -119,9 +124,34 @@ void main() {
         'https://example.com/a.png': p.join(root, 'test', 'images', 'a.png'),
       });
       expect((request.platform, request.semantics), (ShotPlatform.ios, false));
-      expect(RunManifest.read(dir).setup.platform, ShotPlatform.ios);
+      expect(request.pixelRatio, 3);
+      expect(request.safeArea, (59.0, 34.0));
+      final setup = RunManifest.read(dir).setup;
+      expect((setup.platform, setup.pixelRatio), (ShotPlatform.ios, 3));
+      expect(setup.safeArea, (59.0, 34.0));
+      expect(
+        (request.brightness, request.textScale),
+        (ShotBrightness.dark, 1.3),
+      );
+      expect((setup.brightness, setup.textScale), (ShotBrightness.dark, 1.3));
+      // Each code in its usual case, joined as a language tag.
+      expect(request.locale, ('zh', 'Hant', 'TW'));
+      expect(setup.locale, 'zh-Hant-TW');
     },
   );
+
+  test('a deprecated language or region is recorded as the app receives '
+      'it', () async {
+    final root = createProject();
+    final engine = FakeEngine(const []);
+    final stored = await shoot(
+      fakeContext(root, engine: engine),
+      const WidgetExpression('B()'),
+      locale: 'iw-BU',
+    );
+    expect(engine.requests.single.locale, ('he', null, 'MM'));
+    expect(stored.manifest.setup.locale, 'he-MM');
+  });
 
   test('paths are relative to the project directory given', () async {
     final root = createProject(files: {'lib/ui/b.dart': ''});
@@ -169,6 +199,10 @@ void main() {
     expect((request.screen, request.viewport), (true, null));
     expect((request.keyboard, request.keyboardTint), (300.0, null));
     expect(request.semantics, isTrue);
+    expect(request.pixelRatio, defaultPixelRatio);
+    expect(request.safeArea, isNull);
+    expect((request.brightness, request.textScale), (ShotBrightness.light, 1));
+    expect(request.locale, isNull);
 
     final unbounded = FakeEngine(const []);
     await shoot(
@@ -178,6 +212,17 @@ void main() {
     final widget = unbounded.requests.single.widget!;
     expect((widget.size, widget.unbounded), (null, true));
     expect(unbounded.requests.single.screen, isFalse);
+
+    final width = FakeEngine(const []);
+    await shoot(
+      fakeContext(root, engine: width),
+      const WidgetExpression('B()', size: LogicalSize(390, double.infinity)),
+    );
+    final listItem = width.requests.single.widget!;
+    expect(
+      (listItem.size, listItem.unbounded),
+      ((390.0, double.infinity), false),
+    );
   });
 
   test('arguments that do not fit together throw before the project is '
@@ -189,6 +234,10 @@ void main() {
       List<ShotAction> actions = const [],
       ShotCapture capture = const PreviewCapture(),
       Keyboard? keyboard,
+      double pixelRatio = defaultPixelRatio,
+      SafeAreaInsets? safeArea,
+      double textScale = 1,
+      String? locale,
       bool semantics = false,
     }) => shoot(
       fakeContext(root),
@@ -197,12 +246,45 @@ void main() {
       actions: actions,
       capture: capture,
       keyboard: keyboard,
+      pixelRatio: pixelRatio,
+      safeArea: safeArea,
+      textScale: textScale,
+      locale: locale,
       semantics: semantics,
     );
     await expectLater(
       run(settle: const Duration(milliseconds: -1)),
       throwsA(usageError('settle must not be negative')),
     );
+    for (final ratio in [0.0, -1.0, double.infinity, double.nan]) {
+      await expectLater(
+        run(pixelRatio: ratio),
+        throwsA(usageError('pixel ratio must be > 0 and finite')),
+      );
+    }
+    for (final safeArea in const [
+      SafeAreaInsets(top: -1),
+      SafeAreaInsets(bottom: -1),
+      SafeAreaInsets(top: double.infinity),
+      SafeAreaInsets(bottom: double.nan),
+    ]) {
+      await expectLater(
+        run(safeArea: safeArea),
+        throwsA(usageError('safe area insets must be logical sizes ≥ 0')),
+      );
+    }
+    for (final scale in [0.0, -1.0, double.infinity, double.nan]) {
+      await expectLater(
+        run(textScale: scale),
+        throwsA(usageError('text scale must be > 0 and finite')),
+      );
+    }
+    for (final locale in ['', 'j', 'japanese', 'ja-JPN', 'ja-JP-x', 'ja JP']) {
+      await expectLater(
+        run(locale: locale),
+        throwsA(usageError('locale must be a language, then an optional')),
+      );
+    }
     await expectLater(
       run(subject: const PreviewFiles([])),
       throwsA(usageError('PreviewFiles names no file.')),
@@ -233,6 +315,17 @@ void main() {
       await expectLater(
         run(subject: WidgetExpression('A()', size: size)),
         throwsA(usageError('widget size must be > 0 and finite')),
+      );
+    }
+    for (final width in [0.0, -1.0, double.infinity, double.nan]) {
+      await expectLater(
+        run(
+          subject: WidgetExpression(
+            'A()',
+            size: LogicalSize(width, double.infinity),
+          ),
+        ),
+        throwsA(usageError('widget width must be > 0 and finite')),
       );
     }
     for (final height in [0.0, -1.0, double.infinity, double.nan]) {

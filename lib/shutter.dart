@@ -32,5 +32,5 @@ export 'src/diff/composite.dart' show CompositeDirection;
 export 'src/diff/run_diff.dart' show DiffStatus;
 export 'src/engine/interaction.dart';
 export 'src/engine/progress.dart';
-export 'src/run/manifest.dart' show ShotPlatform, ShotStatus;
+export 'src/run/manifest.dart' show ShotBrightness, ShotPlatform, ShotStatus;
 export 'src/shutter_exception.dart';

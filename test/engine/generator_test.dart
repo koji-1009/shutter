@@ -142,6 +142,11 @@ void main() {
           networkImages: const {r'https://example.com/$a.png': '/p/a.png'},
           semantics: true,
           platform: ShotPlatform.ios,
+          pixelRatio: 3,
+          safeArea: (59, 34.5),
+          brightness: ShotBrightness.dark,
+          textScale: 1.3,
+          locale: ('zh', 'Hant', 'TW'),
         ),
         materialFontsDir: '/sdk/fonts',
         design: const DesignSupport(available: [], shell: null),
@@ -166,7 +171,12 @@ void main() {
         "        'https://example.com/\\\$a.png': '/p/a.png',\n"
         '      },\n'
         '      semantics: true,\n'
-        '      platform: .iOS,\n',
+        '      platform: .iOS,\n'
+        '      pixelRatio: 3.0,\n'
+        '      safeArea: (59.0, 34.5),\n'
+        '      brightness: .dark,\n'
+        '      textScale: 1.3,\n'
+        "      locale: ('zh', 'Hant', 'TW'),\n",
       ),
     );
     final plain = mainSource(const [], config(project));
@@ -177,6 +187,28 @@ void main() {
     expect(plain, isNot(contains('networkImages:')));
     expect(plain, isNot(contains('semantics:')));
     expect(plain, isNot(contains('platform:')));
+    expect(plain, isNot(contains('pixelRatio:')));
+    expect(plain, isNot(contains('safeArea:')));
+    expect(plain, isNot(contains('brightness:')));
+    expect(plain, isNot(contains('textScale:')));
+    expect(plain, isNot(contains('locale:')));
+    final japanese = mainSource(
+      const [],
+      GeneratorConfig(
+        request: CaptureRequest(
+          project: project,
+          libraries: const [],
+          runDir: '/runs/r1',
+          settleMs: 300,
+          locale: ('ja', null, 'JP'),
+        ),
+        materialFontsDir: '/sdk/fonts',
+        design: const DesignSupport(available: [], shell: null),
+        googleFonts: false,
+        fonts: const [],
+      ),
+    );
+    expect(japanese, contains("      locale: ('ja', null, 'JP'),\n"));
   });
 
   test('a --widget helper imports unprefixed, escapes the expression in the '

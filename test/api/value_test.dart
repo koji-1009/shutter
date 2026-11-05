@@ -79,12 +79,17 @@ void main() {
       const Keyboard(300, tint: 0x809E9E9E),
     ], 'Keyboard(height: 336, tint: 0x809E9E9E)');
     expect('${Keyboard(336.5)}', 'Keyboard(height: 336.5)');
+    valueType(() => SafeAreaInsets(top: 59, bottom: 34.5), [
+      const SafeAreaInsets(top: 59),
+      const SafeAreaInsets(bottom: 34.5),
+    ], 'SafeAreaInsets(top: 59, bottom: 34.5)');
     valueType(() => LogicalSize(390, 844.5), [
       const LogicalSize(844.5, 390),
       WidgetSize.unbounded,
     ], '390x844.5');
     expect('${const LogicalSize(double.infinity, 1)}', 'Infinityx1');
     expect('${WidgetSize.unbounded}', 'unbounded');
+    expect('${const LogicalSize(390.5, double.infinity)}', '390.5x');
   });
 
   test('results compare by value and print what they hold', () {
@@ -170,6 +175,11 @@ void main() {
       networkImages: {url: ShotFile(path: 'a.png', sha256: 'b')},
       semantics: true,
       platform: ShotPlatform.ios,
+      pixelRatio: 2.625,
+      safeArea: SafeAreaInsets(top: 59, bottom: 34),
+      brightness: ShotBrightness.dark,
+      textScale: 1.3,
+      locale: 'ja-JP',
     );
     valueType(
       () => setup(action: fresh()),
@@ -184,13 +194,23 @@ void main() {
       'keyboard: Keyboard(height: 336), '
       'networkImages: {https://example.com/a.png: '
       'ShotFile(path: a.png, sha256: b)}, '
-      'semantics: true, platform: ios)',
+      'semantics: true, platform: ios, pixelRatio: 2.625, '
+      'safeArea: SafeAreaInsets(top: 59, bottom: 34), brightness: dark, '
+      'textScale: 1.3, locale: ja-JP)',
     );
     expect(
       '${const ShotSetup()}',
       'ShotSetup(actions: [], capture: PreviewCapture(), networkImages: {}, '
-          'semantics: false, platform: android)',
+          'semantics: false, platform: android, pixelRatio: 2, '
+          'brightness: light, textScale: 1)',
     );
+    expect(const ShotSetup(pixelRatio: 3), isNot(const ShotSetup()));
+    expect(
+      const ShotSetup(brightness: ShotBrightness.dark),
+      isNot(const ShotSetup()),
+    );
+    expect(const ShotSetup(textScale: 2), isNot(const ShotSetup()));
+    expect(const ShotSetup(locale: 'ja-JP'), isNot(const ShotSetup()));
     title = '/app/runs/r2/a.0.png';
     const shot = ShotResult(id: 'a.0', status: ShotStatus.ok, name: 'a');
     ShotDiffEntry entry(String png) => ShotDiffEntry(

@@ -67,6 +67,22 @@ class const ShutterConfig({
   /// The platform the app is drawn as; flutter_test's Android when null.
   final TargetPlatform? platform,
 
+  /// Device pixel ratio every shot is rendered at.
+  final double pixelRatio = 2,
+
+  /// Logical safe area insets, top and bottom, reported to the app as the
+  /// view padding.
+  final (double, double)? safeArea,
+
+  /// The platform brightness and text scale reported to every preview
+  /// that sets none; flutter_test's light and 1 when null.
+  final Brightness? brightness,
+  final double? textScale,
+
+  /// The locale reported as the device's, by language, script, and
+  /// country code; flutter_test's en-US when null.
+  final (String, String?, String?)? locale,
+
   /// Host font files by family, in fallback order, chosen by the CLI.
   final Map<String, List<String>> fallbackFonts = const {},
 });
@@ -144,9 +160,6 @@ final _missingFont = RegExp(r'fonts\.gstatic\.com/s/a/([0-9a-f]{64})\.ttf');
 final _missingAsset = RegExp(
   r'font (\S+) was not found in the application assets',
 );
-
-/// Device pixel ratio every shot is rendered at.
-const double _pixelRatio = 2;
 
 /// Logical viewport used when a preview does not fix a dimension.
 const Size _fallbackViewport = Size(800, 600);
@@ -320,22 +333,46 @@ Future<void> _capture(
         height ?? _fallbackViewport.height,
       ),
     };
-    tester.view.devicePixelRatio = _pixelRatio;
-    tester.view.physicalSize = viewport * _pixelRatio;
+    final ratio = config.pixelRatio;
+    tester.view.devicePixelRatio = ratio;
+    tester.view.physicalSize = _physical(viewport, ratio);
     // The inset a device reports while its keyboard is up; the keyboard
     // itself is drawn only as its tint.
     final keyboard = config.keyboard;
     final tint = config.keyboardTint;
     if (keyboard != null) {
-      tester.view.viewInsets = FakeViewPadding(bottom: keyboard * _pixelRatio);
+      tester.view.viewInsets = FakeViewPadding(bottom: keyboard * ratio);
     }
-    if (preview.brightness != null) {
-      tester.platformDispatcher.platformBrightnessTestValue =
-          preview.brightness!;
+    // The insets of a status bar, a notch, and a home indicator, none of
+    // them drawn. As on a device, the keyboard absorbs the bottom one from
+    // the padding, but not from the view padding.
+    if (config.safeArea case (final top, final bottom)?) {
+      tester.view.viewPadding = FakeViewPadding(
+        top: top * ratio,
+        bottom: bottom * ratio,
+      );
+      tester.view.padding = FakeViewPadding(
+        top: top * ratio,
+        bottom: math.max(0, bottom - (keyboard ?? 0)) * ratio,
+      );
     }
-    if (preview.textScaleFactor != null) {
-      tester.platformDispatcher.textScaleFactorTestValue =
-          preview.textScaleFactor!;
+    // The run's, as the device's settings; a preview's own wins.
+    if (preview.brightness ?? config.brightness case final brightness?) {
+      tester.platformDispatcher.platformBrightnessTestValue = brightness;
+    }
+    if (preview.textScaleFactor ?? config.textScale case final scale?) {
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+    }
+    // The device's locale, which an app widget, or a preview's own
+    // localizations without a locale, resolves its locale from.
+    if (config.locale case (final language, final script, final country)?) {
+      final locale = Locale.fromSubtags(
+        languageCode: language,
+        scriptCode: script,
+        countryCode: country,
+      );
+      tester.platformDispatcher.localesTestValue = [locale];
+      tester.platformDispatcher.localeTestValue = locale;
     }
 
     Widget child = _subject(entry);
@@ -447,11 +484,15 @@ Future<void> _capture(
               tester,
               screen == null ? boundary!.localToGlobal(Offset.zero) : .zero,
               size,
+              ratio,
             )
-          : screen == null
-          ? boundary!.toImageSync(pixelRatio: _pixelRatio)
-          : (screen.debugLayer! as OffsetLayer).toImageSync(
-              screen.paintBounds,
+          : _fitted(
+              screen == null
+                  ? boundary!.toImageSync(pixelRatio: ratio)
+                  : (screen.debugLayer! as OffsetLayer).toImageSync(
+                      screen.paintBounds,
+                    ),
+              _physical(size, ratio),
             );
       final bytes = await tester.runAsync(
         () => image.toByteData(format: ui.ImageByteFormat.png),
@@ -549,16 +590,22 @@ class _RenderKeyboardTint(
 }
 
 /// The view's semantics tree over [size] at [origin], logical in the view,
-/// drawn as Flutter's `SemanticsDebugger` draws it: a white box per node,
-/// framed thicker the higher it is in the tree, in a color of its place
-/// there, with its label and what it does. The whole tree is drawn and
+/// at the device pixel [ratio], drawn as Flutter's `SemanticsDebugger`
+/// draws it: a white box per node, framed thicker the higher it is in the
+/// tree, in a color of its place there, with its label and what it does.
+/// The whole tree is drawn and
 /// cut to that region, so the preview's nodes are those the app has,
 /// merged as it merges them. The debugger's painter is private, so this
 /// is its drawing.
-ui.Image _semanticsImage(WidgetTester tester, Offset origin, Size size) {
+ui.Image _semanticsImage(
+  WidgetTester tester,
+  Offset origin,
+  Size size,
+  double ratio,
+) {
   final root = tester.binding.renderViews.first.owner!.semanticsOwner!
       .rootSemanticsNode!;
-  final physical = size * _pixelRatio;
+  final physical = _physical(size, ratio);
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
   canvas.drawRect(
@@ -567,7 +614,7 @@ ui.Image _semanticsImage(WidgetTester tester, Offset origin, Size size) {
   );
   // Node rects are in physical pixels from the root node down, each in
   // its parent's space through its transform.
-  final shift = origin * _pixelRatio;
+  final shift = origin * ratio;
   canvas.translate(-shift.dx, -shift.dy);
   _paintSemantics(canvas, root, _semanticsDepth(root), 0, 0);
   final picture = recorder.endRecording();
@@ -578,6 +625,33 @@ ui.Image _semanticsImage(WidgetTester tester, Offset origin, Size size) {
   );
   picture.dispose();
   return image;
+}
+
+/// [logical] at the device pixel [ratio], without the noise of the
+/// product in binary: 25 at 2.2 is 55, not the 55.00000000000001 the
+/// product is, which rounds up to a 56th pixel.
+Size _physical(Size logical, double ratio) {
+  double clean(double value) => (value * ratio * 1e6).round() / 1e6;
+  return Size(clean(logical.width), clean(logical.height));
+}
+
+/// [image] cut to [physical], rounded up: a layer's image rounds up the
+/// product of its bounds and the ratio, noise included, which can add a
+/// column or row past the shot.
+ui.Image _fitted(ui.Image image, Size physical) {
+  final width = physical.width.ceil();
+  final height = physical.height.ceil();
+  if (image.width <= width && image.height <= height) return image;
+  final recorder = ui.PictureRecorder();
+  Canvas(recorder).drawImage(image, Offset.zero, Paint());
+  final picture = recorder.endRecording();
+  final fitted = picture.toImageSync(
+    math.min(image.width, width),
+    math.min(image.height, height),
+  );
+  picture.dispose();
+  image.dispose();
+  return fitted;
 }
 
 int _semanticsDepth(SemanticsNode node) {

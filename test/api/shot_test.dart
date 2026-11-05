@@ -140,6 +140,19 @@ void main() {
     },
   );
 
+  test('a deprecated language or region is recorded as the app receives '
+      'it', () async {
+    final root = createProject();
+    final engine = FakeEngine(const []);
+    final stored = await shoot(
+      fakeContext(root, engine: engine),
+      const WidgetExpression('B()'),
+      locale: 'iw-BU',
+    );
+    expect(engine.requests.single.locale, ('he', null, 'MM'));
+    expect(stored.manifest.setup.locale, 'he-MM');
+  });
+
   test('paths are relative to the project directory given', () async {
     final root = createProject(files: {'lib/ui/b.dart': ''});
     final engine = FakeEngine(const []);

@@ -136,7 +136,7 @@ They are not part of shot ids, so a run with `--brightness dark` pairs shot for 
 What resolves its locale from the device's resolves it from this one, as on a device with that language set: the shell's app widget, against its `supportedLocales`, and a preview's `localizations` that set no `locale` of their own.
 An app widget that does not support the locale falls back as on a device: the default shell's `MaterialApp`, which supports only en-US, stays in English, so shoot through a shell that sets the app's `supportedLocales` and `localizationsDelegates`.
 
-The run records `locale` in `manifest.json`, with each code in its usual case (`zh-Hant-TW`); `shot` prints it, and `diff` prints both runs' when they differ, since the locale changes the text without any widget changing.
+The run records `locale` in `manifest.json` as the app receives it: each code in its usual case (`zh-Hant-TW`), and a deprecated language or region replaced as Flutter's `Locale` replaces it (`iw-IL` is `he-IL`); `shot` prints it, and `diff` prints both runs' when they differ, since the locale changes the text without any widget changing.
 It is not part of shot ids, so a run with `--locale` pairs shot for shot with one without.
 
 ## The semantics tree

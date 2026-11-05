@@ -15,6 +15,7 @@ import '../run/run_store.dart';
 import '../run/timestamp_id.dart';
 import '../scan/scanner.dart';
 import '../shutter_exception.dart';
+import 'locale_codes.dart';
 import 'shot.dart';
 
 /// Shoots [subject] as [shot] does, in the project at or above the
@@ -63,7 +64,7 @@ Future<StoredRun> shoot(
       'text scale must be > 0 and finite (got ${formatNumber(textScale)}).',
     );
   }
-  final localeCodes = locale == null ? null : _localeCodes(locale);
+  final codes = locale == null ? null : localeCodes(locale);
   _checkActions(actions);
   final viewport = switch (capture) {
     ScreenCapture(:final viewport?) => _size(viewport, 'viewport'),
@@ -160,7 +161,7 @@ Future<StoredRun> shoot(
       safeArea: insets,
       brightness: brightness,
       textScale: textScale,
-      locale: localeCodes,
+      locale: codes,
       onProgress: onProgress,
     ),
   );
@@ -181,14 +182,7 @@ Future<StoredRun> shoot(
       safeArea: insets,
       brightness: brightness,
       textScale: textScale,
-      locale: switch (localeCodes) {
-        (final language, final script, final country)? => [
-          language,
-          ?script,
-          ?country,
-        ].join('-'),
-        null => null,
-      },
+      locale: codes == null ? null : languageTag(codes),
     ),
   )..write(runDir);
   return StoredRun(runDir, manifest);
@@ -224,32 +218,6 @@ void _checkActions(List<ShotAction> actions) {
   }
   throw ShutterException.usage(
     '$what must be > 0 and finite in both dimensions (got $size).',
-  );
-}
-
-/// A language (an ISO 639 code), an optional script, and an optional
-/// region, joined by `-` or `_`, as `Locale.fromSubtags` takes them.
-final _languageTag = RegExp(
-  r'^([a-zA-Z]{2,3})(?:[-_]([a-zA-Z]{4}))?(?:[-_]([a-zA-Z]{2}|[0-9]{3}))?$',
-);
-
-/// The language, script, and country codes of [tag], each in its usual
-/// case (`ja`, `Hant`, `JP`).
-(String, String?, String?) _localeCodes(String tag) {
-  final match = _languageTag.firstMatch(tag);
-  if (match == null) {
-    throw ShutterException.usage(
-      'locale must be a language, then an optional script and region, '
-      'e.g. ja-JP or zh-Hant-TW (got "$tag").',
-    );
-  }
-  final script = match.group(2);
-  return (
-    match.group(1)!.toLowerCase(),
-    script == null
-        ? null
-        : '${script[0].toUpperCase()}${script.substring(1).toLowerCase()}',
-    match.group(3)?.toUpperCase(),
   );
 }
 

@@ -64,7 +64,11 @@ String formatSafeArea((double, double)? safeArea) => switch (safeArea) {
 };
 
 /// `ja-JP`, or `default` for a run shot without `--locale`.
-String formatLocale(String? locale) => locale ?? 'default';
+String formatLocale(String? locale) => switch (locale) {
+  // Quoted when YAML would read it otherwise: `no` (Norwegian) is false.
+  final tag? => yamlScalar(tag),
+  null => 'default',
+};
 
 /// `semantics` for a run of `shutter semantics`, else `paint`.
 String formatImage(bool semantics) => semantics ? 'semantics' : 'paint';
@@ -92,7 +96,7 @@ void writeSetup(StringBuffer body, RunSetup setup) {
     body.writeln('text_scale: ${formatNumber(setup.textScale)}');
   }
   if (setup.locale case final locale?) {
-    body.writeln('locale: ${yamlScalar(locale)}');
+    body.writeln('locale: ${formatLocale(locale)}');
   }
   if (setup.actions.isNotEmpty) {
     body.writeln('actions: ${formatActions(setup.actions)}');

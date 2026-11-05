@@ -409,6 +409,37 @@ entries:
       final locale = await report(plainSetup, japanese);
       expect(locale['locale'], {'before': 'default', 'after': 'ja-JP'});
       expect(locale.containsKey('brightness'), isFalse);
+      // Norwegian's `no` is quoted: a YAML 1.1 reader takes `no` for false.
+      final norwegian = await collect(
+        (sink) => reportDiff(
+          const RunDiff(
+            before: 'a',
+            after: 'b',
+            entries: [],
+            afterSetup: (
+              actions: [],
+              screen: false,
+              viewport: null,
+              keyboard: null,
+              keyboardTint: null,
+              networkImages: {},
+              semantics: false,
+              platform: ShotPlatform.android,
+              pixelRatio: defaultPixelRatio,
+              safeArea: null,
+              brightness: ShotBrightness.light,
+              textScale: 1,
+              locale: 'no',
+            ),
+          ),
+          null,
+          sink,
+        ),
+      );
+      expect(
+        norwegian,
+        contains('locale:\n  before: default\n  after: "no"\n'),
+      );
     },
   );
 

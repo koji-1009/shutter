@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.1
 
 * `pubspec.yaml` declares Linux, macOS, and Windows as the platforms shutter runs on, so pub.dev no longer lists Android and iOS.
 

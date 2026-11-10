@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+* `pubspec.yaml` declares Linux, macOS, and Windows as the platforms shutter runs on, so pub.dev no longer lists Android and iOS.
+
 ## 1.4.0
 
 The device a shot is drawn as: its pixel ratio, safe area, brightness, text scale, and locale.
